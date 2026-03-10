@@ -28,3 +28,6 @@ jobs:
 
       - name: Check JS syntax
         run: node --check main.js && node --check preload.js && node --check renderer.js
+
+      - name: Run tests
+        run: npx vitest run
