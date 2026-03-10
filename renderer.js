@@ -50,6 +50,15 @@ function spawnStars(x, y, count) {
   }
 }
 
+function spawnZzz(x, y) {
+  particles.push({
+    x: x + rand(-5, 5), y: y - 10,
+    vx: rand(0.3, 1), vy: -rand(1, 2),
+    life: 1, decay: 0.012, r: rand(8, 14),
+    color: '#888', text: 'Z',
+  });
+}
+
 function updateParticles(dt) {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
@@ -63,7 +72,11 @@ function updateParticles(dt) {
 function drawParticles() {
   for (const p of particles) {
     ctx.globalAlpha = p.life;
-    if (p.star) {
+    if (p.text) {
+      ctx.font = `bold ${Math.round(p.r)}px sans-serif`;
+      ctx.fillStyle = p.color;
+      ctx.fillText(p.text, p.x, p.y);
+    } else if (p.star) {
       drawStar(p.x, p.y, p.r);
     } else {
       ctx.fillStyle = p.color;
@@ -253,6 +266,133 @@ const ACTIONS = {
     };
   },
 
+  pushUp: (t) => {
+    const pump = Math.sin(t * 5);
+    const bend = (1 + pump) / 2;
+    return {
+      body: 75, head: -30 + pump * 5,
+      lArmUp: -75 + bend * 20, lArmLow: bend * 30,
+      rArmUp: 75 - bend * 20, rArmLow: -bend * 30,
+      lLegUp: 5, lLegLow: 0, rLegUp: -5, rLegLow: 0,
+    };
+  },
+
+  headstand: (t) => {
+    const sway = Math.sin(t * 2) * 8;
+    return {
+      body: 180 + sway, head: 0,
+      lArmUp: -40 + sway, lArmLow: 30,
+      rArmUp: 40 + sway, rArmLow: -30,
+      lLegUp: -15 + Math.sin(t * 1.5) * 12, lLegLow: 0,
+      rLegUp: 15 + Math.sin(t * 1.5 + 1) * 12, rLegLow: 0,
+    };
+  },
+
+  yawn: (t) => {
+    const p = Math.min(t / 3, 1);
+    let armRaise, bodyStretch;
+    if (p < 0.4) {
+      armRaise = p / 0.4;
+      bodyStretch = armRaise * 5;
+    } else if (p < 0.7) {
+      armRaise = 1;
+      bodyStretch = 5 + Math.sin((p - 0.4) / 0.3 * Math.PI) * 3;
+    } else {
+      armRaise = 1 - (p - 0.7) / 0.3;
+      bodyStretch = 5 * armRaise;
+    }
+    return {
+      body: -bodyStretch, head: -10 * armRaise + Math.sin(t * 2) * 3,
+      lArmUp: -15 - armRaise * 150, lArmLow: -10 - armRaise * 20,
+      rArmUp: 15 + armRaise * 150, rArmLow: 10 + armRaise * 20,
+      lLegUp: -4, lLegLow: 0, rLegUp: 4, rLegLow: 0,
+    };
+  },
+
+  sneak: (t) => {
+    const s = Math.sin(t * 4);
+    const c = Math.cos(t * 4);
+    return {
+      body: -15 + s * 3, head: 20 + s * 5,
+      lArmUp: -30 + s * 10, lArmLow: -60,
+      rArmUp: 30 - s * 10, rArmLow: 60,
+      lLegUp: -s * 25, lLegLow: clamp(c * 35, 0, 35),
+      rLegUp: s * 25, rLegLow: clamp(-c * 35, 0, 35),
+    };
+  },
+
+  bow: (t) => {
+    const p = (t % 2) / 2;
+    let bend;
+    if (p < 0.3) bend = p / 0.3;
+    else if (p < 0.6) bend = 1;
+    else bend = 1 - (p - 0.6) / 0.4;
+    return {
+      body: bend * 50, head: bend * 20,
+      lArmUp: -10 + bend * 10, lArmLow: -5,
+      rArmUp: 10 - bend * 10, rArmLow: 5,
+      lLegUp: -4, lLegLow: 0, rLegUp: 4, rLegLow: 0,
+    };
+  },
+
+  run: (t) => {
+    const s = Math.sin(t * 12);
+    const c = Math.cos(t * 12);
+    return {
+      body: 15 + s * 5, head: -s * 6,
+      lArmUp: s * 50, lArmLow: -Math.abs(s) * 40,
+      rArmUp: -s * 50, rArmLow: -Math.abs(s) * 40,
+      lLegUp: -s * 50, lLegLow: clamp(c * 55, 0, 55),
+      rLegUp: s * 50, rLegLow: clamp(-c * 55, 0, 55),
+    };
+  },
+
+  sleep: (t) => {
+    const headDroop = Math.sin(t * 0.8) * 15 + 20;
+    const sway = Math.sin(t * 0.5) * 5;
+    return {
+      body: sway, head: headDroop,
+      lArmUp: -10 + sway, lArmLow: -5,
+      rArmUp: 10 + sway, rArmLow: 5,
+      lLegUp: -4, lLegLow: 0, rLegUp: 4, rLegLow: 0,
+    };
+  },
+
+  stumble: (t) => {
+    let body, head, armL, armR;
+    if (t < 0.3) {
+      const q = t / 0.3;
+      body = q * 35; head = q * 15;
+      armL = -q * 60; armR = q * 60;
+    } else if (t < 0.6) {
+      const q = (t - 0.3) / 0.3;
+      body = 35 - q * 55; head = 15 - q * 30;
+      armL = -60 + q * 100; armR = 60 - q * 100;
+    } else {
+      const q = (t - 0.6) / 0.4;
+      body = -20 + q * 20; head = -15 + q * 15;
+      armL = 40 - q * 55; armR = -40 + q * 55;
+    }
+    return {
+      body, head,
+      lArmUp: armL, lArmLow: -20,
+      rArmUp: armR, rArmLow: 20,
+      lLegUp: -5 + Math.sin(t * 25) * 15, lLegLow: 10,
+      rLegUp: 5 - Math.sin(t * 25) * 15, rLegLow: 10,
+    };
+  },
+
+  celebrate: (t) => {
+    const bounce = Math.abs(Math.sin(t * 8));
+    return {
+      body: -bounce * 5, head: -10,
+      lArmUp: -160 + Math.sin(t * 10) * 20, lArmLow: 10,
+      rArmUp: 160 - Math.sin(t * 10 + 1) * 20, rArmLow: -10,
+      lLegUp: -10, lLegLow: bounce * 20,
+      rLegUp: 10, rLegLow: bounce * 20,
+    };
+  },
+
   // 反应动画
   surprised: (t) => {
     const bounce = Math.sin(t * 15) * Math.max(0, 1 - t * 2);
@@ -300,12 +440,17 @@ const ACTIONS = {
       rLegUp: 70 * p, rLegLow: 30 * p,
     };
   },
+
 };
+
+// ==================== 火柴人颜色 ====================
+const STICKMAN_COLOR = { body: '#222', back: '#555', head: '#222', fill: '#fff' };
 
 // ==================== 火柴人 ====================
 class Stickman {
-  constructor() {
-    this.x = W / 2;
+  constructor(startX) {
+    this.colors = STICKMAN_COLOR;
+    this.x = startX !== undefined ? startX : W / 2;
     this.y = HIP_GROUND;
     this.vx = 0;
     this.vy = 0;
@@ -395,8 +540,10 @@ class Stickman {
   // 选择下一个随机动作
   nextAction() {
     const actions = ['idle', 'lookAround', 'walk', 'dance', 'crazyDance',
-      'jump', 'wave', 'kick', 'spin', 'backflip', 'sitDown', 'flex'];
-    const weights = [3, 2, 4, 2, 1, 2, 1, 1, 1, 1, 1, 1];
+      'jump', 'wave', 'kick', 'spin', 'backflip', 'sitDown', 'flex',
+      'pushUp', 'headstand', 'yawn', 'sneak', 'bow', 'run', 'sleep', 'stumble', 'celebrate'];
+    const weights = [3, 2, 4, 2, 1, 2, 1, 1, 1, 1, 1, 1,
+      1, 1, 2, 2, 1, 3, 2, 1, 1];
     const total = weights.reduce((a, b) => a + b);
     let r = Math.random() * total;
     for (let i = 0; i < actions.length; i++) {
@@ -490,7 +637,17 @@ class Stickman {
       case 'lookAround':
       case 'flex':
       case 'sitDown':
+      case 'pushUp':
+      case 'headstand':
+      case 'yawn':
+      case 'bow':
+      case 'celebrate':
         this.pose = this.lerpPose(this.pose, ACTIONS[this.state](this.stateTime), 0.12);
+        if (this.state === 'celebrate' && Math.random() < 0.05) {
+          const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#FFD700'];
+          spawnParticles(this.x + rand(-20, 20), this.y - BONE.body + rand(-20, 0),
+            2, colors[Math.floor(Math.random() * colors.length)], 3);
+        }
         if (this.stateTime >= this.stateDuration) this.transitionToNext();
         break;
 
@@ -502,6 +659,59 @@ class Stickman {
             (this.facing < 0 && this.x <= this.walkTarget) ||
             this.x < 40 || this.x > W - 40) {
           this.x = clamp(this.x, 40, W - 40);
+          this.transitionToNext();
+        }
+        break;
+      }
+
+      case 'sneak': {
+        this.pose = this.lerpPose(this.pose, ACTIONS.sneak(this.stateTime), 0.15);
+        this.x += this.facing * 30 * dt;
+        if ((this.facing > 0 && this.x >= this.walkTarget) ||
+            (this.facing < 0 && this.x <= this.walkTarget) ||
+            this.x < 40 || this.x > W - 40) {
+          this.x = clamp(this.x, 40, W - 40);
+          this.transitionToNext();
+        }
+        break;
+      }
+
+      case 'run': {
+        this.pose = this.lerpPose(this.pose, ACTIONS.run(this.stateTime), 0.15);
+        this.x += this.facing * 150 * dt;
+        if (Math.random() < 0.3) {
+          spawnParticles(this.x - this.facing * 10, GROUND - 5, 1, '#ccc', 1);
+        }
+        if ((this.facing > 0 && this.x >= this.walkTarget) ||
+            (this.facing < 0 && this.x <= this.walkTarget) ||
+            this.x < 40 || this.x > W - 40) {
+          this.x = clamp(this.x, 40, W - 40);
+          this.transitionToNext();
+        }
+        break;
+      }
+
+      case 'sleep': {
+        this.pose = this.lerpPose(this.pose, ACTIONS.sleep(this.stateTime), 0.08);
+        if (Math.random() < 0.02) {
+          const j = this.getJoints();
+          spawnZzz(j.headCenter.x, j.headCenter.y);
+        }
+        if (this.stateTime >= this.stateDuration) {
+          this.expression = 'normal';
+          this.transitionToNext();
+        }
+        break;
+      }
+
+      case 'stumble': {
+        this.pose = this.lerpPose(this.pose,
+          ACTIONS.stumble(clamp(this.stateTime / this.stateDuration, 0, 1)), 0.2);
+        this.x += this.facing * 25 * dt * Math.sin(this.stateTime * 5);
+        this.x = clamp(this.x, 40, W - 40);
+        if (this.stateTime >= this.stateDuration) {
+          this.expression = 'dizzy';
+          this.exprTimer = 1.5;
           this.transitionToNext();
         }
         break;
@@ -616,16 +826,26 @@ class Stickman {
 
   transitionToNext() {
     const next = this.nextAction();
-    if (next === 'walk') {
+    if (next === 'walk' || next === 'sneak' || next === 'run') {
       this.walkTarget = rand(50, W - 50);
       this.facing = this.walkTarget > this.x ? 1 : -1;
-      this.setState('walk', 10); // walk自己判断结束
+      this.setState(next, 10); // 移动类动作自己判断结束
     } else if (next === 'jump' || next === 'backflip') {
       this.setState(next, 1.2);
     } else if (next === 'kick') {
       this.setState(next, 0.8);
     } else if (next === 'spin') {
       this.setState(next, 1.0);
+    } else if (next === 'stumble') {
+      this.setState(next, 1.5);
+    } else if (next === 'sleep') {
+      this.expression = 'sleepy';
+      this.exprTimer = 999;
+      this.setState(next, rand(3, 6));
+    } else if (next === 'celebrate') {
+      this.expression = 'happy';
+      this.exprTimer = 999;
+      this.setState(next, rand(2, 4));
     } else {
       this.setState(next, rand(2, 5));
     }
@@ -741,17 +961,16 @@ class Stickman {
     }
 
     // 画骨骼
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 5;
+    const c = this.colors;
 
     // 后面的手臂和腿（稍微淡一点表示层次）
-    ctx.strokeStyle = '#555';
+    ctx.strokeStyle = c.back;
     ctx.lineWidth = 4;
     this.drawLimb(j.lArm);
     this.drawLimb(j.lLeg);
 
     // 身体
-    ctx.strokeStyle = '#222';
+    ctx.strokeStyle = c.body;
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(j.hip.x, j.hip.y);
@@ -759,6 +978,7 @@ class Stickman {
     ctx.stroke();
 
     // 前面的手臂和腿
+    ctx.strokeStyle = c.body;
     ctx.lineWidth = 5;
     this.drawLimb(j.rArm);
     this.drawLimb(j.rLeg);
@@ -801,9 +1021,10 @@ class Stickman {
   drawHead(center, neck) {
     const r = BONE.headR;
 
-    // 头的白色填充
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#222';
+    // 头的填充
+    const c = this.colors;
+    ctx.fillStyle = c.fill;
+    ctx.strokeStyle = c.head;
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
@@ -823,7 +1044,7 @@ class Stickman {
 
     if (this.expression === 'dizzy') {
       // 眩晕 - 螺旋眼
-      ctx.strokeStyle = '#222';
+      ctx.strokeStyle = c.head;
       ctx.lineWidth = 1.5;
       for (const eye of [eyeL, eyeR]) {
         ctx.beginPath();
@@ -838,7 +1059,7 @@ class Stickman {
       }
     } else if (this.expression === 'surprised') {
       // 惊讶 - 大圆眼
-      ctx.fillStyle = '#222';
+      ctx.fillStyle = c.head;
       for (const eye of [eyeL, eyeR]) {
         ctx.beginPath();
         ctx.arc(eye.x + lookNX * 1, eye.y + lookNY * 1, 3.5, 0, Math.PI * 2);
@@ -848,9 +1069,36 @@ class Stickman {
       ctx.beginPath();
       ctx.arc(center.x, center.y + 6, 4, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (this.expression === 'sleepy') {
+      // 打瞌睡 - 半闭眼 + 眼皮线
+      ctx.strokeStyle = c.head;
+      ctx.lineWidth = 2;
+      for (const eye of [eyeL, eyeR]) {
+        ctx.beginPath();
+        ctx.moveTo(eye.x - 3, eye.y + 1);
+        ctx.quadraticCurveTo(eye.x, eye.y + 3, eye.x + 3, eye.y + 1);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(eye.x - 3, eye.y + 1);
+        ctx.lineTo(eye.x + 3, eye.y + 1);
+        ctx.stroke();
+      }
+    } else if (this.expression === 'happy') {
+      // 开心 - ^_^ 弯眼
+      ctx.strokeStyle = c.head;
+      ctx.lineWidth = 2;
+      for (const eye of [eyeL, eyeR]) {
+        ctx.beginPath();
+        ctx.arc(eye.x, eye.y + 2, 3, Math.PI + 0.3, -0.3);
+        ctx.stroke();
+      }
+      // 微笑
+      ctx.beginPath();
+      ctx.arc(center.x, center.y + 3, 4, 0.2, Math.PI - 0.2);
+      ctx.stroke();
     } else if (this.expression === 'nervous') {
       // 紧张 - 小点眼 + 汗
-      ctx.fillStyle = '#222';
+      ctx.fillStyle = c.head;
       for (const eye of [eyeL, eyeR]) {
         ctx.beginPath();
         ctx.arc(eye.x + lookNX * 2, eye.y + lookNY * 2, 2, 0, Math.PI * 2);
@@ -863,7 +1111,7 @@ class Stickman {
       ctx.fill();
     } else {
       // 正常眼睛
-      ctx.fillStyle = '#222';
+      ctx.fillStyle = c.head;
       for (const eye of [eyeL, eyeR]) {
         ctx.beginPath();
         ctx.arc(eye.x + lookNX * eyeOffset, eye.y + lookNY * eyeOffset, 2.5, 0, Math.PI * 2);
@@ -873,8 +1121,10 @@ class Stickman {
   }
 }
 
+// ==================== 火柴人实例 ====================
+const man = new Stickman(W / 2);
+
 // ==================== 鼠标交互 ====================
-const man = new Stickman();
 let rightDragging = false;
 let wasDragging = false;
 
@@ -898,10 +1148,8 @@ canvas.addEventListener('mousedown', (e) => {
     return;
   }
 
-  if (e.button === 0) {
-    if (man.hitTest(mx, my)) {
-      man.startDrag(mx, my);
-    }
+  if (e.button === 0 && man.hitTest(mx, my)) {
+    man.startDrag(mx, my);
   }
 });
 
@@ -922,7 +1170,7 @@ canvas.addEventListener('click', (e) => {
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
 
-  if (!man.dragging && man.hitTest(mx, my) && man.state !== 'thrown') {
+  if (man.hitTest(mx, my) && !man.dragging && man.state !== 'thrown') {
     man.poke();
   }
 });
@@ -949,10 +1197,11 @@ function gameLoop(time) {
   lastTime = time;
 
   ctx.clearRect(0, 0, W, H);
-
   drawGround();
+
   man.update(dt);
   man.draw();
+
   updateParticles(dt);
   drawParticles();
 
