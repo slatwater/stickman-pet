@@ -480,6 +480,15 @@ class Stickman {
     this.squash = 1;  // 挤压拉伸
     this.stretch = 1;
     this.bounceCount = 0;
+
+    // AI 自主行为
+    this.thought = '';
+    this.thoughtTimer = 0;
+    this.recentEvents = [];
+    this.actionHistory = [];
+    this.aiNextAction = null;
+    this.aiThought = null;
+    this.aiPending = false;
   }
 
   // 获取骨骼关节位置
@@ -553,6 +562,30 @@ class Stickman {
     return 'idle';
   }
 
+  addEvent(event) {
+    this.recentEvents.push(event);
+    if (this.recentEvents.length > 10) this.recentEvents.shift();
+  }
+
+  requestAiDecision() {
+    if (this.aiPending || !window.electronAPI?.aiDecide) return;
+    this.aiPending = true;
+    const context = [
+      `上一个动作：${this.state}`,
+      `动作历史：${this.actionHistory.slice(-5).join('→') || '无'}`,
+      `最近互动：${this.recentEvents.slice(-3).join('、') || '无'}`,
+      `已连续做了${this.actionHistory.length}个动作`,
+    ].join('\n');
+
+    window.electronAPI.aiDecide(context).then(result => {
+      this.aiPending = false;
+      if (result?.action && ACTIONS[result.action]) {
+        this.aiNextAction = result.action;
+        this.aiThought = result.thought || '';
+      }
+    }).catch(() => { this.aiPending = false; });
+  }
+
   update(dt) {
     this.stateTime += dt;
 
@@ -561,6 +594,9 @@ class Stickman {
       this.exprTimer -= dt;
       if (this.exprTimer <= 0) this.expression = 'normal';
     }
+
+    // 思考气泡消退
+    if (this.thoughtTimer > 0) this.thoughtTimer -= dt;
 
     // 挤压拉伸恢复
     this.squash = lerp(this.squash, 1, dt * 8);
@@ -625,6 +661,7 @@ class Stickman {
     const md = this.mouseDist();
     if (md < 60 && this.state !== 'surprised' && this.state !== 'nervous' && this.grounded) {
       if (this.state !== 'nervous') {
+        this.addEvent('被鼠标吓到了');
         this.setState('nervous', 0);
         this.expression = 'nervous';
         this.exprTimer = 2;
@@ -825,7 +862,22 @@ class Stickman {
   }
 
   transitionToNext() {
-    const next = this.nextAction();
+    let next;
+    if (this.aiNextAction && ACTIONS[this.aiNextAction]) {
+      next = this.aiNextAction;
+      if (this.aiThought) {
+        this.thought = this.aiThought;
+        this.thoughtTimer = 3;
+      }
+      this.aiNextAction = null;
+      this.aiThought = null;
+    } else {
+      next = this.nextAction();
+    }
+    this.actionHistory.push(next);
+    if (this.actionHistory.length > 20) this.actionHistory.shift();
+    this.requestAiDecision();
+
     if (next === 'walk' || next === 'sneak' || next === 'run') {
       this.walkTarget = rand(50, W - 50);
       this.facing = this.walkTarget > this.x ? 1 : -1;
@@ -863,6 +915,7 @@ class Stickman {
     spawnParticles(this.x, GROUND, 12, '#8B7355', 5);
 
     if (wasHard) {
+      this.addEvent('摔了个大跟头');
       this.expression = 'dizzy';
       this.exprTimer = 3;
       this.setState('splat', 2);
@@ -873,6 +926,7 @@ class Stickman {
 
   // 开始拖拽
   startDrag(mx, my) {
+    this.addEvent('被抓起来了');
     this.dragging = true;
     this.grounded = false;
     this.dragOffX = this.x - mx;
@@ -886,6 +940,7 @@ class Stickman {
 
   // 释放（投掷）
   release() {
+    this.addEvent('被扔出去了');
     this.dragging = false;
     this.expression = 'surprised';
     this.exprTimer = 2;
@@ -922,6 +977,7 @@ class Stickman {
   // 被点击
   poke() {
     if (this.dragging || this.state === 'thrown') return;
+    this.addEvent('被点击了');
     this.setState('surprised', 1.2);
     this.expression = 'surprised';
     this.exprTimer = 1.5;
@@ -1007,6 +1063,47 @@ class Stickman {
           ctx.stroke();
         }
       }
+    }
+
+    // 思考气泡
+    if (this.thoughtTimer > 0 && this.thought) {
+      const j = this.getJoints();
+      const bx = this.x;
+      const by = j.headCenter.y - BONE.headR - 30;
+      const alpha = this.thoughtTimer < 0.5 ? this.thoughtTimer / 0.5 : 1;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = 'bold 11px "PingFang SC", "Microsoft YaHei", sans-serif';
+      const tw = ctx.measureText(this.thought).width;
+      const pad = 8;
+      const bw = tw + pad * 2;
+      const bh = 22;
+      const left = bx - bw / 2;
+      const top = by - bh;
+
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(left, top, bw, bh, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(bx - 4, by);
+      ctx.lineTo(bx, by + 7);
+      ctx.lineTo(bx + 4, by);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillRect(bx - 3, by - 1, 6, 2);
+
+      ctx.fillStyle = '#333';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.thought, bx, top + bh / 2);
+      ctx.restore();
     }
   }
 
@@ -1123,6 +1220,7 @@ class Stickman {
 
 // ==================== 火柴人实例 ====================
 const man = new Stickman(W / 2);
+man.requestAiDecision();
 
 // ==================== 鼠标交互 ====================
 let rightDragging = false;
