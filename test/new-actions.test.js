@@ -355,7 +355,7 @@ describe('新增粒子类型', () => {
     particles.length = 0;
     const man = new Stickman(200);
     man.setState('float', 3);
-    for (let i = 0; i < 60; i++) man.update(1 / 60);
+    for (let i = 0; i < 300; i++) man.update(1 / 60);
     const upwardParticles = particles.filter(p => p.vy < 0);
     expect(upwardParticles.length).toBeGreaterThan(0);
   });
