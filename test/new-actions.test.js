@@ -554,3 +554,276 @@ describe('新动作 - transitionToNext 配置', () => {
   });
 });
 
+// ============================================================
+//  10. 屏幕活动日志累积（renderer 侧）
+// ============================================================
+
+describe('屏幕活动日志累积', () => {
+  it.skip('onScreenInfo 回调将活动存入 screenActivityLog', () => {
+    const man = new Stickman(200);
+    man.onScreenInfo({ app: 'VS Code', title: 'renderer.js' });
+    expect(man.screenActivityLog).toHaveLength(1);
+    expect(man.screenActivityLog[0].app).toBe('VS Code');
+    expect(man.screenActivityLog[0].title).toBe('renderer.js');
+  });
+
+  it.skip('活动日志包含时间戳', () => {
+    const man = new Stickman(200);
+    man.onScreenInfo({ app: 'Chrome', title: 'Google' });
+    expect(man.screenActivityLog[0]).toHaveProperty('time');
+    expect(typeof man.screenActivityLog[0].time).toBe('string');
+  });
+
+  it.skip('多次回调累积多条日志', () => {
+    const man = new Stickman(200);
+    man.onScreenInfo({ app: 'VS Code', title: 'file1.js' });
+    man.onScreenInfo({ app: 'Chrome', title: 'Stack Overflow' });
+    man.onScreenInfo({ app: 'Terminal', title: 'zsh' });
+    expect(man.screenActivityLog).toHaveLength(3);
+  });
+
+  it.skip('相同应用连续出现仍然记录', () => {
+    const man = new Stickman(200);
+    man.onScreenInfo({ app: 'VS Code', title: 'file1.js' });
+    man.onScreenInfo({ app: 'VS Code', title: 'file2.js' });
+    expect(man.screenActivityLog).toHaveLength(2);
+  });
+});
+
+// ============================================================
+//  11. 用户交互事件记录
+// ============================================================
+
+describe('用户交互事件记录', () => {
+  it.skip('click 事件记录到 userInteractionsLog', () => {
+    const man = new Stickman(200);
+    man.addInteractionEvent('click');
+    expect(man.userInteractionsLog).toHaveLength(1);
+    expect(man.userInteractionsLog[0].type).toBe('click');
+  });
+
+  it.skip('drag 事件记录到 userInteractionsLog', () => {
+    const man = new Stickman(200);
+    man.addInteractionEvent('drag');
+    expect(man.userInteractionsLog).toHaveLength(1);
+    expect(man.userInteractionsLog[0].type).toBe('drag');
+  });
+
+  it.skip('交互事件包含时间戳', () => {
+    const man = new Stickman(200);
+    man.addInteractionEvent('click');
+    expect(man.userInteractionsLog[0]).toHaveProperty('time');
+    expect(typeof man.userInteractionsLog[0].time).toBe('string');
+  });
+
+  it.skip('多次交互事件累积记录', () => {
+    const man = new Stickman(200);
+    man.addInteractionEvent('click');
+    man.addInteractionEvent('drag');
+    man.addInteractionEvent('click');
+    expect(man.userInteractionsLog).toHaveLength(3);
+  });
+});
+
+// ============================================================
+//  12. 5 分钟 AI 批量决策周期
+// ============================================================
+
+describe('5 分钟 AI 批量决策周期', () => {
+  it.skip('requestBatchDecision 发送累积的 screenActivity', () => {
+    const man = new Stickman(200);
+    man.onScreenInfo({ app: 'VS Code', title: 'index.js' });
+    man.onScreenInfo({ app: 'Chrome', title: 'MDN' });
+    const context = man.buildDecisionContext();
+    expect(context.screenActivity).toHaveLength(2);
+    expect(context.screenActivity[0].app).toBe('VS Code');
+    expect(context.screenActivity[1].app).toBe('Chrome');
+  });
+
+  it.skip('requestBatchDecision 发送累积的 userInteractions', () => {
+    const man = new Stickman(200);
+    man.addInteractionEvent('click');
+    man.addInteractionEvent('drag');
+    const context = man.buildDecisionContext();
+    expect(context.userInteractions).toHaveLength(2);
+    expect(context.userInteractions[0].type).toBe('click');
+  });
+
+  it.skip('批量决策后清空 screenActivityLog', () => {
+    const man = new Stickman(200);
+    man.onScreenInfo({ app: 'VS Code', title: 'test.js' });
+    man.buildDecisionContext();
+    man.clearLogs();
+    expect(man.screenActivityLog).toHaveLength(0);
+  });
+
+  it.skip('批量决策后清空 userInteractionsLog', () => {
+    const man = new Stickman(200);
+    man.addInteractionEvent('click');
+    man.buildDecisionContext();
+    man.clearLogs();
+    expect(man.userInteractionsLog).toHaveLength(0);
+  });
+});
+
+// ============================================================
+//  13. 动作队列执行器
+// ============================================================
+
+describe('动作队列执行器', () => {
+  it.skip('设置动作队列后依次执行', () => {
+    const man = new Stickman(200);
+    man.setActionQueue([
+      { action: 'idle', duration: 5 },
+      { action: 'walk', duration: 10 },
+    ]);
+    expect(man.state).toBe('idle');
+    expect(man.stateDuration).toBe(5);
+  });
+
+  it.skip('当前动作到期后自动切换到队列中下一个', () => {
+    const man = new Stickman(200);
+    man.setActionQueue([
+      { action: 'idle', duration: 2 },
+      { action: 'walk', duration: 10 },
+    ]);
+    // 模拟 2 秒（120 帧）
+    for (let i = 0; i < 150; i++) man.update(1 / 60);
+    expect(man.state).toBe('walk');
+  });
+
+  it.skip('队列中每个动作使用各自的 duration', () => {
+    const man = new Stickman(200);
+    man.setActionQueue([
+      { action: 'idle', duration: 5 },
+      { action: 'dance', duration: 30 },
+    ]);
+    expect(man.stateDuration).toBe(5);
+    // 耗尽第一个动作
+    for (let i = 0; i < 360; i++) man.update(1 / 60); // 6秒
+    expect(man.stateDuration).toBe(30);
+  });
+
+  it.skip('队列耗尽后回退到本地随机选择', () => {
+    const man = new Stickman(200);
+    man.setActionQueue([
+      { action: 'idle', duration: 2 },
+    ]);
+    // 耗尽队列
+    for (let i = 0; i < 180; i++) man.update(1 / 60); // 3秒
+    // 应该切换到某个动作（不再是 idle 的队列执行）
+    expect(man.actionQueue).toHaveLength(0);
+    expect(man.state).toBeTruthy();
+  });
+
+  it.skip('新 API 响应替换剩余队列', () => {
+    const man = new Stickman(200);
+    man.setActionQueue([
+      { action: 'idle', duration: 60 },
+      { action: 'walk', duration: 60 },
+    ]);
+    // 执行一小段
+    for (let i = 0; i < 30; i++) man.update(1 / 60);
+    // 新的 API 响应到来，替换队列
+    man.setActionQueue([
+      { action: 'dance', duration: 15 },
+    ]);
+    expect(man.state).toBe('dance');
+    expect(man.actionQueue).toHaveLength(0); // dance 是当前正在执行的
+  });
+
+  it.skip('设置 thought 后显示在思考气泡中', () => {
+    const man = new Stickman(200);
+    man.setActionQueue([{ action: 'idle', duration: 10 }]);
+    man.thought = '他又在写代码...';
+    expect(man.thought).toBe('他又在写代码...');
+  });
+
+  it.skip('空 actions 数组等同无队列，走本地随机', () => {
+    const man = new Stickman(200);
+    const prevState = man.state;
+    man.setActionQueue([]);
+    // 应该走随机选择
+    expect(man.actionQueue).toHaveLength(0);
+  });
+});
+
+// ============================================================
+//  14. 用户交互打断动作队列
+// ============================================================
+
+describe('用户交互打断动作队列', () => {
+  it.skip('左键点击打断当前队列动作，执行惊吓反应', () => {
+    const man = new Stickman(200);
+    man.setActionQueue([
+      { action: 'idle', duration: 30 },
+      { action: 'walk', duration: 20 },
+    ]);
+    expect(man.state).toBe('idle');
+    // 模拟点击
+    man.poke();
+    expect(man.state).toBe('surprised');
+  });
+
+  it.skip('交互结束后恢复队列中下一个动作', () => {
+    const man = new Stickman(200);
+    man.setActionQueue([
+      { action: 'idle', duration: 2 },
+      { action: 'walk', duration: 20 },
+      { action: 'dance', duration: 15 },
+    ]);
+    // 打断当前动作
+    man.poke();
+    // surprised 动作结束后应恢复到队列中下一个（walk）
+    for (let i = 0; i < 120; i++) man.update(1 / 60);
+    expect(man.state).toBe('walk');
+  });
+
+  it.skip('拖拽打断当前队列动作', () => {
+    const man = new Stickman(200);
+    man.setActionQueue([
+      { action: 'idle', duration: 30 },
+      { action: 'walk', duration: 20 },
+    ]);
+    man.startDrag(200, 250);
+    expect(man.dragging).toBe(true);
+    expect(man.state).not.toBe('idle');
+  });
+
+  it.skip('拖拽释放后恢复队列中下一个动作', () => {
+    const man = new Stickman(200);
+    man.setActionQueue([
+      { action: 'idle', duration: 30 },
+      { action: 'walk', duration: 20 },
+      { action: 'dance', duration: 15 },
+    ]);
+    man.startDrag(200, 250);
+    man.release();
+    // 投掷/着地后应该恢复队列
+    for (let i = 0; i < 300; i++) man.update(1 / 60);
+    // 应该从 walk 或 dance 继续（跳过被打断的 idle）
+    expect(['walk', 'dance']).toContain(man.state);
+  });
+});
+
+// ============================================================
+//  15. AI API 调用失败回退
+// ============================================================
+
+describe('AI 批量决策 - API 调用失败回退', () => {
+  it.skip('API 调用失败时回退到本地随机动作选择', () => {
+    const man = new Stickman(200);
+    // 模拟 API 失败：不设置队列
+    man.onBatchDecisionFailed();
+    expect(man.actionQueue).toHaveLength(0);
+    expect(man.state).toBeTruthy();
+  });
+
+  it.skip('API 失败后下个 5 分钟周期重试', () => {
+    const man = new Stickman(200);
+    man.onBatchDecisionFailed();
+    // batchDecisionPending 应该为 false，允许下次重试
+    expect(man.batchDecisionPending).toBe(false);
+  });
+});
+

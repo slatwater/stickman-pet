@@ -228,3 +228,76 @@ describe('左键交互 - 回归验证', () => {
     expect(env.man.dragging).toBe(false);
   });
 });
+
+// ============================================================
+//  5. osascript 屏幕感知 (main.js)
+// ============================================================
+
+describe('osascript 屏幕感知 - main.js', () => {
+  it.skip('main.js 包含 30 秒定时器执行 osascript', () => {
+    const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
+    expect(src).toContain('osascript');
+    expect(src).toMatch(/setInterval|setTimeout/);
+  });
+
+  it.skip('main.js 通过 screen-info 通道推送结果给 renderer', () => {
+    const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
+    expect(src).toContain('screen-info');
+  });
+
+  it.skip('osascript 获取前台应用名和窗口标题', () => {
+    const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
+    // osascript 命令应该获取应用名和窗口标题
+    expect(src).toMatch(/frontmost|AXTitle|name/i);
+  });
+
+  it.skip('osascript 执行失败时静默跳过，不中断定时器', () => {
+    const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
+    // 应该有 try-catch 或 .catch() 处理
+    expect(src).toMatch(/catch|\.catch/);
+  });
+
+  it.skip('osascript 超时时跳过该次采集', () => {
+    const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
+    expect(src).toMatch(/timeout|signal|AbortController/i);
+  });
+});
+
+// ============================================================
+//  6. preload.js - onScreenInfo IPC 桥接
+// ============================================================
+
+describe('preload.js - onScreenInfo IPC 桥接', () => {
+  it.skip('preload.js 暴露 onScreenInfo 方法', () => {
+    const src = readFileSync(resolve(ROOT, 'preload.js'), 'utf8');
+    expect(src).toContain('onScreenInfo');
+  });
+
+  it.skip('onScreenInfo 监听 screen-info IPC 通道', () => {
+    const src = readFileSync(resolve(ROOT, 'preload.js'), 'utf8');
+    expect(src).toContain('screen-info');
+  });
+});
+
+// ============================================================
+//  7. screen-info IPC 数据格式
+// ============================================================
+
+describe('screen-info IPC 数据格式', () => {
+  it.skip('screen-info 推送的数据包含 app 字段', () => {
+    // 使用沙箱验证 loadRenderer 后 electronAPI.onScreenInfo 存在
+    const env = loadRenderer();
+    expect(env.electronAPI.onScreenInfo).toBeDefined();
+  });
+
+  it.skip('onScreenInfo 回调接收 { app, title } 结构', () => {
+    const env = loadRenderer();
+    let received = null;
+    if (env.electronAPI.onScreenInfo) {
+      env.electronAPI.onScreenInfo((data) => { received = data; });
+      // 模拟 IPC 推送
+      env.electronAPI._triggerScreenInfo({ app: 'VS Code', title: 'test.js' });
+      expect(received).toEqual({ app: 'VS Code', title: 'test.js' });
+    }
+  });
+});
