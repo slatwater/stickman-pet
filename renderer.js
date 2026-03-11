@@ -601,7 +601,6 @@ class Stickman {
     this.aiNextAction = null;
     this.aiThought = null;
     this.aiPending = false;
-    this.menuOpen = false;
   }
 
   // 获取骨骼关节位置
@@ -1262,39 +1261,6 @@ class Stickman {
     }
   }
 
-  // 手动触发动作（右键菜单）
-  triggerAction(action) {
-    if (!ACTIONS[action]) return;
-
-    const expressionMap = {
-      cry: 'sad', meditate: 'peaceful', rage: 'angry',
-      guitar: 'happy', peek: 'nervous', slip: 'surprised',
-      swordFight: 'happy', float: 'peaceful',
-    };
-    const durationMap = {
-      cry: () => rand(2, 5), meditate: () => rand(3, 6), rage: () => rand(2, 4),
-      guitar: () => rand(3, 5), peek: () => rand(2, 4), slip: () => rand(1.5, 2.5),
-      swordFight: () => rand(2, 4), float: () => rand(3, 5),
-    };
-
-    this.actionHistory.push(action);
-    if (this.actionHistory.length > 20) this.actionHistory.shift();
-    this.addEvent(`手动触发了${action}动作`);
-
-    const duration = durationMap[action] ? durationMap[action]() : rand(2, 4);
-    this.setState(action, duration);
-
-    if (expressionMap[action]) {
-      this.expression = expressionMap[action];
-      this.exprTimer = 999;
-    }
-
-    if (action === 'peek') {
-      if (this.x < W / 3) this.facing = 1;
-      else if (this.x > W * 2 / 3) this.facing = -1;
-    }
-  }
-
   // 被点击
   poke() {
     if (this.dragging || this.state === 'thrown') return;
@@ -1625,21 +1591,6 @@ canvas.addEventListener('mousedown', (e) => {
 canvas.addEventListener('mouseup', (e) => {
   if (e.button === 2) {
     rightDragging = false;
-    // 右键无拖拽且在火柴人身上 → 弹出菜单
-    if (!rightDragMoved && !man.dragging) {
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      if (man.hitTest(mx, my) && window.electronAPI?.showContextMenu) {
-        man.menuOpen = true;
-        window.electronAPI.showContextMenu().then(result => {
-          man.menuOpen = false;
-          if (result?.action) {
-            man.triggerAction(result.action);
-          }
-        });
-      }
-    }
     return;
   }
   if (e.button === 0 && man.dragging) {

@@ -5,7 +5,7 @@
  * - 8 个新动作的动画定义与姿态输出
  * - 3 个新表情的渲染分支
  * - 6 种新粒子类型
- * - 右键菜单触发机制
+ * - AI 决策集成
  * - AI 决策集成
  * - 边界条件处理
  */
@@ -366,75 +366,6 @@ describe('新增粒子类型', () => {
 });
 
 // ============================================================
-//  4. 右键菜单
-// ============================================================
-
-describe('右键菜单 - 基本功能', () => {
-  it('右键点击火柴人弹出上下文菜单', () => {
-    // 测试右键点击在火柴人身上时触发菜单（而非窗口拖拽）
-    expect(true).toBe(true); // Electron Menu 需要 mock
-  });
-
-  it('菜单包含"动作"子菜单', () => {
-    // 验证 Menu template 中包含 "动作" submenu
-    expect(true).toBe(true);
-  });
-
-  it('动作子菜单列出所有可触发动作', () => {
-    // 验证菜单项包含：哭泣、冥想、暴怒、弹吉他、偷看、滑倒、挥剑、漂浮
-    const expectedLabels = ['哭泣', '冥想', '暴怒', '弹吉他', '偷看', '滑倒', '挥剑', '漂浮'];
-    expect(expectedLabels.length).toBe(8);
-  });
-
-  it('菜单项显示中文名称', () => {
-    const actionLabelMap = {
-      cry: '哭泣',
-      meditate: '冥想',
-      rage: '暴怒',
-      guitar: '弹吉他',
-      peek: '偷看',
-      slip: '滑倒',
-      swordFight: '挥剑',
-      float: '漂浮',
-    };
-    expect(Object.keys(actionLabelMap).length).toBe(8);
-  });
-
-  it('点击菜单项立即执行对应动作', () => {
-    const man = new Stickman(200);
-    man.setState('idle', 3);
-    // 模拟菜单触发 cry
-    man.triggerAction('cry');
-    expect(man.state).toBe('cry');
-  });
-
-  it('菜单触发打断当前正在执行的动作', () => {
-    const man = new Stickman(200);
-    man.setState('dance', 5);
-    man.stateTime = 1.0; // 正在跳舞
-    man.triggerAction('meditate');
-    expect(man.state).toBe('meditate');
-    expect(man.stateTime).toBe(0);
-  });
-});
-
-describe('右键菜单 - 区分右键拖拽与右键菜单', () => {
-  it('右键在火柴人身上点击（无移动）→ 弹出菜单', () => {
-    // 右键 mousedown → mouseup 无 mousemove → 应弹出菜单
-    expect(true).toBe(true);
-  });
-
-  it('右键在空白区域拖拽 → 移动窗口（不弹菜单）', () => {
-    // 右键 mousedown → mousemove → mouseup → 窗口拖拽
-    expect(true).toBe(true);
-  });
-
-  it('右键拖拽后松开不触发菜单', () => {
-    expect(true).toBe(true);
-  });
-});
-
-// ============================================================
 //  5. AI 决策集成
 // ============================================================
 
@@ -547,99 +478,7 @@ describe('状态机 - 新动作 case 处理', () => {
 //  7. 边界条件
 // ============================================================
 
-describe('边界条件 - 动作打断', () => {
-  it('动作执行中右键触发新动作：立即打断切换', () => {
-    const man = new Stickman(200);
-    man.setState('dance', 5);
-    man.stateTime = 2;
-    man.triggerAction('cry');
-    expect(man.state).toBe('cry');
-    expect(man.stateTime).toBe(0);
-  });
-
-  it('打断后旧动作的表情被新动作覆盖', () => {
-    const man = new Stickman(200);
-    man.setState('celebrate', 4);
-    man.expression = 'happy';
-    man.triggerAction('rage');
-    expect(man.expression).toBe('angry');
-  });
-});
-
-describe('边界条件 - 拖拽优先', () => {
-  it('拖拽中右键不弹出菜单', () => {
-    const man = new Stickman(200);
-    man.startDrag(200, 200);
-    // 此时右键事件应被忽略
-    expect(man.dragging).toBe(true);
-    // 右键菜单不应显示
-  });
-});
-
-describe('边界条件 - 空中动作切换', () => {
-  it('float 期间触发其他动作：先落地再执行', () => {
-    const man = new Stickman(200);
-    man.setState('float', 3);
-    man.y = man.y - 100; // 模拟在空中
-    man.grounded = false;
-    man.triggerAction('cry');
-    // 应先回到地面
-    // 更新几帧后应回到地面
-    for (let i = 0; i < 60; i++) man.update(1 / 60);
-    expect(man.y).toBeGreaterThanOrEqual(HIP_GROUND - 5);
-  });
-
-  it('jump 期间触发新动作：先落地再执行', () => {
-    const man = new Stickman(200);
-    man.setState('jump', 1.2);
-    man.y = man.y - 80;
-    man.grounded = false;
-    man.triggerAction('meditate');
-    for (let i = 0; i < 120; i++) man.update(1 / 60);
-    expect(man.y).toBeGreaterThanOrEqual(HIP_GROUND - 5);
-  });
-});
-
-describe('边界条件 - AI 决策暂停', () => {
-  it('菜单打开时 AI 决策到达 → 暂不执行', () => {
-    const man = new Stickman(200);
-    man.menuOpen = true; // 假设有此标志
-    man.aiNextAction = 'dance';
-    man.transitionToNext();
-    // 菜单打开时不应使用 AI 决策
-    // 或将 AI 决策缓存到菜单关闭后
-    expect(true).toBe(true);
-  });
-});
-
-describe('边界条件 - peek 方向', () => {
-  it('靠近左边缘时：向右偷看（facing = 1）', () => {
-    const man = new Stickman(30); // 靠近左边
-    man.triggerAction('peek');
-    expect(man.facing).toBe(1);
-  });
-
-  it('靠近右边缘时：向左偷看（facing = -1）', () => {
-    const man = new Stickman(W - 30); // 靠近右边
-    man.triggerAction('peek');
-    expect(man.facing).toBe(-1);
-  });
-
-  it('在中间位置时：随机方向或朝向屏幕中心', () => {
-    const man = new Stickman(W / 2);
-    man.triggerAction('peek');
-    expect([-1, 1]).toContain(man.facing);
-  });
-});
-
 describe('边界条件 - 无 API Key', () => {
-  it('无 API Key 时右键菜单正常工作', () => {
-    // API key 缺失不影响手动触发
-    const man = new Stickman(200);
-    man.triggerAction('cry');
-    expect(man.state).toBe('cry');
-  });
-
   it('无 API Key 时 AI 决策回退到随机选择', () => {
     const man = new Stickman(200);
     man.aiNextAction = null;
@@ -714,54 +553,3 @@ describe('新动作 - transitionToNext 配置', () => {
   });
 });
 
-// ============================================================
-//  10. triggerAction 方法
-// ============================================================
-
-describe('triggerAction 方法', () => {
-  it('triggerAction 方法存在于 Stickman 实例上', () => {
-    const man = new Stickman(200);
-    expect(typeof man.triggerAction).toBe('function');
-  });
-
-  it('triggerAction 设置正确的 state', () => {
-    const man = new Stickman(200);
-    man.triggerAction('cry');
-    expect(man.state).toBe('cry');
-  });
-
-  it('triggerAction 重置 stateTime 为 0', () => {
-    const man = new Stickman(200);
-    man.stateTime = 5;
-    man.triggerAction('meditate');
-    expect(man.stateTime).toBe(0);
-  });
-
-  it('triggerAction 设置配套表情', () => {
-    const man = new Stickman(200);
-    man.triggerAction('rage');
-    expect(man.expression).toBe('angry');
-  });
-
-  it('triggerAction 对无效动作名不执行（防御性编程）', () => {
-    const man = new Stickman(200);
-    man.setState('idle', 3);
-    man.triggerAction('invalidAction');
-    expect(man.state).toBe('idle'); // 保持原状态
-  });
-
-  it('triggerAction 记录到 actionHistory', () => {
-    const man = new Stickman(200);
-    const before = man.actionHistory.length;
-    man.triggerAction('guitar');
-    expect(man.actionHistory.length).toBe(before + 1);
-    expect(man.actionHistory[man.actionHistory.length - 1]).toBe('guitar');
-  });
-
-  it('triggerAction 记录到 recentEvents', () => {
-    const man = new Stickman(200);
-    const before = man.recentEvents.length;
-    man.triggerAction('swordFight');
-    expect(man.recentEvents.length).toBe(before + 1);
-  });
-});

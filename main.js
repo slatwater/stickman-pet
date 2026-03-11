@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, screen, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -39,30 +39,6 @@ function createWindow() {
   ipcMain.on('window-drag', (_, { dx, dy }) => {
     const [x, y] = win.getPosition();
     win.setPosition(x + dx, y + dy);
-  });
-
-  // Right-click context menu
-  ipcMain.handle('show-context-menu', async () => {
-    const actionItems = [
-      { label: '哭泣', action: 'cry' },
-      { label: '冥想', action: 'meditate' },
-      { label: '暴怒', action: 'rage' },
-      { label: '弹吉他', action: 'guitar' },
-      { label: '偷看', action: 'peek' },
-      { label: '滑倒', action: 'slip' },
-      { label: '挥剑', action: 'swordFight' },
-      { label: '漂浮', action: 'float' },
-    ];
-    return new Promise((resolve) => {
-      const menu = Menu.buildFromTemplate([{
-        label: '动作',
-        submenu: actionItems.map(item => ({
-          label: item.label,
-          click: () => resolve({ action: item.action }),
-        })),
-      }]);
-      menu.popup({ window: win, callback: () => resolve(null) });
-    });
   });
 
   // AI multi-turn conversation memory
