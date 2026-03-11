@@ -578,3 +578,436 @@ describe('system prompt 组装', () => {
     expect(mgr.getSystemPrompt()).toBe('仅规则内容');
   });
 });
+
+// ============================================================
+//  11. AI 请求 context 新增字段（屏幕感知 + 批量决策）
+// ============================================================
+
+describe('AI 请求 context 新增字段', () => {
+  it.skip('decide() 接受 screenActivity 参数', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"test","observation":null}' } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const context = {
+      screenActivity: [
+        { time: '14:00:05', app: 'VS Code', title: 'renderer.js' },
+      ],
+      userInteractions: [],
+    };
+    await mgr.decide(context);
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    const userMsg = body.messages.find(m => m.role === 'user');
+    expect(userMsg.content).toContain('screenActivity');
+    expect(userMsg.content).toContain('VS Code');
+  });
+
+  it.skip('decide() 接受 userInteractions 参数', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"test","observation":null}' } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const context = {
+      screenActivity: [],
+      userInteractions: [
+        { time: '14:01:12', type: 'click' },
+        { time: '14:03:00', type: 'drag' },
+      ],
+    };
+    await mgr.decide(context);
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    const userMsg = body.messages.find(m => m.role === 'user');
+    expect(userMsg.content).toContain('userInteractions');
+    expect(userMsg.content).toContain('click');
+    expect(userMsg.content).toContain('drag');
+  });
+
+  it.skip('screenActivity 和 userInteractions 同时传入 API 请求体', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"walk","duration":15}],"thought":"散步","observation":null}' } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const context = {
+      screenActivity: [{ time: '14:00:05', app: 'Chrome', title: 'Google' }],
+      userInteractions: [{ time: '14:01:12', type: 'click' }],
+    };
+    await mgr.decide(context);
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    const userMsg = body.messages.find(m => m.role === 'user');
+    expect(userMsg.content).toContain('Chrome');
+    expect(userMsg.content).toContain('click');
+  });
+});
+
+// ============================================================
+//  12. AI 响应格式 — 批量动作队列
+// ============================================================
+
+describe('AI 响应格式 - 批量动作队列', () => {
+  it.skip('解析 actions 数组（多个动作带 duration）', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const responsePayload = {
+      actions: [
+        { action: 'lookAround', duration: 8 },
+        { action: 'sitDown', duration: 30 },
+        { action: 'idle', duration: 20 },
+      ],
+      thought: '他在写代码',
+      observation: null,
+    };
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: JSON.stringify(responsePayload) } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const result = await mgr.decide({ screenActivity: [], userInteractions: [] });
+    expect(result.actions).toHaveLength(3);
+    expect(result.actions[0]).toEqual({ action: 'lookAround', duration: 8 });
+    expect(result.actions[1]).toEqual({ action: 'sitDown', duration: 30 });
+  });
+
+  it.skip('解析 thought 字段', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"他又在写代码...","observation":null}' } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const result = await mgr.decide({ screenActivity: [], userInteractions: [] });
+    expect(result.thought).toBe('他又在写代码...');
+  });
+
+  it.skip('解析 observation 字段（字符串）', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"观察中","observation":"用户经常晚上用 VS Code，可能是程序员"}' } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const result = await mgr.decide({ screenActivity: [], userInteractions: [] });
+    expect(result.observation).toBe('用户经常晚上用 VS Code，可能是程序员');
+  });
+
+  it.skip('observation 为 null 时正常返回', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"无事","observation":null}' } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const result = await mgr.decide({ screenActivity: [], userInteractions: [] });
+    expect(result.observation).toBeNull();
+  });
+
+  it.skip('单个动作的 actions 数组也正常解析', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"dance","duration":15}],"thought":"开心","observation":null}' } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const result = await mgr.decide({ screenActivity: [], userInteractions: [] });
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].action).toBe('dance');
+    expect(result.actions[0].duration).toBe(15);
+  });
+});
+
+// ============================================================
+//  13. AI 响应 — 无效动作过滤
+// ============================================================
+
+describe('AI 响应 - 无效动作过滤', () => {
+  it.skip('过滤掉 actions 中不存在的动作名', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const responsePayload = {
+      actions: [
+        { action: 'idle', duration: 10 },
+        { action: 'nonExistentAction', duration: 5 },
+        { action: 'walk', duration: 15 },
+      ],
+      thought: 'test',
+      observation: null,
+    };
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: JSON.stringify(responsePayload) } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const result = await mgr.decide({ screenActivity: [], userInteractions: [] });
+    const actionNames = result.actions.map(a => a.action);
+    expect(actionNames).not.toContain('nonExistentAction');
+    expect(actionNames).toContain('idle');
+    expect(actionNames).toContain('walk');
+  });
+
+  it.skip('所有动作都无效时返回空 actions 数组', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const responsePayload = {
+      actions: [
+        { action: 'fakeAction1', duration: 10 },
+        { action: 'fakeAction2', duration: 5 },
+      ],
+      thought: 'test',
+      observation: null,
+    };
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: JSON.stringify(responsePayload) } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const result = await mgr.decide({ screenActivity: [], userInteractions: [] });
+    expect(result.actions).toHaveLength(0);
+  });
+
+  it.skip('AI 返回空 actions 数组时正常返回', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"actions":[],"thought":"无聊","observation":null}' } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const result = await mgr.decide({ screenActivity: [], userInteractions: [] });
+    expect(result.actions).toHaveLength(0);
+  });
+});
+
+// ============================================================
+//  14. AI 响应 — duration 钳制
+// ============================================================
+
+describe('AI 响应 - duration 钳制', () => {
+  it.skip('duration ≤ 0 钳制为 5 秒', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const responsePayload = {
+      actions: [{ action: 'idle', duration: 0 }, { action: 'walk', duration: -5 }],
+      thought: 'test',
+      observation: null,
+    };
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: JSON.stringify(responsePayload) } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const result = await mgr.decide({ screenActivity: [], userInteractions: [] });
+    for (const a of result.actions) {
+      expect(a.duration).toBe(5);
+    }
+  });
+
+  it.skip('duration > 120 钳制为 120 秒', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const responsePayload = {
+      actions: [{ action: 'idle', duration: 999 }, { action: 'walk', duration: 300 }],
+      thought: 'test',
+      observation: null,
+    };
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: JSON.stringify(responsePayload) } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const result = await mgr.decide({ screenActivity: [], userInteractions: [] });
+    for (const a of result.actions) {
+      expect(a.duration).toBe(120);
+    }
+  });
+
+  it.skip('duration 在 [5, 120] 范围内不做修改', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const responsePayload = {
+      actions: [{ action: 'idle', duration: 5 }, { action: 'walk', duration: 60 }, { action: 'dance', duration: 120 }],
+      thought: 'test',
+      observation: null,
+    };
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: JSON.stringify(responsePayload) } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    const result = await mgr.decide({ screenActivity: [], userInteractions: [] });
+    expect(result.actions[0].duration).toBe(5);
+    expect(result.actions[1].duration).toBe(60);
+    expect(result.actions[2].duration).toBe(120);
+  });
+});
+
+// ============================================================
+//  15. observation 累积与合并
+// ============================================================
+
+describe('observation 累积与合并', () => {
+  it.skip('observation 非 null 时累积到内部列表', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"test","observation":"用户在写代码"}' } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
+    expect(mgr.getObservations()).toHaveLength(1);
+    expect(mgr.getObservations()[0]).toBe('用户在写代码');
+  });
+
+  it.skip('observation 为 null 时不累积', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"test","observation":null}' } }] }),
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
+    expect(mgr.getObservations()).toHaveLength(0);
+  });
+
+  it.skip('累积 3 条 observation 后，下次 API 调用时要求 AI 合并总结', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'memory.md'), '', 'utf8');
+    let callCount = 0;
+    const mockFetch = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount <= 3) {
+        return {
+          ok: true,
+          json: async () => ({ choices: [{ message: { content: `{"actions":[{"action":"idle","duration":10}],"thought":"test","observation":"观察${callCount}"}` } }] }),
+        };
+      }
+      // 4th call: the merge/summary call, or the 4th decide that triggers merge
+      return {
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"test","observation":null}' } }] }),
+      };
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
+    // 3 observations accumulated, next call should include merge instruction
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
+    const lastCall = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
+    const body = JSON.parse(lastCall[1].body);
+    const userMsg = body.messages.find(m => m.role === 'user');
+    expect(userMsg.content).toContain('观察1');
+    expect(userMsg.content).toContain('观察2');
+    expect(userMsg.content).toContain('观察3');
+  });
+
+  it.skip('合并后的总结写入 memory.md', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'memory.md'), '', 'utf8');
+    let callCount = 0;
+    const mockFetch = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount <= 3) {
+        return {
+          ok: true,
+          json: async () => ({ choices: [{ message: { content: `{"actions":[{"action":"idle","duration":10}],"thought":"t","observation":"观察${callCount}"}` } }] }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"t","observation":null,"memorySummary":"用户是程序员，喜欢深夜编码"}' } }] }),
+      };
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    for (let i = 0; i < 4; i++) {
+      await mgr.decide({ screenActivity: [], userInteractions: [] });
+    }
+    const content = fs.readFileSync(path.join(tmpDir, 'ai', 'memory.md'), 'utf8');
+    expect(content).toContain('用户是程序员');
+  });
+
+  it.skip('合并后清空已累积的 observation 列表', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'memory.md'), '', 'utf8');
+    let callCount = 0;
+    const mockFetch = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount <= 3) {
+        return {
+          ok: true,
+          json: async () => ({ choices: [{ message: { content: `{"actions":[{"action":"idle","duration":10}],"thought":"t","observation":"obs${callCount}"}` } }] }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"t","observation":null}' } }] }),
+      };
+    });
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
+    for (let i = 0; i < 4; i++) {
+      await mgr.decide({ screenActivity: [], userInteractions: [] });
+    }
+    expect(mgr.getObservations()).toHaveLength(0);
+  });
+});
+
+// ============================================================
+//  16. memory.md 体积控制（50 行上限提示）
+// ============================================================
+
+describe('memory.md 体积控制', () => {
+  it.skip('memory.md 超过 50 行时，system prompt 包含压缩提示', () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    // 写入超过 50 行的 memory 内容
+    const lines = [];
+    for (let i = 0; i < 60; i++) {
+      lines.push(`- 记录第${i}行`);
+    }
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'memory.md'), `## 2026-03-10\n${lines.join('\n')}\n`, 'utf8');
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key' });
+    const prompt = mgr.getSystemPrompt();
+    expect(prompt).toMatch(/压缩|精简|condensed?|compress/i);
+  });
+
+  it.skip('memory.md 不超过 50 行时，不包含压缩提示', () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const lines = [];
+    for (let i = 0; i < 10; i++) {
+      lines.push(`- 记录第${i}行`);
+    }
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'memory.md'), `## 2026-03-10\n${lines.join('\n')}\n`, 'utf8');
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key' });
+    const prompt = mgr.getSystemPrompt();
+    expect(prompt).not.toMatch(/压缩|精简|condensed?|compress/i);
+  });
+
+  it.skip('memory.md 正好 50 行时，不包含压缩提示', () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
+    const lines = [];
+    for (let i = 0; i < 48; i++) {
+      lines.push(`- 记录第${i}行`);
+    }
+    // ## header + 48 lines = 49 lines, add one more
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'memory.md'), `## 2026-03-10\n${lines.join('\n')}\n- 最后一行\n`, 'utf8');
+    const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key' });
+    const prompt = mgr.getSystemPrompt();
+    expect(prompt).not.toMatch(/压缩|精简|condensed?|compress/i);
+  });
+});
+
+// ============================================================
+//  17. AI 响应格式 — rules.md 屏幕感知说明
+// ============================================================
+
+describe('rules.md 屏幕感知能力说明', () => {
+  it.skip('system prompt 包含屏幕感知相关的响应格式要求', () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '# 规则\n你能感知用户屏幕活动\n响应格式：actions 数组', 'utf8');
+    const mgr = createAIManager({ baseDir: tmpDir });
+    const prompt = mgr.getSystemPrompt();
+    expect(prompt).toContain('actions');
+  });
+
+  it.skip('system prompt 包含 observation 指引', () => {
+    fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '# 规则\nobservation: 对用户的观察记录', 'utf8');
+    const mgr = createAIManager({ baseDir: tmpDir });
+    const prompt = mgr.getSystemPrompt();
+    expect(prompt).toContain('observation');
+  });
+});
