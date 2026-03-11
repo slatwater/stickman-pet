@@ -559,7 +559,7 @@ describe('新动作 - transitionToNext 配置', () => {
 // ============================================================
 
 describe('屏幕活动日志累积', () => {
-  it.skip('onScreenInfo 回调将活动存入 screenActivityLog', () => {
+  it('onScreenInfo 回调将活动存入 screenActivityLog', () => {
     const man = new Stickman(200);
     man.onScreenInfo({ app: 'VS Code', title: 'renderer.js' });
     expect(man.screenActivityLog).toHaveLength(1);
@@ -567,14 +567,14 @@ describe('屏幕活动日志累积', () => {
     expect(man.screenActivityLog[0].title).toBe('renderer.js');
   });
 
-  it.skip('活动日志包含时间戳', () => {
+  it('活动日志包含时间戳', () => {
     const man = new Stickman(200);
     man.onScreenInfo({ app: 'Chrome', title: 'Google' });
     expect(man.screenActivityLog[0]).toHaveProperty('time');
     expect(typeof man.screenActivityLog[0].time).toBe('string');
   });
 
-  it.skip('多次回调累积多条日志', () => {
+  it('多次回调累积多条日志', () => {
     const man = new Stickman(200);
     man.onScreenInfo({ app: 'VS Code', title: 'file1.js' });
     man.onScreenInfo({ app: 'Chrome', title: 'Stack Overflow' });
@@ -582,7 +582,7 @@ describe('屏幕活动日志累积', () => {
     expect(man.screenActivityLog).toHaveLength(3);
   });
 
-  it.skip('相同应用连续出现仍然记录', () => {
+  it('相同应用连续出现仍然记录', () => {
     const man = new Stickman(200);
     man.onScreenInfo({ app: 'VS Code', title: 'file1.js' });
     man.onScreenInfo({ app: 'VS Code', title: 'file2.js' });
@@ -595,28 +595,28 @@ describe('屏幕活动日志累积', () => {
 // ============================================================
 
 describe('用户交互事件记录', () => {
-  it.skip('click 事件记录到 userInteractionsLog', () => {
+  it('click 事件记录到 userInteractionsLog', () => {
     const man = new Stickman(200);
     man.addInteractionEvent('click');
     expect(man.userInteractionsLog).toHaveLength(1);
     expect(man.userInteractionsLog[0].type).toBe('click');
   });
 
-  it.skip('drag 事件记录到 userInteractionsLog', () => {
+  it('drag 事件记录到 userInteractionsLog', () => {
     const man = new Stickman(200);
     man.addInteractionEvent('drag');
     expect(man.userInteractionsLog).toHaveLength(1);
     expect(man.userInteractionsLog[0].type).toBe('drag');
   });
 
-  it.skip('交互事件包含时间戳', () => {
+  it('交互事件包含时间戳', () => {
     const man = new Stickman(200);
     man.addInteractionEvent('click');
     expect(man.userInteractionsLog[0]).toHaveProperty('time');
     expect(typeof man.userInteractionsLog[0].time).toBe('string');
   });
 
-  it.skip('多次交互事件累积记录', () => {
+  it('多次交互事件累积记录', () => {
     const man = new Stickman(200);
     man.addInteractionEvent('click');
     man.addInteractionEvent('drag');
@@ -630,7 +630,7 @@ describe('用户交互事件记录', () => {
 // ============================================================
 
 describe('5 分钟 AI 批量决策周期', () => {
-  it.skip('requestBatchDecision 发送累积的 screenActivity', () => {
+  it('requestBatchDecision 发送累积的 screenActivity', () => {
     const man = new Stickman(200);
     man.onScreenInfo({ app: 'VS Code', title: 'index.js' });
     man.onScreenInfo({ app: 'Chrome', title: 'MDN' });
@@ -640,7 +640,7 @@ describe('5 分钟 AI 批量决策周期', () => {
     expect(context.screenActivity[1].app).toBe('Chrome');
   });
 
-  it.skip('requestBatchDecision 发送累积的 userInteractions', () => {
+  it('requestBatchDecision 发送累积的 userInteractions', () => {
     const man = new Stickman(200);
     man.addInteractionEvent('click');
     man.addInteractionEvent('drag');
@@ -649,7 +649,7 @@ describe('5 分钟 AI 批量决策周期', () => {
     expect(context.userInteractions[0].type).toBe('click');
   });
 
-  it.skip('批量决策后清空 screenActivityLog', () => {
+  it('批量决策后清空 screenActivityLog', () => {
     const man = new Stickman(200);
     man.onScreenInfo({ app: 'VS Code', title: 'test.js' });
     man.buildDecisionContext();
@@ -657,7 +657,7 @@ describe('5 分钟 AI 批量决策周期', () => {
     expect(man.screenActivityLog).toHaveLength(0);
   });
 
-  it.skip('批量决策后清空 userInteractionsLog', () => {
+  it('批量决策后清空 userInteractionsLog', () => {
     const man = new Stickman(200);
     man.addInteractionEvent('click');
     man.buildDecisionContext();
@@ -671,7 +671,7 @@ describe('5 分钟 AI 批量决策周期', () => {
 // ============================================================
 
 describe('动作队列执行器', () => {
-  it.skip('设置动作队列后依次执行', () => {
+  it('设置动作队列后依次执行', () => {
     const man = new Stickman(200);
     man.setActionQueue([
       { action: 'idle', duration: 5 },
@@ -681,7 +681,7 @@ describe('动作队列执行器', () => {
     expect(man.stateDuration).toBe(5);
   });
 
-  it.skip('当前动作到期后自动切换到队列中下一个', () => {
+  it('当前动作到期后自动切换到队列中下一个', () => {
     const man = new Stickman(200);
     man.setActionQueue([
       { action: 'idle', duration: 2 },
@@ -692,7 +692,7 @@ describe('动作队列执行器', () => {
     expect(man.state).toBe('walk');
   });
 
-  it.skip('队列中每个动作使用各自的 duration', () => {
+  it('队列中每个动作使用各自的 duration', () => {
     const man = new Stickman(200);
     man.setActionQueue([
       { action: 'idle', duration: 5 },
@@ -704,7 +704,7 @@ describe('动作队列执行器', () => {
     expect(man.stateDuration).toBe(30);
   });
 
-  it.skip('队列耗尽后回退到本地随机选择', () => {
+  it('队列耗尽后回退到本地随机选择', () => {
     const man = new Stickman(200);
     man.setActionQueue([
       { action: 'idle', duration: 2 },
@@ -716,7 +716,7 @@ describe('动作队列执行器', () => {
     expect(man.state).toBeTruthy();
   });
 
-  it.skip('新 API 响应替换剩余队列', () => {
+  it('新 API 响应替换剩余队列', () => {
     const man = new Stickman(200);
     man.setActionQueue([
       { action: 'idle', duration: 60 },
@@ -732,14 +732,14 @@ describe('动作队列执行器', () => {
     expect(man.actionQueue).toHaveLength(0); // dance 是当前正在执行的
   });
 
-  it.skip('设置 thought 后显示在思考气泡中', () => {
+  it('设置 thought 后显示在思考气泡中', () => {
     const man = new Stickman(200);
     man.setActionQueue([{ action: 'idle', duration: 10 }]);
     man.thought = '他又在写代码...';
     expect(man.thought).toBe('他又在写代码...');
   });
 
-  it.skip('空 actions 数组等同无队列，走本地随机', () => {
+  it('空 actions 数组等同无队列，走本地随机', () => {
     const man = new Stickman(200);
     const prevState = man.state;
     man.setActionQueue([]);
@@ -753,7 +753,7 @@ describe('动作队列执行器', () => {
 // ============================================================
 
 describe('用户交互打断动作队列', () => {
-  it.skip('左键点击打断当前队列动作，执行惊吓反应', () => {
+  it('左键点击打断当前队列动作，执行惊吓反应', () => {
     const man = new Stickman(200);
     man.setActionQueue([
       { action: 'idle', duration: 30 },
@@ -765,7 +765,7 @@ describe('用户交互打断动作队列', () => {
     expect(man.state).toBe('surprised');
   });
 
-  it.skip('交互结束后恢复队列中下一个动作', () => {
+  it('交互结束后恢复队列中下一个动作', () => {
     const man = new Stickman(200);
     man.setActionQueue([
       { action: 'idle', duration: 2 },
@@ -779,7 +779,7 @@ describe('用户交互打断动作队列', () => {
     expect(man.state).toBe('walk');
   });
 
-  it.skip('拖拽打断当前队列动作', () => {
+  it('拖拽打断当前队列动作', () => {
     const man = new Stickman(200);
     man.setActionQueue([
       { action: 'idle', duration: 30 },
@@ -790,7 +790,7 @@ describe('用户交互打断动作队列', () => {
     expect(man.state).not.toBe('idle');
   });
 
-  it.skip('拖拽释放后恢复队列中下一个动作', () => {
+  it('拖拽释放后恢复队列中下一个动作', () => {
     const man = new Stickman(200);
     man.setActionQueue([
       { action: 'idle', duration: 30 },
@@ -811,7 +811,7 @@ describe('用户交互打断动作队列', () => {
 // ============================================================
 
 describe('AI 批量决策 - API 调用失败回退', () => {
-  it.skip('API 调用失败时回退到本地随机动作选择', () => {
+  it('API 调用失败时回退到本地随机动作选择', () => {
     const man = new Stickman(200);
     // 模拟 API 失败：不设置队列
     man.onBatchDecisionFailed();
@@ -819,7 +819,7 @@ describe('AI 批量决策 - API 调用失败回退', () => {
     expect(man.state).toBeTruthy();
   });
 
-  it.skip('API 失败后下个 5 分钟周期重试', () => {
+  it('API 失败后下个 5 分钟周期重试', () => {
     const man = new Stickman(200);
     man.onBatchDecisionFailed();
     // batchDecisionPending 应该为 false，允许下次重试

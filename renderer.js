@@ -601,6 +601,53 @@ class Stickman {
     this.aiNextAction = null;
     this.aiThought = null;
     this.aiPending = false;
+
+    // 屏幕感知 + 批量决策
+    this.screenActivityLog = [];
+    this.userInteractionsLog = [];
+    this.actionQueue = [];
+    this.batchDecisionPending = false;
+  }
+
+  // 屏幕活动记录
+  onScreenInfo({ app, title }) {
+    this.screenActivityLog.push({ app, title, time: new Date().toISOString() });
+  }
+
+  // 用户交互事件记录
+  addInteractionEvent(type) {
+    this.userInteractionsLog.push({ type, time: new Date().toISOString() });
+  }
+
+  // 构建决策上下文
+  buildDecisionContext() {
+    return {
+      screenActivity: [...this.screenActivityLog],
+      userInteractions: [...this.userInteractionsLog],
+    };
+  }
+
+  // 清空日志
+  clearLogs() {
+    this.screenActivityLog = [];
+    this.userInteractionsLog = [];
+  }
+
+  // 设置动作队列
+  setActionQueue(actions) {
+    this.actionQueue = [...actions];
+    if (this.actionQueue.length > 0) {
+      const first = this.actionQueue.shift();
+      if (ACTIONS[first.action]) {
+        this.setState(first.action, first.duration);
+      }
+    }
+  }
+
+  // API 调用失败处理
+  onBatchDecisionFailed() {
+    this.actionQueue = [];
+    this.batchDecisionPending = false;
   }
 
   // 获取骨骼关节位置
@@ -1116,7 +1163,18 @@ class Stickman {
 
   transitionToNext() {
     let next;
-    if (this.aiNextAction && ACTIONS[this.aiNextAction]) {
+    let queueDuration = null;
+
+    // 优先从动作队列取
+    if (this.actionQueue && this.actionQueue.length > 0) {
+      const nextItem = this.actionQueue.shift();
+      if (ACTIONS[nextItem.action]) {
+        next = nextItem.action;
+        queueDuration = nextItem.duration;
+      }
+    }
+
+    if (!next && this.aiNextAction && ACTIONS[this.aiNextAction]) {
       next = this.aiNextAction;
       if (this.aiThought) {
         this.thought = this.aiThought;
@@ -1124,69 +1182,78 @@ class Stickman {
       }
       this.aiNextAction = null;
       this.aiThought = null;
-    } else {
+    }
+
+    if (!next) {
       next = this.nextAction();
     }
+
     this.actionHistory.push(next);
     if (this.actionHistory.length > 20) this.actionHistory.shift();
-    this.requestAiDecision();
+    if (!queueDuration) this.requestAiDecision();
 
     if (next === 'walk' || next === 'sneak' || next === 'run') {
-      this.walkTarget = rand(50, W - 50);
-      this.facing = this.walkTarget > this.x ? 1 : -1;
-      this.setState(next, 10); // 移动类动作自己判断结束
+      if (queueDuration) {
+        // Queue-sourced: walk for the specified duration, set far target
+        this.facing = Math.random() < 0.5 ? 1 : -1;
+        this.walkTarget = this.facing > 0 ? W - 40 : 40;
+      } else {
+        this.walkTarget = rand(50, W - 50);
+        this.facing = this.walkTarget > this.x ? 1 : -1;
+      }
+      this.setState(next, queueDuration || 10);
     } else if (next === 'jump' || next === 'backflip') {
-      this.setState(next, 1.2);
+      this.setState(next, queueDuration || 1.2);
     } else if (next === 'kick') {
-      this.setState(next, 0.8);
+      this.setState(next, queueDuration || 0.8);
     } else if (next === 'spin') {
-      this.setState(next, 1.0);
+      this.setState(next, queueDuration || 1.0);
     } else if (next === 'stumble') {
-      this.setState(next, 1.5);
+      this.setState(next, queueDuration || 1.5);
     } else if (next === 'sleep') {
       this.expression = 'sleepy';
       this.exprTimer = 999;
-      this.setState(next, rand(3, 6));
+      this.setState(next, queueDuration || rand(3, 6));
     } else if (next === 'celebrate') {
       this.expression = 'happy';
       this.exprTimer = 999;
-      this.setState(next, rand(2, 4));
+      this.setState(next, queueDuration || rand(2, 4));
     } else if (next === 'cry') {
       this.expression = 'sad';
       this.exprTimer = 999;
-      this.setState(next, rand(2, 5));
+      this.setState(next, queueDuration || rand(2, 5));
     } else if (next === 'meditate') {
       this.expression = 'peaceful';
       this.exprTimer = 999;
-      this.setState(next, rand(3, 6));
+      this.setState(next, queueDuration || rand(3, 6));
     } else if (next === 'rage') {
       this.expression = 'angry';
       this.exprTimer = 999;
-      this.setState(next, rand(2, 4));
+      this.setState(next, queueDuration || rand(2, 4));
     } else if (next === 'guitar') {
       this.expression = 'happy';
       this.exprTimer = 999;
-      this.setState(next, rand(3, 5));
+      this.setState(next, queueDuration || rand(3, 5));
     } else if (next === 'peek') {
       this.expression = 'nervous';
       this.exprTimer = 999;
       if (this.x < W / 3) this.facing = 1;
       else if (this.x > W * 2 / 3) this.facing = -1;
-      this.setState(next, rand(2, 4));
+      this.setState(next, queueDuration || rand(2, 4));
     } else if (next === 'slip') {
       this.expression = 'surprised';
       this.exprTimer = 999;
-      this.setState(next, rand(1.5, 2.5));
+      this.setState(next, queueDuration || rand(1.5, 2.5));
     } else if (next === 'swordFight') {
       this.expression = 'happy';
       this.exprTimer = 999;
-      this.setState(next, rand(2, 4));
+      this.setState(next, queueDuration || rand(2, 4));
     } else if (next === 'float') {
       this.expression = 'peaceful';
       this.exprTimer = 999;
-      this.setState(next, rand(3, 5));
+      this.setState(next, queueDuration || rand(3, 5));
     } else {
-      this.setState(next, rand(2, 5));
+      this.setState(next, queueDuration || rand(2, 5));
     }
   }
 
@@ -1216,6 +1283,8 @@ class Stickman {
     this.addEvent('被抓起来了');
     this.dragging = true;
     this.grounded = false;
+    this.state = 'dangling';
+    this.stateTime = 0;
     this.dragOffX = this.x - mx;
     this.dragOffY = this.y - my;
     this.mouseHistory = [];
@@ -1555,6 +1624,13 @@ class Stickman {
 // ==================== 火柴人实例 ====================
 const man = new Stickman(W / 2);
 man.requestAiDecision();
+
+// 屏幕感知回调
+if (window.electronAPI?.onScreenInfo) {
+  window.electronAPI.onScreenInfo((data) => {
+    man.onScreenInfo(data);
+  });
+}
 
 // ==================== 鼠标交互 ====================
 let rightDragging = false;

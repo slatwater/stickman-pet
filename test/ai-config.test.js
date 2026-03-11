@@ -584,7 +584,7 @@ describe('system prompt 组装', () => {
 // ============================================================
 
 describe('AI 请求 context 新增字段', () => {
-  it.skip('decide() 接受 screenActivity 参数', async () => {
+  it('decide() 接受 screenActivity 参数', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -604,7 +604,7 @@ describe('AI 请求 context 新增字段', () => {
     expect(userMsg.content).toContain('VS Code');
   });
 
-  it.skip('decide() 接受 userInteractions 参数', async () => {
+  it('decide() 接受 userInteractions 参数', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -626,7 +626,7 @@ describe('AI 请求 context 新增字段', () => {
     expect(userMsg.content).toContain('drag');
   });
 
-  it.skip('screenActivity 和 userInteractions 同时传入 API 请求体', async () => {
+  it('screenActivity 和 userInteractions 同时传入 API 请求体', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -650,7 +650,7 @@ describe('AI 请求 context 新增字段', () => {
 // ============================================================
 
 describe('AI 响应格式 - 批量动作队列', () => {
-  it.skip('解析 actions 数组（多个动作带 duration）', async () => {
+  it('解析 actions 数组（多个动作带 duration）', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const responsePayload = {
       actions: [
@@ -672,7 +672,7 @@ describe('AI 响应格式 - 批量动作队列', () => {
     expect(result.actions[1]).toEqual({ action: 'sitDown', duration: 30 });
   });
 
-  it.skip('解析 thought 字段', async () => {
+  it('解析 thought 字段', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -683,7 +683,7 @@ describe('AI 响应格式 - 批量动作队列', () => {
     expect(result.thought).toBe('他又在写代码...');
   });
 
-  it.skip('解析 observation 字段（字符串）', async () => {
+  it('解析 observation 字段（字符串）', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -694,7 +694,7 @@ describe('AI 响应格式 - 批量动作队列', () => {
     expect(result.observation).toBe('用户经常晚上用 VS Code，可能是程序员');
   });
 
-  it.skip('observation 为 null 时正常返回', async () => {
+  it('observation 为 null 时正常返回', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -705,7 +705,7 @@ describe('AI 响应格式 - 批量动作队列', () => {
     expect(result.observation).toBeNull();
   });
 
-  it.skip('单个动作的 actions 数组也正常解析', async () => {
+  it('单个动作的 actions 数组也正常解析', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -724,7 +724,7 @@ describe('AI 响应格式 - 批量动作队列', () => {
 // ============================================================
 
 describe('AI 响应 - 无效动作过滤', () => {
-  it.skip('过滤掉 actions 中不存在的动作名', async () => {
+  it('过滤掉 actions 中不存在的动作名', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const responsePayload = {
       actions: [
@@ -747,7 +747,7 @@ describe('AI 响应 - 无效动作过滤', () => {
     expect(actionNames).toContain('walk');
   });
 
-  it.skip('所有动作都无效时返回空 actions 数组', async () => {
+  it('所有动作都无效时返回空 actions 数组', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const responsePayload = {
       actions: [
@@ -766,7 +766,7 @@ describe('AI 响应 - 无效动作过滤', () => {
     expect(result.actions).toHaveLength(0);
   });
 
-  it.skip('AI 返回空 actions 数组时正常返回', async () => {
+  it('AI 返回空 actions 数组时正常返回', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -783,7 +783,7 @@ describe('AI 响应 - 无效动作过滤', () => {
 // ============================================================
 
 describe('AI 响应 - duration 钳制', () => {
-  it.skip('duration ≤ 0 钳制为 5 秒', async () => {
+  it('duration ≤ 0 钳制为 5 秒', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const responsePayload = {
       actions: [{ action: 'idle', duration: 0 }, { action: 'walk', duration: -5 }],
@@ -801,7 +801,7 @@ describe('AI 响应 - duration 钳制', () => {
     }
   });
 
-  it.skip('duration > 120 钳制为 120 秒', async () => {
+  it('duration > 120 钳制为 120 秒', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const responsePayload = {
       actions: [{ action: 'idle', duration: 999 }, { action: 'walk', duration: 300 }],
@@ -819,7 +819,7 @@ describe('AI 响应 - duration 钳制', () => {
     }
   });
 
-  it.skip('duration 在 [5, 120] 范围内不做修改', async () => {
+  it('duration 在 [5, 120] 范围内不做修改', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const responsePayload = {
       actions: [{ action: 'idle', duration: 5 }, { action: 'walk', duration: 60 }, { action: 'dance', duration: 120 }],
@@ -843,7 +843,7 @@ describe('AI 响应 - duration 钳制', () => {
 // ============================================================
 
 describe('observation 累积与合并', () => {
-  it.skip('observation 非 null 时累积到内部列表', async () => {
+  it('observation 非 null 时累积到内部列表', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -855,7 +855,7 @@ describe('observation 累积与合并', () => {
     expect(mgr.getObservations()[0]).toBe('用户在写代码');
   });
 
-  it.skip('observation 为 null 时不累积', async () => {
+  it('observation 为 null 时不累积', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -866,7 +866,7 @@ describe('observation 累积与合并', () => {
     expect(mgr.getObservations()).toHaveLength(0);
   });
 
-  it.skip('累积 3 条 observation 后，下次 API 调用时要求 AI 合并总结', async () => {
+  it('累积 3 条 observation 后，下次 API 调用时要求 AI 合并总结', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     fs.writeFileSync(path.join(tmpDir, 'ai', 'memory.md'), '', 'utf8');
     let callCount = 0;
@@ -898,7 +898,7 @@ describe('observation 累积与合并', () => {
     expect(userMsg.content).toContain('观察3');
   });
 
-  it.skip('合并后的总结写入 memory.md', async () => {
+  it('合并后的总结写入 memory.md', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     fs.writeFileSync(path.join(tmpDir, 'ai', 'memory.md'), '', 'utf8');
     let callCount = 0;
@@ -923,7 +923,7 @@ describe('observation 累积与合并', () => {
     expect(content).toContain('用户是程序员');
   });
 
-  it.skip('合并后清空已累积的 observation 列表', async () => {
+  it('合并后清空已累积的 observation 列表', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     fs.writeFileSync(path.join(tmpDir, 'ai', 'memory.md'), '', 'utf8');
     let callCount = 0;
@@ -953,7 +953,7 @@ describe('observation 累积与合并', () => {
 // ============================================================
 
 describe('memory.md 体积控制', () => {
-  it.skip('memory.md 超过 50 行时，system prompt 包含压缩提示', () => {
+  it('memory.md 超过 50 行时，system prompt 包含压缩提示', () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     // 写入超过 50 行的 memory 内容
     const lines = [];
@@ -966,7 +966,7 @@ describe('memory.md 体积控制', () => {
     expect(prompt).toMatch(/压缩|精简|condensed?|compress/i);
   });
 
-  it.skip('memory.md 不超过 50 行时，不包含压缩提示', () => {
+  it('memory.md 不超过 50 行时，不包含压缩提示', () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const lines = [];
     for (let i = 0; i < 10; i++) {
@@ -978,7 +978,7 @@ describe('memory.md 体积控制', () => {
     expect(prompt).not.toMatch(/压缩|精简|condensed?|compress/i);
   });
 
-  it.skip('memory.md 正好 50 行时，不包含压缩提示', () => {
+  it('memory.md 正好 50 行时，不包含压缩提示', () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const lines = [];
     for (let i = 0; i < 48; i++) {
@@ -997,14 +997,14 @@ describe('memory.md 体积控制', () => {
 // ============================================================
 
 describe('rules.md 屏幕感知能力说明', () => {
-  it.skip('system prompt 包含屏幕感知相关的响应格式要求', () => {
+  it('system prompt 包含屏幕感知相关的响应格式要求', () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '# 规则\n你能感知用户屏幕活动\n响应格式：actions 数组', 'utf8');
     const mgr = createAIManager({ baseDir: tmpDir });
     const prompt = mgr.getSystemPrompt();
     expect(prompt).toContain('actions');
   });
 
-  it.skip('system prompt 包含 observation 指引', () => {
+  it('system prompt 包含 observation 指引', () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '# 规则\nobservation: 对用户的观察记录', 'utf8');
     const mgr = createAIManager({ baseDir: tmpDir });
     const prompt = mgr.getSystemPrompt();
