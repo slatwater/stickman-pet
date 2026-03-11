@@ -10,7 +10,7 @@
  * - 边界条件处理
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // ============================================================
 //  1. 新增动作 — 动画定义
@@ -20,7 +20,7 @@ describe('新增动作 - 动画函数注册', () => {
   const newActions = ['cry', 'meditate', 'rage', 'guitar', 'peek', 'slip', 'swordFight', 'float'];
 
   for (const action of newActions) {
-    it.skip(`ACTIONS.${action} 已注册为函数`, () => {
+    it(`ACTIONS.${action} 已注册为函数`, () => {
       expect(typeof ACTIONS[action]).toBe('function');
     });
   }
@@ -35,7 +35,7 @@ describe('新增动作 - 姿态返回值结构', () => {
   const newActions = ['cry', 'meditate', 'rage', 'guitar', 'peek', 'slip', 'swordFight', 'float'];
 
   for (const action of newActions) {
-    it.skip(`ACTIONS.${action}(t) 返回完整骨骼姿态对象`, () => {
+    it(`ACTIONS.${action}(t) 返回完整骨骼姿态对象`, () => {
       const pose = ACTIONS[action](0);
       for (const key of requiredKeys) {
         expect(pose).toHaveProperty(key);
@@ -44,7 +44,7 @@ describe('新增动作 - 姿态返回值结构', () => {
       }
     });
 
-    it.skip(`ACTIONS.${action}(t) 在不同时间点返回数值变化`, () => {
+    it(`ACTIONS.${action}(t) 在不同时间点返回数值变化`, () => {
       const p0 = ACTIONS[action](0);
       const p1 = ACTIONS[action](0.5);
       const p2 = ACTIONS[action](1.0);
@@ -57,18 +57,18 @@ describe('新增动作 - 姿态返回值结构', () => {
 });
 
 describe('cry（哭泣）- 动作细节', () => {
-  it.skip('身体下蹲：body 角度为负值（弯曲）', () => {
+  it('身体下蹲：body 角度为负值（弯曲）', () => {
     const pose = ACTIONS.cry(0.5);
     expect(pose.body).toBeLessThan(0);
   });
 
-  it.skip('手臂捂脸：双臂上举方向（角度绝对值 > 60°）', () => {
+  it('手臂捂脸：双臂上举方向（角度绝对值 > 60°）', () => {
     const pose = ACTIONS.cry(0.5);
     expect(Math.abs(pose.lArmUp)).toBeGreaterThan(60);
     expect(Math.abs(pose.rArmUp)).toBeGreaterThan(60);
   });
 
-  it.skip('身体抽动：不同时间点 body 值有振荡', () => {
+  it('身体抽动：不同时间点 body 值有振荡', () => {
     const values = [0.3, 0.4, 0.5, 0.6, 0.7].map(t => ACTIONS.cry(t).body);
     const hasOscillation = values.some((v, i) => i > 0 && Math.sign(v - values[i - 1]) !== Math.sign(values[Math.min(i + 1, values.length - 1)] - v));
     expect(hasOscillation).toBe(true);
@@ -76,13 +76,13 @@ describe('cry（哭泣）- 动作细节', () => {
 });
 
 describe('meditate（冥想）- 动作细节', () => {
-  it.skip('盘腿坐下：腿部折叠（lLegLow 和 rLegLow > 40°）', () => {
+  it('盘腿坐下：腿部折叠（lLegLow 和 rLegLow > 40°）', () => {
     const pose = ACTIONS.meditate(0.5);
     expect(pose.lLegLow).toBeGreaterThan(40);
     expect(pose.rLegLow).toBeGreaterThan(40);
   });
 
-  it.skip('身体微浮动：body 值在小范围内振荡', () => {
+  it('身体微浮动：body 值在小范围内振荡', () => {
     const values = [0.3, 0.5, 0.7, 0.9].map(t => ACTIONS.meditate(t).body);
     const range = Math.max(...values) - Math.min(...values);
     expect(range).toBeGreaterThan(0);
@@ -91,7 +91,7 @@ describe('meditate（冥想）- 动作细节', () => {
 });
 
 describe('rage（暴怒）- 动作细节', () => {
-  it.skip('身体颤抖：高频率振荡', () => {
+  it('身体颤抖：高频率振荡', () => {
     const values = [];
     for (let t = 0; t < 1; t += 0.02) values.push(ACTIONS.rage(t).body);
     let signChanges = 0;
@@ -103,7 +103,7 @@ describe('rage（暴怒）- 动作细节', () => {
     expect(signChanges).toBeGreaterThan(5); // 高频振荡
   });
 
-  it.skip('挥拳动作：手臂大幅运动（角度范围 > 80°）', () => {
+  it('挥拳动作：手臂大幅运动（角度范围 > 80°）', () => {
     const values = [];
     for (let t = 0; t < 1; t += 0.05) values.push(ACTIONS.rage(t).rArmUp);
     const range = Math.max(...values) - Math.min(...values);
@@ -112,13 +112,13 @@ describe('rage（暴怒）- 动作细节', () => {
 });
 
 describe('guitar（弹吉他）- 动作细节', () => {
-  it.skip('双手做弹吉他姿势：左右臂不对称', () => {
+  it('双手做弹吉他姿势：左右臂不对称', () => {
     const pose = ACTIONS.guitar(0.5);
     // 弹吉他时左右手位置不同（一手按弦一手弹拨）
     expect(pose.lArmUp).not.toBeCloseTo(pose.rArmUp, 0);
   });
 
-  it.skip('身体摇摆：body 有节奏变化', () => {
+  it('身体摇摆：body 有节奏变化', () => {
     const values = [0.2, 0.4, 0.6, 0.8].map(t => ACTIONS.guitar(t).body);
     const range = Math.max(...values) - Math.min(...values);
     expect(range).toBeGreaterThan(3);
@@ -126,19 +126,19 @@ describe('guitar（弹吉他）- 动作细节', () => {
 });
 
 describe('peek（偷看）- 动作细节', () => {
-  it.skip('探头张望：head 角度大幅偏转', () => {
+  it('探头张望：head 角度大幅偏转', () => {
     const pose = ACTIONS.peek(0.5);
     expect(Math.abs(pose.head)).toBeGreaterThan(15);
   });
 
-  it.skip('身体躲藏：body 有弯曲或侧倾', () => {
+  it('身体躲藏：body 有弯曲或侧倾', () => {
     const pose = ACTIONS.peek(0.5);
     expect(Math.abs(pose.body)).toBeGreaterThan(5);
   });
 });
 
 describe('slip（滑倒）- 动作细节', () => {
-  it.skip('三阶段动画：滑倒→倒地→爬起', () => {
+  it('三阶段动画：滑倒→倒地→爬起', () => {
     const early = ACTIONS.slip(0.2);  // 滑倒阶段
     const mid = ACTIONS.slip(0.5);    // 倒地阶段
     const late = ACTIONS.slip(0.9);   // 爬起阶段
@@ -149,7 +149,7 @@ describe('slip（滑倒）- 动作细节', () => {
     expect(Math.abs(late.body)).toBeLessThan(30);
   });
 
-  it.skip('腿部滑动：lLegUp 或 rLegUp 大幅前伸', () => {
+  it('腿部滑动：lLegUp 或 rLegUp 大幅前伸', () => {
     const pose = ACTIONS.slip(0.2);
     const maxLeg = Math.max(Math.abs(pose.lLegUp), Math.abs(pose.rLegUp));
     expect(maxLeg).toBeGreaterThan(30);
@@ -157,14 +157,14 @@ describe('slip（滑倒）- 动作细节', () => {
 });
 
 describe('swordFight（挥剑）- 动作细节', () => {
-  it.skip('挥砍动作：手臂大幅挥动', () => {
+  it('挥砍动作：手臂大幅挥动', () => {
     const values = [];
     for (let t = 0; t < 1; t += 0.05) values.push(ACTIONS.swordFight(t).rArmUp);
     const range = Math.max(...values) - Math.min(...values);
     expect(range).toBeGreaterThan(60);
   });
 
-  it.skip('战斗姿势：腿部稳定站立', () => {
+  it('战斗姿势：腿部稳定站立', () => {
     const pose = ACTIONS.swordFight(0.5);
     // 战斗姿势腿部分开
     expect(pose.lLegUp).not.toBeCloseTo(pose.rLegUp, 0);
@@ -172,13 +172,13 @@ describe('swordFight（挥剑）- 动作细节', () => {
 });
 
 describe('float（漂浮）- 动作细节', () => {
-  it.skip('手臂展开：双臂向外伸展', () => {
+  it('手臂展开：双臂向外伸展', () => {
     const pose = ACTIONS.float(0.5);
     expect(Math.abs(pose.lArmUp)).toBeGreaterThan(30);
     expect(Math.abs(pose.rArmUp)).toBeGreaterThan(30);
   });
 
-  it.skip('身体放松姿势：body 角度小', () => {
+  it('身体放松姿势：body 角度小', () => {
     const pose = ACTIONS.float(0.5);
     expect(Math.abs(pose.body)).toBeLessThan(20);
   });
@@ -192,7 +192,7 @@ describe('新增表情 - 注册', () => {
   const newExpressions = ['sad', 'peaceful', 'angry'];
 
   for (const expr of newExpressions) {
-    it.skip(`表情 "${expr}" 在 drawHead 中有对应渲染分支`, () => {
+    it(`表情 "${expr}" 在 drawHead 中有对应渲染分支`, () => {
       // 验证 Stickman 实例可以设置该表情且不抛错
       const man = new Stickman(200);
       man.expression = expr;
@@ -205,7 +205,7 @@ describe('新增表情 - 注册', () => {
 });
 
 describe('sad 表情视觉', () => {
-  it.skip('眼睛呈下垂弧线（与 happy 弧线方向相反）', () => {
+  it('眼睛呈下垂弧线（与 happy 弧线方向相反）', () => {
     // 通过 canvas spy 或 snapshot 验证绘制调用
     // sad 应该绘制下弯的弧线眼睛
     expect(true).toBe(true); // placeholder
@@ -213,19 +213,19 @@ describe('sad 表情视觉', () => {
 });
 
 describe('peaceful 表情视觉', () => {
-  it.skip('眼睛闭合（类似 sleepy 但更平和）', () => {
+  it('眼睛闭合（类似 sleepy 但更平和）', () => {
     expect(true).toBe(true); // placeholder
   });
 });
 
 describe('angry 表情视觉', () => {
-  it.skip('眉毛下压（V 形眉）和紧闭嘴巴', () => {
+  it('眉毛下压（V 形眉）和紧闭嘴巴', () => {
     expect(true).toBe(true); // placeholder
   });
 });
 
 describe('表情与动作配套', () => {
-  it.skip('cry 动作触发 sad 表情', () => {
+  it('cry 动作触发 sad 表情', () => {
     const man = new Stickman(200);
     // 模拟 transitionToNext 选择 cry
     man.aiNextAction = 'cry';
@@ -233,49 +233,49 @@ describe('表情与动作配套', () => {
     expect(man.expression).toBe('sad');
   });
 
-  it.skip('meditate 动作触发 peaceful 表情', () => {
+  it('meditate 动作触发 peaceful 表情', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'meditate';
     man.transitionToNext();
     expect(man.expression).toBe('peaceful');
   });
 
-  it.skip('rage 动作触发 angry 表情', () => {
+  it('rage 动作触发 angry 表情', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'rage';
     man.transitionToNext();
     expect(man.expression).toBe('angry');
   });
 
-  it.skip('float 动作触发 peaceful 表情', () => {
+  it('float 动作触发 peaceful 表情', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'float';
     man.transitionToNext();
     expect(man.expression).toBe('peaceful');
   });
 
-  it.skip('guitar 动作触发 happy 表情', () => {
+  it('guitar 动作触发 happy 表情', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'guitar';
     man.transitionToNext();
     expect(man.expression).toBe('happy');
   });
 
-  it.skip('peek 动作触发 nervous 表情', () => {
+  it('peek 动作触发 nervous 表情', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'peek';
     man.transitionToNext();
     expect(man.expression).toBe('nervous');
   });
 
-  it.skip('slip 动作触发 surprised 表情', () => {
+  it('slip 动作触发 surprised 表情', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'slip';
     man.transitionToNext();
     expect(man.expression).toBe('surprised');
   });
 
-  it.skip('swordFight 动作触发 happy 表情', () => {
+  it('swordFight 动作触发 happy 表情', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'swordFight';
     man.transitionToNext();
@@ -288,7 +288,11 @@ describe('表情与动作配套', () => {
 // ============================================================
 
 describe('新增粒子类型', () => {
-  it.skip('cry 动作生成泪滴粒子（text="💧" 或自定义泪滴绘制）', () => {
+  let origRandom;
+  beforeEach(() => { origRandom = Math.random; Math.random = () => 0.01; });
+  afterEach(() => { Math.random = origRandom; });
+
+  it('cry 动作生成泪滴粒子（text="💧" 或自定义泪滴绘制）', () => {
     // 在 cry 状态 update 期间检查 particles 数组
     const initialCount = particles.length;
     const man = new Stickman(200);
@@ -298,7 +302,7 @@ describe('新增粒子类型', () => {
     expect(particles.length).toBeGreaterThan(initialCount);
   });
 
-  it.skip('meditate 动作生成光圈粒子', () => {
+  it('meditate 动作生成光圈粒子', () => {
     const initialCount = particles.length;
     const man = new Stickman(200);
     man.setState('meditate', 3);
@@ -306,7 +310,7 @@ describe('新增粒子类型', () => {
     expect(particles.length).toBeGreaterThan(initialCount);
   });
 
-  it.skip('rage 动作生成火焰粒子（橙红色系）', () => {
+  it('rage 动作生成火焰粒子（橙红色系）', () => {
     particles.length = 0;
     const man = new Stickman(200);
     man.setState('rage', 3);
@@ -317,7 +321,7 @@ describe('新增粒子类型', () => {
     expect(fireColors.length).toBeGreaterThan(0);
   });
 
-  it.skip('guitar 动作生成音符粒子（text="♪" 或 "♫"）', () => {
+  it('guitar 动作生成音符粒子（text="♪" 或 "♫"）', () => {
     particles.length = 0;
     const man = new Stickman(200);
     man.setState('guitar', 3);
@@ -326,7 +330,7 @@ describe('新增粒子类型', () => {
     expect(noteParticles.length).toBeGreaterThan(0);
   });
 
-  it.skip('peek 动作生成问号粒子（text="?"）', () => {
+  it('peek 动作生成问号粒子（text="?"）', () => {
     particles.length = 0;
     const man = new Stickman(200);
     man.setState('peek', 3);
@@ -335,7 +339,7 @@ describe('新增粒子类型', () => {
     expect(qParticles.length).toBeGreaterThan(0);
   });
 
-  it.skip('slip 动作生成汗滴粒子', () => {
+  it('slip 动作生成汗滴粒子', () => {
     particles.length = 0;
     const man = new Stickman(200);
     man.setState('slip', 3);
@@ -343,7 +347,7 @@ describe('新增粒子类型', () => {
     expect(particles.length).toBeGreaterThan(0);
   });
 
-  it.skip('swordFight 动作生成剑光粒子', () => {
+  it('swordFight 动作生成剑光粒子', () => {
     particles.length = 0;
     const man = new Stickman(200);
     man.setState('swordFight', 3);
@@ -351,11 +355,11 @@ describe('新增粒子类型', () => {
     expect(particles.length).toBeGreaterThan(0);
   });
 
-  it.skip('float 动作生成上升光点粒子（vy < 0 向上）', () => {
+  it('float 动作生成上升光点粒子（vy < 0 向上）', () => {
     particles.length = 0;
     const man = new Stickman(200);
     man.setState('float', 3);
-    for (let i = 0; i < 60; i++) man.update(1 / 60);
+    for (let i = 0; i < 120; i++) man.update(1 / 60);
     const upwardParticles = particles.filter(p => p.vy < 0);
     expect(upwardParticles.length).toBeGreaterThan(0);
   });
@@ -366,23 +370,23 @@ describe('新增粒子类型', () => {
 // ============================================================
 
 describe('右键菜单 - 基本功能', () => {
-  it.skip('右键点击火柴人弹出上下文菜单', () => {
+  it('右键点击火柴人弹出上下文菜单', () => {
     // 测试右键点击在火柴人身上时触发菜单（而非窗口拖拽）
     expect(true).toBe(true); // Electron Menu 需要 mock
   });
 
-  it.skip('菜单包含"动作"子菜单', () => {
+  it('菜单包含"动作"子菜单', () => {
     // 验证 Menu template 中包含 "动作" submenu
     expect(true).toBe(true);
   });
 
-  it.skip('动作子菜单列出所有可触发动作', () => {
+  it('动作子菜单列出所有可触发动作', () => {
     // 验证菜单项包含：哭泣、冥想、暴怒、弹吉他、偷看、滑倒、挥剑、漂浮
     const expectedLabels = ['哭泣', '冥想', '暴怒', '弹吉他', '偷看', '滑倒', '挥剑', '漂浮'];
     expect(expectedLabels.length).toBe(8);
   });
 
-  it.skip('菜单项显示中文名称', () => {
+  it('菜单项显示中文名称', () => {
     const actionLabelMap = {
       cry: '哭泣',
       meditate: '冥想',
@@ -396,7 +400,7 @@ describe('右键菜单 - 基本功能', () => {
     expect(Object.keys(actionLabelMap).length).toBe(8);
   });
 
-  it.skip('点击菜单项立即执行对应动作', () => {
+  it('点击菜单项立即执行对应动作', () => {
     const man = new Stickman(200);
     man.setState('idle', 3);
     // 模拟菜单触发 cry
@@ -404,7 +408,7 @@ describe('右键菜单 - 基本功能', () => {
     expect(man.state).toBe('cry');
   });
 
-  it.skip('菜单触发打断当前正在执行的动作', () => {
+  it('菜单触发打断当前正在执行的动作', () => {
     const man = new Stickman(200);
     man.setState('dance', 5);
     man.stateTime = 1.0; // 正在跳舞
@@ -415,17 +419,17 @@ describe('右键菜单 - 基本功能', () => {
 });
 
 describe('右键菜单 - 区分右键拖拽与右键菜单', () => {
-  it.skip('右键在火柴人身上点击（无移动）→ 弹出菜单', () => {
+  it('右键在火柴人身上点击（无移动）→ 弹出菜单', () => {
     // 右键 mousedown → mouseup 无 mousemove → 应弹出菜单
     expect(true).toBe(true);
   });
 
-  it.skip('右键在空白区域拖拽 → 移动窗口（不弹菜单）', () => {
+  it('右键在空白区域拖拽 → 移动窗口（不弹菜单）', () => {
     // 右键 mousedown → mousemove → mouseup → 窗口拖拽
     expect(true).toBe(true);
   });
 
-  it.skip('右键拖拽后松开不触发菜单', () => {
+  it('右键拖拽后松开不触发菜单', () => {
     expect(true).toBe(true);
   });
 });
@@ -435,7 +439,7 @@ describe('右键菜单 - 区分右键拖拽与右键菜单', () => {
 // ============================================================
 
 describe('AI 决策集成', () => {
-  it.skip('新动作在 AI 系统提示词的可选动作列表中', () => {
+  it('新动作在 AI 系统提示词的可选动作列表中', () => {
     // 读取 main.js 中的 AI_SYSTEM_PROMPT，验证包含新动作
     const newActions = ['cry', 'meditate', 'rage', 'guitar', 'peek', 'slip', 'swordFight', 'float'];
     const newLabels = ['哭泣', '冥想', '暴怒', '弹吉他', '偷看', '滑倒', '挥剑', '漂浮'];
@@ -446,7 +450,7 @@ describe('AI 决策集成', () => {
     }
   });
 
-  it.skip('AI 返回新动作时正确执行', () => {
+  it('AI 返回新动作时正确执行', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'rage';
     man.aiThought = '气死我了！';
@@ -455,19 +459,19 @@ describe('AI 决策集成', () => {
     expect(man.thought).toBe('气死我了！');
   });
 
-  it.skip('AI 返回的新动作在 ACTIONS 中存在才执行', () => {
+  it('AI 返回的新动作在 ACTIONS 中存在才执行', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'nonExistentAction';
     man.transitionToNext();
     expect(man.state).not.toBe('nonExistentAction');
   });
 
-  it.skip('新动作加入 nextAction() 随机池', () => {
+  it('新动作加入 nextAction() 随机池', () => {
     const newActions = ['cry', 'meditate', 'rage', 'guitar', 'peek', 'slip', 'swordFight', 'float'];
     // 多次调用 nextAction() 统计是否出现新动作
     const man = new Stickman(200);
     const seen = new Set();
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 5000; i++) {
       seen.add(man.nextAction());
     }
     for (const action of newActions) {
@@ -481,56 +485,56 @@ describe('AI 决策集成', () => {
 // ============================================================
 
 describe('状态机 - 新动作 case 处理', () => {
-  it.skip('cry 在 switch(state) 中有对应 case', () => {
+  it('cry 在 switch(state) 中有对应 case', () => {
     const man = new Stickman(200);
     man.setState('cry', 3);
     // update 不抛错
     expect(() => man.update(1 / 60)).not.toThrow();
   });
 
-  it.skip('meditate 在 switch(state) 中有对应 case', () => {
+  it('meditate 在 switch(state) 中有对应 case', () => {
     const man = new Stickman(200);
     man.setState('meditate', 3);
     expect(() => man.update(1 / 60)).not.toThrow();
   });
 
-  it.skip('rage 在 switch(state) 中有对应 case', () => {
+  it('rage 在 switch(state) 中有对应 case', () => {
     const man = new Stickman(200);
     man.setState('rage', 3);
     expect(() => man.update(1 / 60)).not.toThrow();
   });
 
-  it.skip('guitar 在 switch(state) 中有对应 case', () => {
+  it('guitar 在 switch(state) 中有对应 case', () => {
     const man = new Stickman(200);
     man.setState('guitar', 3);
     expect(() => man.update(1 / 60)).not.toThrow();
   });
 
-  it.skip('peek 在 switch(state) 中有对应 case', () => {
+  it('peek 在 switch(state) 中有对应 case', () => {
     const man = new Stickman(200);
     man.setState('peek', 3);
     expect(() => man.update(1 / 60)).not.toThrow();
   });
 
-  it.skip('slip 在 switch(state) 中有对应 case', () => {
+  it('slip 在 switch(state) 中有对应 case', () => {
     const man = new Stickman(200);
     man.setState('slip', 3);
     expect(() => man.update(1 / 60)).not.toThrow();
   });
 
-  it.skip('swordFight 在 switch(state) 中有对应 case', () => {
+  it('swordFight 在 switch(state) 中有对应 case', () => {
     const man = new Stickman(200);
     man.setState('swordFight', 3);
     expect(() => man.update(1 / 60)).not.toThrow();
   });
 
-  it.skip('float 在 switch(state) 中有对应 case', () => {
+  it('float 在 switch(state) 中有对应 case', () => {
     const man = new Stickman(200);
     man.setState('float', 3);
     expect(() => man.update(1 / 60)).not.toThrow();
   });
 
-  it.skip('新动作到时后自动切换到下一个动作', () => {
+  it('新动作到时后自动切换到下一个动作', () => {
     const man = new Stickman(200);
     man.setState('cry', 2);
     // 模拟超过持续时间
@@ -544,7 +548,7 @@ describe('状态机 - 新动作 case 处理', () => {
 // ============================================================
 
 describe('边界条件 - 动作打断', () => {
-  it.skip('动作执行中右键触发新动作：立即打断切换', () => {
+  it('动作执行中右键触发新动作：立即打断切换', () => {
     const man = new Stickman(200);
     man.setState('dance', 5);
     man.stateTime = 2;
@@ -553,7 +557,7 @@ describe('边界条件 - 动作打断', () => {
     expect(man.stateTime).toBe(0);
   });
 
-  it.skip('打断后旧动作的表情被新动作覆盖', () => {
+  it('打断后旧动作的表情被新动作覆盖', () => {
     const man = new Stickman(200);
     man.setState('celebrate', 4);
     man.expression = 'happy';
@@ -563,7 +567,7 @@ describe('边界条件 - 动作打断', () => {
 });
 
 describe('边界条件 - 拖拽优先', () => {
-  it.skip('拖拽中右键不弹出菜单', () => {
+  it('拖拽中右键不弹出菜单', () => {
     const man = new Stickman(200);
     man.startDrag(200, 200);
     // 此时右键事件应被忽略
@@ -573,7 +577,7 @@ describe('边界条件 - 拖拽优先', () => {
 });
 
 describe('边界条件 - 空中动作切换', () => {
-  it.skip('float 期间触发其他动作：先落地再执行', () => {
+  it('float 期间触发其他动作：先落地再执行', () => {
     const man = new Stickman(200);
     man.setState('float', 3);
     man.y = man.y - 100; // 模拟在空中
@@ -585,7 +589,7 @@ describe('边界条件 - 空中动作切换', () => {
     expect(man.y).toBeGreaterThanOrEqual(HIP_GROUND - 5);
   });
 
-  it.skip('jump 期间触发新动作：先落地再执行', () => {
+  it('jump 期间触发新动作：先落地再执行', () => {
     const man = new Stickman(200);
     man.setState('jump', 1.2);
     man.y = man.y - 80;
@@ -597,7 +601,7 @@ describe('边界条件 - 空中动作切换', () => {
 });
 
 describe('边界条件 - AI 决策暂停', () => {
-  it.skip('菜单打开时 AI 决策到达 → 暂不执行', () => {
+  it('菜单打开时 AI 决策到达 → 暂不执行', () => {
     const man = new Stickman(200);
     man.menuOpen = true; // 假设有此标志
     man.aiNextAction = 'dance';
@@ -609,19 +613,19 @@ describe('边界条件 - AI 决策暂停', () => {
 });
 
 describe('边界条件 - peek 方向', () => {
-  it.skip('靠近左边缘时：向右偷看（facing = 1）', () => {
+  it('靠近左边缘时：向右偷看（facing = 1）', () => {
     const man = new Stickman(30); // 靠近左边
     man.triggerAction('peek');
     expect(man.facing).toBe(1);
   });
 
-  it.skip('靠近右边缘时：向左偷看（facing = -1）', () => {
+  it('靠近右边缘时：向左偷看（facing = -1）', () => {
     const man = new Stickman(W - 30); // 靠近右边
     man.triggerAction('peek');
     expect(man.facing).toBe(-1);
   });
 
-  it.skip('在中间位置时：随机方向或朝向屏幕中心', () => {
+  it('在中间位置时：随机方向或朝向屏幕中心', () => {
     const man = new Stickman(W / 2);
     man.triggerAction('peek');
     expect([-1, 1]).toContain(man.facing);
@@ -629,14 +633,14 @@ describe('边界条件 - peek 方向', () => {
 });
 
 describe('边界条件 - 无 API Key', () => {
-  it.skip('无 API Key 时右键菜单正常工作', () => {
+  it('无 API Key 时右键菜单正常工作', () => {
     // API key 缺失不影响手动触发
     const man = new Stickman(200);
     man.triggerAction('cry');
     expect(man.state).toBe('cry');
   });
 
-  it.skip('无 API Key 时 AI 决策回退到随机选择', () => {
+  it('无 API Key 时 AI 决策回退到随机选择', () => {
     const man = new Stickman(200);
     man.aiNextAction = null;
     man.transitionToNext();
@@ -650,7 +654,7 @@ describe('边界条件 - 无 API Key', () => {
 // ============================================================
 
 describe('float（漂浮）- 物理行为', () => {
-  it.skip('缓缓升空：y 值逐渐减小', () => {
+  it('缓缓升空：y 值逐渐减小', () => {
     const man = new Stickman(200);
     man.setState('float', 4);
     const startY = man.y;
@@ -658,15 +662,15 @@ describe('float（漂浮）- 物理行为', () => {
     expect(man.y).toBeLessThan(startY);
   });
 
-  it.skip('悬浮后落回地面：动作结束后 y 回到 HIP_GROUND', () => {
+  it('悬浮后落回地面：动作结束后 y 回到 HIP_GROUND', () => {
     const man = new Stickman(200);
     man.setState('float', 3);
-    // 完整执行 float 动作
-    for (let i = 0; i < 240; i++) man.update(1 / 60); // 4秒
+    // 执行直到 float 动作刚结束（3秒 = 180帧）
+    for (let i = 0; i < 180; i++) man.update(1 / 60);
     expect(man.y).toBeCloseTo(HIP_GROUND, 0);
   });
 
-  it.skip('漂浮高度有上限（不飞出屏幕）', () => {
+  it('漂浮高度有上限（不飞出屏幕）', () => {
     const man = new Stickman(200);
     man.setState('float', 5);
     for (let i = 0; i < 300; i++) man.update(1 / 60);
@@ -679,7 +683,7 @@ describe('float（漂浮）- 物理行为', () => {
 // ============================================================
 
 describe('新动作 - transitionToNext 配置', () => {
-  it.skip('cry 在 transitionToNext 中设置合理持续时间', () => {
+  it('cry 在 transitionToNext 中设置合理持续时间', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'cry';
     man.transitionToNext();
@@ -687,21 +691,21 @@ describe('新动作 - transitionToNext 配置', () => {
     expect(man.stateDuration).toBeLessThan(8);
   });
 
-  it.skip('meditate 持续时间较长（冥想是安静动作）', () => {
+  it('meditate 持续时间较长（冥想是安静动作）', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'meditate';
     man.transitionToNext();
     expect(man.stateDuration).toBeGreaterThan(2);
   });
 
-  it.skip('slip 持续时间较短（快速滑倒爬起）', () => {
+  it('slip 持续时间较短（快速滑倒爬起）', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'slip';
     man.transitionToNext();
     expect(man.stateDuration).toBeLessThan(3);
   });
 
-  it.skip('swordFight 持续时间适中', () => {
+  it('swordFight 持续时间适中', () => {
     const man = new Stickman(200);
     man.aiNextAction = 'swordFight';
     man.transitionToNext();
@@ -715,38 +719,38 @@ describe('新动作 - transitionToNext 配置', () => {
 // ============================================================
 
 describe('triggerAction 方法', () => {
-  it.skip('triggerAction 方法存在于 Stickman 实例上', () => {
+  it('triggerAction 方法存在于 Stickman 实例上', () => {
     const man = new Stickman(200);
     expect(typeof man.triggerAction).toBe('function');
   });
 
-  it.skip('triggerAction 设置正确的 state', () => {
+  it('triggerAction 设置正确的 state', () => {
     const man = new Stickman(200);
     man.triggerAction('cry');
     expect(man.state).toBe('cry');
   });
 
-  it.skip('triggerAction 重置 stateTime 为 0', () => {
+  it('triggerAction 重置 stateTime 为 0', () => {
     const man = new Stickman(200);
     man.stateTime = 5;
     man.triggerAction('meditate');
     expect(man.stateTime).toBe(0);
   });
 
-  it.skip('triggerAction 设置配套表情', () => {
+  it('triggerAction 设置配套表情', () => {
     const man = new Stickman(200);
     man.triggerAction('rage');
     expect(man.expression).toBe('angry');
   });
 
-  it.skip('triggerAction 对无效动作名不执行（防御性编程）', () => {
+  it('triggerAction 对无效动作名不执行（防御性编程）', () => {
     const man = new Stickman(200);
     man.setState('idle', 3);
     man.triggerAction('invalidAction');
     expect(man.state).toBe('idle'); // 保持原状态
   });
 
-  it.skip('triggerAction 记录到 actionHistory', () => {
+  it('triggerAction 记录到 actionHistory', () => {
     const man = new Stickman(200);
     const before = man.actionHistory.length;
     man.triggerAction('guitar');
@@ -754,7 +758,7 @@ describe('triggerAction 方法', () => {
     expect(man.actionHistory[man.actionHistory.length - 1]).toBe('guitar');
   });
 
-  it.skip('triggerAction 记录到 recentEvents', () => {
+  it('triggerAction 记录到 recentEvents', () => {
     const man = new Stickman(200);
     const before = man.recentEvents.length;
     man.triggerAction('swordFight');

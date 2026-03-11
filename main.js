@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, ipcMain } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -41,8 +41,32 @@ function createWindow() {
     win.setPosition(x + dx, y + dy);
   });
 
+  // Right-click context menu
+  ipcMain.handle('show-context-menu', async () => {
+    const actionItems = [
+      { label: '哭泣', action: 'cry' },
+      { label: '冥想', action: 'meditate' },
+      { label: '暴怒', action: 'rage' },
+      { label: '弹吉他', action: 'guitar' },
+      { label: '偷看', action: 'peek' },
+      { label: '滑倒', action: 'slip' },
+      { label: '挥剑', action: 'swordFight' },
+      { label: '漂浮', action: 'float' },
+    ];
+    return new Promise((resolve) => {
+      const menu = Menu.buildFromTemplate([{
+        label: '动作',
+        submenu: actionItems.map(item => ({
+          label: item.label,
+          click: () => resolve({ action: item.action }),
+        })),
+      }]);
+      menu.popup({ window: win, callback: () => resolve(null) });
+    });
+  });
+
   // AI multi-turn conversation memory
-  const AI_SYSTEM_PROMPT = '你是一个桌面火柴人桌宠的大脑。你有持续记忆，能记住之前所有经历。\n\n可选动作：idle(发呆), lookAround(张望), walk(走路), dance(跳舞), crazyDance(狂舞), jump(跳跃), wave(挥手), kick(踢腿), spin(旋转), backflip(后空翻), sitDown(坐下), flex(秀肌肉), pushUp(俯卧撑), headstand(倒立), yawn(打哈欠), sneak(潜行), bow(鞠躬), run(跑步), sleep(睡觉), stumble(踉跄), celebrate(庆祝)\n\n规则：\n- 你有自己的性格和情绪，会随经历变化\n- 行为要有逻辑连贯性，参考之前的记忆\n- 被用户反复欺负会记仇，会生气或委屈\n- 被善待会开心，更愿意表演\n- 内心独白要可爱有趣，不超过15个字\n- 只回复JSON：{"action":"动作名","thought":"内心独白"}';
+  const AI_SYSTEM_PROMPT = '你是一个桌面火柴人桌宠的大脑。你有持续记忆，能记住之前所有经历。\n\n可选动作：idle(发呆), lookAround(张望), walk(走路), dance(跳舞), crazyDance(狂舞), jump(跳跃), wave(挥手), kick(踢腿), spin(旋转), backflip(后空翻), sitDown(坐下), flex(秀肌肉), pushUp(俯卧撑), headstand(倒立), yawn(打哈欠), sneak(潜行), bow(鞠躬), run(跑步), sleep(睡觉), stumble(踉跄), celebrate(庆祝), cry(哭泣), meditate(冥想), rage(暴怒), guitar(弹吉他), peek(偷看), slip(滑倒), swordFight(挥剑), float(漂浮)\n\n规则：\n- 你有自己的性格和情绪，会随经历变化\n- 行为要有逻辑连贯性，参考之前的记忆\n- 被用户反复欺负会记仇，会生气或委屈\n- 被善待会开心，更愿意表演\n- 内心独白要可爱有趣，不超过15个字\n- 只回复JSON：{"action":"动作名","thought":"内心独白"}';
   const conversationHistory = [{ role: 'system', content: AI_SYSTEM_PROMPT }];
   const MAX_HISTORY = 60; // 保留最近30轮对话
 
