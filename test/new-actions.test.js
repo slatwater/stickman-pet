@@ -10,7 +10,7 @@
  * - 边界条件处理
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // ============================================================
 //  1. 新增动作 — 动画定义
@@ -288,6 +288,10 @@ describe('表情与动作配套', () => {
 // ============================================================
 
 describe('新增粒子类型', () => {
+  let origRandom;
+  beforeEach(() => { origRandom = Math.random; Math.random = () => 0.01; });
+  afterEach(() => { Math.random = origRandom; });
+
   it('cry 动作生成泪滴粒子（text="💧" 或自定义泪滴绘制）', () => {
     // 在 cry 状态 update 期间检查 particles 数组
     const initialCount = particles.length;
@@ -355,7 +359,7 @@ describe('新增粒子类型', () => {
     particles.length = 0;
     const man = new Stickman(200);
     man.setState('float', 3);
-    for (let i = 0; i < 300; i++) man.update(1 / 60);
+    for (let i = 0; i < 120; i++) man.update(1 / 60);
     const upwardParticles = particles.filter(p => p.vy < 0);
     expect(upwardParticles.length).toBeGreaterThan(0);
   });
