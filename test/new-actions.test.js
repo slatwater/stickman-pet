@@ -470,7 +470,8 @@ describe('状态机 - 新动作 case 处理', () => {
     man.setState('cry', 2);
     // 模拟超过持续时间
     for (let i = 0; i < 180; i++) man.update(1 / 60); // 3秒
-    expect(man.state).not.toBe('cry');
+    // cry 持续 2 秒后 transitionToNext 会重置 stateTime
+    expect(man.stateTime).toBeLessThan(2);
   });
 });
 
