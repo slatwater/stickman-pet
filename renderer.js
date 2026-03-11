@@ -598,9 +598,6 @@ class Stickman {
     this.thoughtTimer = 0;
     this.recentEvents = [];
     this.actionHistory = [];
-    this.aiNextAction = null;
-    this.aiThought = null;
-    this.aiPending = false;
 
     // 屏幕感知 + 批量决策
     this.screenActivityLog = [];
@@ -634,8 +631,12 @@ class Stickman {
   }
 
   // 设置动作队列
-  setActionQueue(actions) {
+  setActionQueue(actions, thought) {
     this.actionQueue = [...actions];
+    if (thought) {
+      this.thought = thought;
+      this.thoughtTimer = 3;
+    }
     if (this.actionQueue.length > 0) {
       const first = this.actionQueue.shift();
       if (ACTIONS[first.action]) {
@@ -726,25 +727,6 @@ class Stickman {
   addEvent(event) {
     this.recentEvents.push(event);
     if (this.recentEvents.length > 10) this.recentEvents.shift();
-  }
-
-  requestAiDecision() {
-    if (this.aiPending || !window.electronAPI?.aiDecide) return;
-    this.aiPending = true;
-    const context = [
-      `上一个动作：${this.state}`,
-      `动作历史：${this.actionHistory.slice(-5).join('→') || '无'}`,
-      `最近互动：${this.recentEvents.slice(-3).join('、') || '无'}`,
-      `已连续做了${this.actionHistory.length}个动作`,
-    ].join('\n');
-
-    window.electronAPI.aiDecide(context).then(result => {
-      this.aiPending = false;
-      if (result?.action && ACTIONS[result.action]) {
-        this.aiNextAction = result.action;
-        this.aiThought = result.thought || '';
-      }
-    }).catch(() => { this.aiPending = false; });
   }
 
   update(dt) {
@@ -1174,24 +1156,12 @@ class Stickman {
       }
     }
 
-    if (!next && this.aiNextAction && ACTIONS[this.aiNextAction]) {
-      next = this.aiNextAction;
-      if (this.aiThought) {
-        this.thought = this.aiThought;
-        this.thoughtTimer = 3;
-      }
-      this.aiNextAction = null;
-      this.aiThought = null;
-    }
-
     if (!next) {
       next = this.nextAction();
     }
 
     this.actionHistory.push(next);
     if (this.actionHistory.length > 20) this.actionHistory.shift();
-    if (!queueDuration) this.requestAiDecision();
-
     if (next === 'walk' || next === 'sneak' || next === 'run') {
       if (queueDuration) {
         // Queue-sourced: walk for the specified duration, set far target
@@ -1623,7 +1593,6 @@ class Stickman {
 
 // ==================== 火柴人实例 ====================
 const man = new Stickman(W / 2);
-man.requestAiDecision();
 
 // 屏幕感知回调
 if (window.electronAPI?.onScreenInfo) {

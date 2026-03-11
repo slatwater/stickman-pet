@@ -101,10 +101,9 @@ function createAIManager(options = {}) {
   let pendingMergeObservations = null;
 
   /**
-   * Build user message from context (supports both old string format and new object format).
+   * Build user message from context object.
    */
   function buildUserMessage(context) {
-    if (typeof context === 'string') return context;
     const parts = [];
     if (context.screenActivity && context.screenActivity.length > 0) {
       parts.push('screenActivity: ' + JSON.stringify(context.screenActivity));
@@ -142,10 +141,6 @@ function createAIManager(options = {}) {
           }));
         return parsed;
       }
-      // Legacy single-action format
-      if (parsed.action) {
-        return parsed;
-      }
       return parsed;
     } catch (e) {
       return null;
@@ -156,20 +151,12 @@ function createAIManager(options = {}) {
     if (!apiKey) return null;
     try {
       const userMessage = buildUserMessage(context);
-      const isBatchMode = typeof context === 'object';
 
-      let messages;
-      if (isBatchMode) {
-        // Batch mode: send system prompt + single user message (context-rich)
-        messages = [
-          conversationHistory[0],
-          { role: 'user', content: userMessage },
-        ];
-      } else {
-        // Legacy single-action mode: use full conversation history
-        conversationHistory.push({ role: 'user', content: userMessage });
-        messages = conversationHistory;
-      }
+      conversationHistory.push({ role: 'user', content: userMessage });
+      const messages = [
+        conversationHistory[0],
+        { role: 'user', content: userMessage },
+      ];
 
       const res = await fetchFn('https://api.deepseek.com/chat/completions', {
         method: 'POST',
@@ -187,7 +174,7 @@ function createAIManager(options = {}) {
       const data = await res.json();
       const content = data.choices?.[0]?.message?.content || '';
 
-      if (!isBatchMode && content) {
+      if (content) {
         conversationHistory.push({ role: 'assistant', content });
       }
 

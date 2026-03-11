@@ -189,11 +189,11 @@ describe('运行时短期对话记忆（行为不变）', () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"无聊"}' } }] }),
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"无聊","observation":null}' } }] }),
     });
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
-    await mgr.decide('context1');
-    await mgr.decide('context2');
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
     // system + 2*(user+assistant) = 5
     expect(mgr.getConversationHistory().length).toBe(5);
   });
@@ -202,12 +202,12 @@ describe('运行时短期对话记忆（行为不变）', () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"ok"}' } }] }),
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"ok","observation":null}' } }] }),
     });
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
     // Fill beyond MAX_HISTORY
     for (let i = 0; i < MAX_HISTORY; i++) {
-      await mgr.decide(`msg${i}`);
+      await mgr.decide({ screenActivity: [], userInteractions: [] });
     }
     expect(mgr.getConversationHistory().length).toBeLessThanOrEqual(MAX_HISTORY + 1);
   });
@@ -216,11 +216,11 @@ describe('运行时短期对话记忆（行为不变）', () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'rules.md'), '规则', 'utf8');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"ok"}' } }] }),
+      json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"ok","observation":null}' } }] }),
     });
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
     for (let i = 0; i < MAX_HISTORY; i++) {
-      await mgr.decide(`msg${i}`);
+      await mgr.decide({ screenActivity: [], userInteractions: [] });
     }
     expect(mgr.getConversationHistory()[0].role).toBe('system');
   });
@@ -238,7 +238,7 @@ describe('退出时记忆持久化', () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"hi"}' } }] }),
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"hi","observation":null}' } }] }),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -246,7 +246,7 @@ describe('退出时记忆持久化', () => {
       });
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
-    await mgr.decide('你好');
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
     await mgr.saveMemory();
 
     // saveMemory should have called fetch a second time
@@ -260,7 +260,7 @@ describe('退出时记忆持久化', () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: '{"action":"dance","thought":"跳舞"}' } }] }),
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"dance","duration":15}],"thought":"跳舞","observation":null}' } }] }),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -268,7 +268,7 @@ describe('退出时记忆持久化', () => {
       });
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
-    await mgr.decide('跳个舞');
+    await mgr.decide({ screenActivity: [{ time: '14:00', app: 'Music', title: '跳个舞' }], userInteractions: [] });
     await mgr.saveMemory();
 
     // The summary API call should include conversation content
@@ -284,7 +284,7 @@ describe('退出时记忆持久化', () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"ok"}' } }] }),
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"ok","observation":null}' } }] }),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -292,7 +292,7 @@ describe('退出时记忆持久化', () => {
       });
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
-    await mgr.decide('test');
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
     await mgr.saveMemory();
 
     const summaryCall = mockFetch.mock.calls[1];
@@ -307,7 +307,7 @@ describe('退出时记忆持久化', () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"ok"}' } }] }),
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"ok","observation":null}' } }] }),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -315,7 +315,7 @@ describe('退出时记忆持久化', () => {
       });
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
-    await mgr.decide('test');
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
     await mgr.saveMemory();
 
     const summaryCall = mockFetch.mock.calls[1];
@@ -332,7 +332,7 @@ describe('退出时记忆持久化', () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"ok"}' } }] }),
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"ok","observation":null}' } }] }),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -340,7 +340,7 @@ describe('退出时记忆持久化', () => {
       });
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
-    await mgr.decide('test');
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
     await mgr.saveMemory();
 
     const content = fs.readFileSync(path.join(tmpDir, 'ai', 'memory.md'), 'utf8');
@@ -357,7 +357,7 @@ describe('退出时记忆持久化', () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"ok"}' } }] }),
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"ok","observation":null}' } }] }),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -365,7 +365,7 @@ describe('退出时记忆持久化', () => {
       });
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
-    await mgr.decide('test');
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
     await mgr.saveMemory();
 
     const content = fs.readFileSync(path.join(tmpDir, 'ai', 'memory.md'), 'utf8');
@@ -389,12 +389,12 @@ describe('退出时 API 调用失败处理', () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"ok"}' } }] }),
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"ok","observation":null}' } }] }),
       })
       .mockRejectedValueOnce(new Error('Network error'));
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
-    await mgr.decide('test');
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
     await mgr.saveMemory();
 
     const content = fs.readFileSync(path.join(tmpDir, 'ai', 'memory.md'), 'utf8');
@@ -408,7 +408,7 @@ describe('退出时 API 调用失败处理', () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"ok"}' } }] }),
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"ok","observation":null}' } }] }),
       })
       .mockResolvedValueOnce({
         ok: false,
@@ -417,7 +417,7 @@ describe('退出时 API 调用失败处理', () => {
       });
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
-    await mgr.decide('test');
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
     await mgr.saveMemory();
 
     const content = fs.readFileSync(path.join(tmpDir, 'ai', 'memory.md'), 'utf8');
@@ -431,12 +431,12 @@ describe('退出时 API 调用失败处理', () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"ok"}' } }] }),
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"ok","observation":null}' } }] }),
       })
       .mockRejectedValueOnce(new Error('fail'));
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
-    await mgr.decide('test');
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
     // Should not throw
     await expect(mgr.saveMemory()).resolves.not.toThrow();
   });
@@ -449,12 +449,12 @@ describe('退出时 API 调用失败处理', () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: '{"action":"idle","thought":"ok"}' } }] }),
+        json: async () => ({ choices: [{ message: { content: '{"actions":[{"action":"idle","duration":10}],"thought":"ok","observation":null}' } }] }),
       })
       .mockRejectedValueOnce(new Error('Network error'));
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
-    await mgr.decide('test');
+    await mgr.decide({ screenActivity: [], userInteractions: [] });
     await mgr.saveMemory();
 
     expect(warnSpy).toHaveBeenCalled();
@@ -478,7 +478,7 @@ describe('无 API Key 场景', () => {
     fs.writeFileSync(path.join(tmpDir, 'ai', 'memory.md'), '', 'utf8');
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: '' });
-    await mgr.decide('test'); // returns null, no conversation
+    await mgr.decide({ screenActivity: [], userInteractions: [] }); // returns null, no conversation
     await mgr.saveMemory();
 
     const content = fs.readFileSync(path.join(tmpDir, 'ai', 'memory.md'), 'utf8');
