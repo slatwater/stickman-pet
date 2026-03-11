@@ -471,7 +471,7 @@ describe('AI 决策集成', () => {
     // 多次调用 nextAction() 统计是否出现新动作
     const man = new Stickman(200);
     const seen = new Set();
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 5000; i++) {
       seen.add(man.nextAction());
     }
     for (const action of newActions) {
@@ -665,8 +665,8 @@ describe('float（漂浮）- 物理行为', () => {
   it('悬浮后落回地面：动作结束后 y 回到 HIP_GROUND', () => {
     const man = new Stickman(200);
     man.setState('float', 3);
-    // 完整执行 float 动作
-    for (let i = 0; i < 240; i++) man.update(1 / 60); // 4秒
+    // 执行直到 float 动作刚结束（3秒 = 180帧）
+    for (let i = 0; i < 180; i++) man.update(1 / 60);
     expect(man.y).toBeCloseTo(HIP_GROUND, 0);
   });
 
