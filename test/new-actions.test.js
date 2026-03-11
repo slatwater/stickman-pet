@@ -228,56 +228,56 @@ describe('表情与动作配套', () => {
   it('cry 动作触发 sad 表情', () => {
     const man = new Stickman(200);
     // 模拟 transitionToNext 选择 cry
-    man.aiNextAction = 'cry';
+    man.actionQueue = [{ action: 'cry', duration: 5 }];
     man.transitionToNext();
     expect(man.expression).toBe('sad');
   });
 
   it('meditate 动作触发 peaceful 表情', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'meditate';
+    man.actionQueue = [{ action: 'meditate', duration: 5 }];
     man.transitionToNext();
     expect(man.expression).toBe('peaceful');
   });
 
   it('rage 动作触发 angry 表情', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'rage';
+    man.actionQueue = [{ action: 'rage', duration: 5 }];
     man.transitionToNext();
     expect(man.expression).toBe('angry');
   });
 
   it('float 动作触发 peaceful 表情', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'float';
+    man.actionQueue = [{ action: 'float', duration: 5 }];
     man.transitionToNext();
     expect(man.expression).toBe('peaceful');
   });
 
   it('guitar 动作触发 happy 表情', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'guitar';
+    man.actionQueue = [{ action: 'guitar', duration: 5 }];
     man.transitionToNext();
     expect(man.expression).toBe('happy');
   });
 
   it('peek 动作触发 nervous 表情', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'peek';
+    man.actionQueue = [{ action: 'peek', duration: 5 }];
     man.transitionToNext();
     expect(man.expression).toBe('nervous');
   });
 
   it('slip 动作触发 surprised 表情', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'slip';
+    man.actionQueue = [{ action: 'slip', duration: 5 }];
     man.transitionToNext();
     expect(man.expression).toBe('surprised');
   });
 
   it('swordFight 动作触发 happy 表情', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'swordFight';
+    man.actionQueue = [{ action: 'swordFight', duration: 5 }];
     man.transitionToNext();
     expect(man.expression).toBe('happy');
   });
@@ -383,16 +383,14 @@ describe('AI 决策集成', () => {
 
   it('AI 返回新动作时正确执行', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'rage';
-    man.aiThought = '气死我了！';
-    man.transitionToNext();
+    man.setActionQueue([{ action: 'rage', duration: 5 }], '气死我了！');
     expect(man.state).toBe('rage');
     expect(man.thought).toBe('气死我了！');
   });
 
   it('AI 返回的新动作在 ACTIONS 中存在才执行', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'nonExistentAction';
+    man.actionQueue = [{ action: 'nonExistentAction', duration: 5 }];
     man.transitionToNext();
     expect(man.state).not.toBe('nonExistentAction');
   });
@@ -482,7 +480,6 @@ describe('状态机 - 新动作 case 处理', () => {
 describe('边界条件 - 无 API Key', () => {
   it('无 API Key 时 AI 决策回退到随机选择', () => {
     const man = new Stickman(200);
-    man.aiNextAction = null;
     man.transitionToNext();
     // 应该通过 nextAction() 随机选择
     expect(man.state).toBeTruthy();
@@ -525,7 +522,7 @@ describe('float（漂浮）- 物理行为', () => {
 describe('新动作 - transitionToNext 配置', () => {
   it('cry 在 transitionToNext 中设置合理持续时间', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'cry';
+    man.actionQueue = [{ action: 'cry' }];
     man.transitionToNext();
     expect(man.stateDuration).toBeGreaterThan(1);
     expect(man.stateDuration).toBeLessThan(8);
@@ -533,21 +530,21 @@ describe('新动作 - transitionToNext 配置', () => {
 
   it('meditate 持续时间较长（冥想是安静动作）', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'meditate';
+    man.actionQueue = [{ action: 'meditate' }];
     man.transitionToNext();
     expect(man.stateDuration).toBeGreaterThan(2);
   });
 
   it('slip 持续时间较短（快速滑倒爬起）', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'slip';
+    man.actionQueue = [{ action: 'slip' }];
     man.transitionToNext();
     expect(man.stateDuration).toBeLessThan(3);
   });
 
   it('swordFight 持续时间适中', () => {
     const man = new Stickman(200);
-    man.aiNextAction = 'swordFight';
+    man.actionQueue = [{ action: 'swordFight' }];
     man.transitionToNext();
     expect(man.stateDuration).toBeGreaterThan(1);
     expect(man.stateDuration).toBeLessThan(6);
