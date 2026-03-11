@@ -1,4 +1,5 @@
 const { app, BrowserWindow, screen, ipcMain } = require('electron');
+const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { createAIManager } = require('./ai-manager');
@@ -52,6 +53,26 @@ function createWindow() {
   ipcMain.handle('ai-decide', async (_, context) => {
     return aiManager.decide(context);
   });
+
+  // 30秒定时器：osascript 获取前台应用信息
+  setInterval(() => {
+    const script = 'tell application "System Events" to set frontApp to name of first application process whose frontmost is true\ntell application "System Events" to tell process frontApp to set winTitle to name of front window\nreturn frontApp & "|" & winTitle';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+      execFile('osascript', ['-e', script], { signal: controller.signal, timeout: 5000 }, (err, stdout) => {
+        clearTimeout(timeout);
+        if (err) return; // 静默跳过
+        const parts = stdout.trim().split('|');
+        if (parts.length >= 2 && win && !win.isDestroyed()) {
+          win.webContents.send('screen-info', { app: parts[0], title: parts.slice(1).join('|') });
+        }
+      });
+    } catch (e) {
+      clearTimeout(timeout);
+      // 静默跳过
+    }
+  }, 30000);
 }
 
 app.whenReady().then(createWindow);
