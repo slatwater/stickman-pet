@@ -1,6 +1,6 @@
 {
   "name": "stickman-pet",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "桌面火柴人动态模拟 - 会自己玩的搞笑桌宠",
   "main": "main.js",
   "scripts": {

@@ -25,16 +25,37 @@ const mockCanvas = {
   addEventListener: noop,
 };
 
+// Mock chat input
+const mockChatInput = {
+  style: {},
+  value: '',
+  focus: noop,
+  blur: noop,
+  addEventListener: noop,
+};
+
+const mockChatContainer = {
+  style: {},
+};
+
 // Mock DOM
 globalThis.document = {
-  getElementById: (id) => id === 'canvas' ? mockCanvas : null,
+  getElementById: (id) => {
+    if (id === 'canvas') return mockCanvas;
+    if (id === 'chat-input') return mockChatInput;
+    if (id === 'chat-container') return mockChatContainer;
+    return null;
+  },
 };
 
 // Mock browser APIs
 globalThis.window = globalThis;
+globalThis.window.innerWidth = 0; // 0 prevents renderer from resizing canvas
+globalThis.window.innerHeight = 0;
 globalThis.window.electronAPI = {
   dragWindow: noop,
   aiDecide: () => Promise.resolve(null),
+  setIgnoreMouse: noop,
 };
 globalThis.requestAnimationFrame = noop;
 if (!globalThis.performance) {
