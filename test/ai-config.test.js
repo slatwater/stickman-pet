@@ -243,14 +243,18 @@ describe('退出时记忆持久化', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ choices: [{ message: { content: '- 打了个招呼' } }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: '# 主人画像\n\n## 基本信息\n- 身份/职业：未知' } }] }),
       });
 
     const mgr = createAIManager({ baseDir: tmpDir, apiKey: 'test-key', fetchFn: mockFetch });
     await mgr.decide({ screenActivity: [], userInteractions: [] });
     await mgr.saveMemory();
 
-    // saveMemory should have called fetch a second time
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+    // saveMemory: 1次对话摘要 + 1次画像更新 = decide(1) + saveMemory(2) = 3次
+    expect(mockFetch).toHaveBeenCalledTimes(3);
   });
 
   it('从当次 conversationHistory 提取当天事件生成摘要', async () => {

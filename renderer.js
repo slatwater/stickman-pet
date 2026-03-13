@@ -599,11 +599,13 @@ class Stickman {
     this.recentEvents = [];
     this.actionHistory = [];
 
-    // 屏幕感知 + 批量决策
+    // 屏幕感知 + 行为规则
     this.screenActivityLog = [];
     this.userInteractionsLog = [];
     this.actionQueue = [];
     this.batchDecisionPending = false;
+    this._behaviors = null;
+    this._lastIdleSeconds = 0;
   }
 
   // 屏幕活动记录
@@ -633,6 +635,7 @@ class Stickman {
   // 设置动作队列
   setActionQueue(actions, thought) {
     this.actionQueue = [...actions];
+    this.batchDecisionPending = false;
     if (thought) {
       this.thought = thought;
       this.thoughtTimer = 3;
@@ -706,22 +709,65 @@ class Stickman {
     return Math.hypot(this.mouseX - this.x, this.mouseY - (this.y - BONE.body / 2));
   }
 
-  // 选择下一个随机动作
+  // 基于上下文的本地行为决策（规则来自 ai/behaviors.json，可被 AI 进化修改）
   nextAction() {
-    const actions = ['idle', 'lookAround', 'walk', 'dance', 'crazyDance',
-      'jump', 'wave', 'kick', 'spin', 'backflip', 'sitDown', 'flex',
-      'pushUp', 'headstand', 'yawn', 'sneak', 'bow', 'run', 'sleep', 'stumble', 'celebrate',
-      'cry', 'meditate', 'rage', 'guitar', 'peek', 'slip', 'swordFight', 'float'];
-    const weights = [3, 2, 4, 2, 1, 2, 1, 1, 1, 1, 1, 1,
-      1, 1, 2, 2, 1, 3, 2, 1, 1,
-      1, 1, 1, 1, 1, 1, 1, 1];
-    const total = weights.reduce((a, b) => a + b);
+    const matched = this._matchBehaviorRule();
+    if (matched) {
+      if (matched.thought) {
+        this.thought = matched.thought;
+        this.thoughtTimer = 3;
+      }
+      return this._weightedPick(matched.actions, matched.weights);
+    }
+    // 默认随机
+    const def = this._behaviors?.default || {
+      actions: ['idle', 'lookAround', 'walk', 'dance', 'jump', 'wave', 'sitDown', 'yawn', 'sneak', 'peek', 'meditate'],
+      weights: [3, 2, 4, 2, 2, 1, 1, 2, 2, 1, 1],
+    };
+    return this._weightedPick(def.actions, def.weights);
+  }
+
+  _weightedPick(actions, weights) {
+    const total = weights.reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
     for (let i = 0; i < actions.length; i++) {
       r -= weights[i];
       if (r <= 0) return actions[i];
     }
-    return 'idle';
+    return actions[0] || 'idle';
+  }
+
+  _matchBehaviorRule() {
+    if (!this._behaviors?.rules) return null;
+    const lastScreen = this.screenActivityLog[this.screenActivityLog.length - 1];
+    const hour = new Date().getHours();
+    const recentClicks = this.userInteractionsLog.filter(e => e.type === 'click').length;
+
+    for (const rule of this._behaviors.rules) {
+      const c = rule.condition;
+      if (!c) continue;
+      // 匹配应用名
+      if (c.app && lastScreen?.app && lastScreen.app.toLowerCase().includes(c.app.toLowerCase())) {
+        return rule;
+      }
+      // 匹配窗口标题
+      if (c.titleContains && lastScreen?.title && lastScreen.title.toLowerCase().includes(c.titleContains.toLowerCase())) {
+        return rule;
+      }
+      // 匹配时间段 [start, end)
+      if (c.hour && hour >= c.hour[0] && hour < c.hour[1]) {
+        return rule;
+      }
+      // 匹配用户空闲
+      if (c.idleSeconds && this._lastIdleSeconds >= c.idleSeconds) {
+        return rule;
+      }
+      // 匹配频繁点击
+      if (c.recentClicks && recentClicks >= c.recentClicks) {
+        return rule;
+      }
+    }
+    return null;
   }
 
   addEvent(event) {
@@ -1601,6 +1647,28 @@ if (window.electronAPI?.onScreenInfo) {
   });
 }
 
+// ==================== 本地行为规则引擎 ====================
+// 从 ai/behaviors.json 加载行为规则，AI 进化时可修改此文件
+async function loadBehaviors() {
+  if (!window.electronAPI?.loadBehaviors) return;
+  try {
+    const data = await window.electronAPI.loadBehaviors();
+    if (data) man._behaviors = data;
+  } catch (e) {
+    console.warn('行为规则加载失败:', e.message);
+  }
+}
+
+// 启动时加载，之后每 5 分钟重新加载（进化后生效）
+loadBehaviors();
+setInterval(loadBehaviors, 5 * 60 * 1000);
+
+// 定期清理过长的交互日志（保留最近 30 秒的）
+setInterval(() => {
+  const cutoff = Date.now() - 30000;
+  man.userInteractionsLog = man.userInteractionsLog.filter(e => new Date(e.time).getTime() > cutoff);
+}, 30000);
+
 // ==================== 鼠标交互 ====================
 let rightDragging = false;
 let rightDragMoved = false;
@@ -1630,6 +1698,7 @@ canvas.addEventListener('mousedown', (e) => {
 
   if (e.button === 0 && man.hitTest(mx, my)) {
     man.startDrag(mx, my);
+    man.addInteractionEvent('drag');
   }
 });
 
@@ -1652,6 +1721,7 @@ canvas.addEventListener('click', (e) => {
 
   if (man.hitTest(mx, my) && !man.dragging && man.state !== 'thrown') {
     man.poke();
+    man.addInteractionEvent('click');
   }
 });
 

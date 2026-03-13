@@ -51,6 +51,9 @@ function loadRenderer() {
     window: { electronAPI },
     performance: { now: () => Date.now() },
     requestAnimationFrame: vi.fn(),
+    setInterval: vi.fn(),
+    setTimeout: vi.fn(),
+    clearInterval: vi.fn(),
     Math, console,
   });
 
