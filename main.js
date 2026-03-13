@@ -50,9 +50,25 @@ function createWindow() {
     apiKey: DEEPSEEK_API_KEY,
   });
 
-  ipcMain.handle('ai-decide', async (_, context) => {
-    return aiManager.decide(context);
+  // 加载行为规则文件
+  ipcMain.handle('load-behaviors', async () => {
+    try {
+      const data = fs.readFileSync(path.join(__dirname, 'ai', 'behaviors.json'), 'utf8');
+      return JSON.parse(data);
+    } catch (_) {
+      return null;
+    }
   });
+
+  // 每20分钟触发一次自我进化
+  const EVOLVE_INTERVAL = 20 * 60 * 1000;
+  setTimeout(() => {
+    console.log('[进化] 触发首次进化...');
+    aiManager.evolve().then(() => console.log('[进化] 首次进化完成')).catch(e => console.error('[进化] 首次进化失败:', e.message));
+  }, 10000);
+  setInterval(() => {
+    aiManager.evolve().catch(e => console.error('[进化] 失败:', e.message));
+  }, EVOLVE_INTERVAL);
 
   // 30秒定时器：osascript 获取前台应用信息
   setInterval(() => {

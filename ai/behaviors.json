@@ -1,0 +1,117 @@
+{
+  "rules": [
+    {
+      "condition": { "app": "Terminal" },
+      "actions": ["meditate", "idle", "sitDown", "peek", "lookAround"],
+      "weights": [4, 3, 2, 2, 1],
+      "thought": "主人在深度编码中...保持安静陪伴"
+    },
+    {
+      "condition": { "app": "Claude" },
+      "actions": ["meditate", "idle", "peek", "lookAround", "sitDown"],
+      "weights": [4, 3, 2, 2, 1],
+      "thought": "在使用Claude Code开发...专注模式"
+    },
+    {
+      "condition": { "app": "Trinity" },
+      "actions": ["peek", "lookAround", "idle", "meditate", "wave"],
+      "weights": [3, 3, 2, 2, 1],
+      "thought": "Trinity应用...好奇主人在做什么"
+    },
+    {
+      "condition": { "app": "Safari" },
+      "actions": ["lookAround", "peek", "dance", "wave", "celebrate"],
+      "weights": [3, 3, 2, 1, 1],
+      "thought": "在看什么呢？让我也看看"
+    },
+    {
+      "condition": { "app": "Music" },
+      "actions": ["dance", "crazyDance", "guitar", "celebrate", "wave"],
+      "weights": [4, 3, 3, 2, 1],
+      "thought": "有音乐！嗨起来！"
+    },
+    {
+      "condition": { "app": "Slack" },
+      "actions": ["peek", "lookAround", "wave", "sneak", "idle"],
+      "weights": [4, 3, 2, 2, 1],
+      "thought": "在跟谁聊天？好奇..."
+    },
+    {
+      "condition": { "app": "zoom.us" },
+      "actions": ["sitDown", "idle", "sneak", "peek", "meditate"],
+      "weights": [4, 3, 2, 2, 1],
+      "thought": "在开会...保持安静"
+    },
+    {
+      "condition": { "titleContains": "YouTube" },
+      "actions": ["dance", "sitDown", "celebrate", "guitar", "wave"],
+      "weights": [4, 3, 3, 2, 1],
+      "thought": "在看视频！一起放松下"
+    },
+    {
+      "condition": { "titleContains": "GitHub" },
+      "actions": ["idle", "peek", "lookAround", "meditate", "wave"],
+      "weights": [4, 3, 2, 2, 1],
+      "thought": "在看代码仓库...技术探索中"
+    },
+    {
+      "condition": { "titleContains": "gemini" },
+      "actions": ["meditate", "idle", "peek", "lookAround", "sitDown"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "gemini项目开发中...深度技术工作"
+    },
+    {
+      "condition": { "titleContains": "Claude Code" },
+      "actions": ["meditate", "idle", "peek", "lookAround", "sitDown"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "Claude Code开发环境...专注编程"
+    },
+    {
+      "condition": { "hour": [0, 6] },
+      "actions": ["yawn", "sleep", "idle", "lookAround", "meditate"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "这么晚了还在工作...该休息了"
+    },
+    {
+      "condition": { "hour": [22, 24] },
+      "actions": ["yawn", "sleep", "meditate", "idle", "lookAround"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "夜深了...主人该休息了"
+    },
+    {
+      "condition": { "idleSeconds": 60 },
+      "actions": ["peek", "lookAround", "idle", "walk", "yawn"],
+      "weights": [4, 3, 2, 2, 1],
+      "thought": "主人短暂离开...看看去哪了"
+    },
+    {
+      "condition": { "idleSeconds": 300 },
+      "actions": ["yawn", "sleep", "lookAround", "walk", "sitDown"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "主人离开好久了...有点无聊"
+    },
+    {
+      "condition": { "idleSeconds": 5 },
+      "actions": ["meditate", "idle", "sitDown", "peek", "lookAround"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "主人极度专注中...保持安静"
+    },
+    {
+      "condition": { "recentClicks": 3 },
+      "actions": ["rage", "cry", "stumble", "run", "wave"],
+      "weights": [4, 3, 2, 2, 1],
+      "thought": "别戳我了！我在认真工作呢"
+    },
+    {
+      "condition": { "recentClicks": 1 },
+      "actions": ["wave", "jump", "dance", "celebrate", "lookAround"],
+      "weights": [4, 3, 2, 2, 1],
+      "thought": "主人注意到我了！开心~"
+    }
+  ],
+  "default": {
+    "actions": ["idle", "lookAround", "walk", "dance", "jump", "wave", "sitDown", "yawn", "sneak", "peek", "meditate"],
+    "weights": [3, 2, 4, 2, 2, 1, 1, 2, 2, 1, 1],
+    "thought": ""
+  }
+}
