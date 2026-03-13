@@ -117,19 +117,19 @@ describe('右键拖拽 - 窗口移动功能不受影响', () => {
   let env;
   beforeEach(() => { env = loadRenderer(); });
 
-  it('右键拖拽调用 electronAPI.dragWindow 传递位移量', () => {
+  it('全屏模式下右键拖拽不再调用 dragWindow', () => {
     fire(env.listeners, 'mousedown', { button: 2, clientX: 100, clientY: 100 });
     fire(env.listeners, 'mousemove', { clientX: 110, clientY: 115, movementX: 10, movementY: 15 });
-    expect(env.dragWindow).toHaveBeenCalledWith(10, 15);
+    expect(env.dragWindow).not.toHaveBeenCalled();
     fire(env.listeners, 'mouseup', { button: 2 });
   });
 
-  it('右键拖拽过程中每次 mousemove 都触发 dragWindow', () => {
+  it('全屏模式下右键操作不触发任何窗口移动', () => {
     fire(env.listeners, 'mousedown', { button: 2, clientX: 100, clientY: 100 });
     fire(env.listeners, 'mousemove', { clientX: 105, clientY: 105, movementX: 5, movementY: 5 });
     fire(env.listeners, 'mousemove', { clientX: 110, clientY: 110, movementX: 5, movementY: 5 });
     fire(env.listeners, 'mousemove', { clientX: 115, clientY: 115, movementX: 5, movementY: 5 });
-    expect(env.dragWindow).toHaveBeenCalledTimes(3);
+    expect(env.dragWindow).not.toHaveBeenCalled();
     fire(env.listeners, 'mouseup', { button: 2 });
   });
 
@@ -147,11 +147,11 @@ describe('右键拖拽 - 窗口移动功能不受影响', () => {
     expect(env.man.menuOpen).toBeFalsy();
   });
 
-  it('极小位移的右键拖拽仍视为拖拽（不弹菜单）', () => {
+  it('极小位移的右键操作也不触发 dragWindow（全屏无需窗口拖拽）', () => {
     fire(env.listeners, 'mousedown', { button: 2, clientX: 100, clientY: 100 });
     fire(env.listeners, 'mousemove', { clientX: 101, clientY: 101, movementX: 1, movementY: 1 });
     fire(env.listeners, 'mouseup', { button: 2 });
-    expect(env.dragWindow).toHaveBeenCalledWith(1, 1);
+    expect(env.dragWindow).not.toHaveBeenCalled();
     expect(env.electronAPI.showContextMenu).toBeUndefined();
   });
 });

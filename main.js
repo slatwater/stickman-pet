@@ -15,13 +15,13 @@ try {
 } catch (e) {}
 
 function createWindow() {
-  const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize;
+  const { x: wx, y: wy, width: sw, height: sh } = screen.getPrimaryDisplay().workArea;
 
   win = new BrowserWindow({
-    width: 400,
-    height: 500,
-    x: sw - 430,
-    y: sh - 520,
+    width: sw,
+    height: sh,
+    x: wx,
+    y: wy,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
@@ -38,10 +38,18 @@ function createWindow() {
   win.loadFile('index.html');
   win.setVisibleOnAllWorkspaces(true);
 
-  // Allow dragging the window by right-click
-  ipcMain.on('window-drag', (_, { dx, dy }) => {
-    const [x, y] = win.getPosition();
-    win.setPosition(x + dx, y + dy);
+  // 全屏点击穿透，forward: true 保证 mousemove 仍被转发
+  win.setIgnoreMouseEvents(true, { forward: true });
+
+  // 渲染进程控制点击穿透开关
+  ipcMain.on('set-ignore-mouse', (_, ignore) => {
+    if (win && !win.isDestroyed()) {
+      if (ignore) {
+        win.setIgnoreMouseEvents(true, { forward: true });
+      } else {
+        win.setIgnoreMouseEvents(false);
+      }
+    }
   });
 
   // Initialize AI manager with external config files
@@ -57,6 +65,17 @@ function createWindow() {
       return JSON.parse(data);
     } catch (_) {
       return null;
+    }
+  });
+
+  // 用户聊天
+  ipcMain.handle('send-chat', async (_, message) => {
+    if (!aiManager) return { thought: '我还没准备好...' };
+    try {
+      return await aiManager.chat(message);
+    } catch (e) {
+      console.error('[聊天] 失败:', e.message);
+      return { thought: '脑子短路了...' };
     }
   });
 

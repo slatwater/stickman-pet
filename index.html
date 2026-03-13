@@ -6,10 +6,31 @@
     * { margin: 0; padding: 0; }
     html, body { overflow: hidden; background: transparent; width: 100%; height: 100%; }
     canvas { display: block; }
+    #chat-container {
+      position: absolute;
+      z-index: 10;
+      width: 260px;
+    }
+    #chat-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 10px;
+      border: 1.5px solid #ccc;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.95);
+      font-size: 13px;
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      outline: none;
+      color: #333;
+    }
+    #chat-input:focus { border-color: #666; }
   </style>
 </head>
 <body>
-  <canvas id="canvas" width="400" height="500"></canvas>
+  <canvas id="canvas"></canvas>
+  <div id="chat-container" style="display:none;">
+    <input id="chat-input" type="text" placeholder="跟火柴人说点什么..." maxlength="100" autocomplete="off" />
+  </div>
   <script src="renderer.js"></script>
 </body>
 </html>

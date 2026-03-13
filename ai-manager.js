@@ -871,10 +871,63 @@ ${currentBehaviors.slice(0, 2000)}
     refreshSystemPrompt();
   }
 
+  /**
+   * Real-time chat: user sends a message, AI responds with action + thought.
+   * Lightweight, no tools, fast response.
+   */
+  async function chat(userMessage) {
+    if (!apiKey) return { action: 'wave', thought: '我还不会说话...' };
+
+    const chatSystemPrompt = rules + '\n\n## 当前对话模式\n\n用户正在直接跟你对话。用你的性格回应，要有趣、简短。回复JSON格式。';
+
+    const messages = [
+      { role: 'system', content: chatSystemPrompt },
+    ];
+
+    // 加入最近几条对话作为上下文
+    const recentHistory = conversationHistory.slice(-4);
+    for (const msg of recentHistory) {
+      if (msg.role !== 'system') messages.push(msg);
+    }
+
+    messages.push({
+      role: 'user',
+      content: `主人对你说：「${userMessage}」\n\n请回复JSON：{"action":"动作名","thought":"你的回应（不超过20字）"}`,
+    });
+
+    try {
+      const data = await callAPI(messages, { temperature: 0.9, maxTokens: 150 });
+      const content = data.choices?.[0]?.message?.content || '';
+
+      conversationHistory.push({ role: 'user', content: `主人说：${userMessage}` });
+      conversationHistory.push({ role: 'assistant', content });
+      while (conversationHistory.length > MAX_HISTORY + 1) {
+        conversationHistory.splice(1, 1);
+      }
+
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        const action = VALID_ACTIONS.includes(parsed.action) ? parsed.action : 'wave';
+        return {
+          action,
+          actions: [{ action, duration: parsed.duration || 5 }],
+          thought: parsed.thought || '...',
+        };
+      }
+
+      return { action: 'wave', thought: content.slice(0, 20) || '嗯？' };
+    } catch (e) {
+      console.error('[聊天] API 调用失败:', e.message);
+      return { action: 'idle', thought: '脑子转不动了...' };
+    }
+  }
+
   return {
     decide,
     saveMemory,
     evolve,
+    chat,
     getConversationHistory: () => conversationHistory,
     getSystemPrompt: () => systemPrompt,
     getObservations: () => observations,

@@ -3,10 +3,15 @@
 // ============================================================
 
 const canvas = document.getElementById('canvas');
+// 全屏模式：画布尺寸匹配窗口（测试环境保留原始尺寸）
+if (typeof window !== 'undefined' && window.innerWidth > 0 && window.innerHeight > 0) {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
 const ctx = canvas.getContext('2d');
 const W = canvas.width;
 const H = canvas.height;
-const GROUND = H - 40;
+const GROUND = H - 20;
 
 // ==================== 工具函数 ====================
 const deg = d => d * Math.PI / 180;
@@ -593,9 +598,20 @@ class Stickman {
     this.stretch = 1;
     this.bounceCount = 0;
 
+    // 情绪状态机
+    this.mood = {
+      happiness: 50,   // 开心 (点击/善待 +, 被忽略 -)
+      irritation: 0,   // 烦躁 (频繁点击/拖拽 +, 时间衰减 -)
+      boredom: 20,     // 无聊 (无操作 +, 互动/新应用 -)
+      curiosity: 30,   // 好奇 (新应用/新窗口 +, 时间衰减 -)
+      energy: 70,      // 精力 (休息 +, 活动/时间 -)
+    };
+    this._lastScreenApp = '';
+
     // AI 自主行为
     this.thought = '';
     this.thoughtTimer = 0;
+    this.thoughtDuration = 0;
     this.recentEvents = [];
     this.actionHistory = [];
 
@@ -611,6 +627,12 @@ class Stickman {
   // 屏幕活动记录
   onScreenInfo({ app, title }) {
     this.screenActivityLog.push({ app, title, time: new Date().toISOString() });
+    // 情绪：检测到新应用切换 → 好奇
+    if (app && app !== this._lastScreenApp) {
+      this.mood.curiosity = clamp(this.mood.curiosity + 15, 0, 100);
+      this.mood.boredom = clamp(this.mood.boredom - 10, 0, 100);
+      this._lastScreenApp = app;
+    }
   }
 
   // 用户交互事件记录
@@ -638,7 +660,8 @@ class Stickman {
     this.batchDecisionPending = false;
     if (thought) {
       this.thought = thought;
-      this.thoughtTimer = 3;
+      this.thoughtTimer = 5;
+      this.thoughtDuration = 5;
     }
     if (this.actionQueue.length > 0) {
       const first = this.actionQueue.shift();
@@ -715,16 +738,51 @@ class Stickman {
     if (matched) {
       if (matched.thought) {
         this.thought = matched.thought;
-        this.thoughtTimer = 3;
+        this.thoughtTimer = 5;
+        this.thoughtDuration = 5;
       }
-      return this._weightedPick(matched.actions, matched.weights);
+      return this._moodWeightedPick(matched.actions, matched.weights);
     }
     // 默认随机
     const def = this._behaviors?.default || {
       actions: ['idle', 'lookAround', 'walk', 'dance', 'jump', 'wave', 'sitDown', 'yawn', 'sneak', 'peek', 'meditate'],
       weights: [3, 2, 4, 2, 2, 1, 1, 2, 2, 1, 1],
     };
-    return this._weightedPick(def.actions, def.weights);
+    return this._moodWeightedPick(def.actions, def.weights);
+  }
+
+  // 情绪对动作的亲和度映射
+  _moodActionAffinity(action) {
+    const m = this.mood;
+    let bonus = 0;
+    // 高开心 → 偏好欢快动作
+    if (m.happiness > 70) {
+      if (['dance', 'crazyDance', 'celebrate', 'guitar', 'jump', 'wave', 'backflip'].includes(action)) bonus += 3;
+    }
+    // 低开心 → 偏好安静/悲伤动作
+    if (m.happiness < 30) {
+      if (['cry', 'sitDown', 'idle', 'sleep'].includes(action)) bonus += 3;
+    }
+    // 高烦躁 → 偏好暴力/宣泄动作
+    if (m.irritation > 60) {
+      if (['rage', 'kick', 'swordFight', 'run', 'stumble'].includes(action)) bonus += 4;
+      if (['dance', 'wave', 'celebrate'].includes(action)) bonus -= 2;
+    }
+    // 高无聊 → 偏好自嗨/探索动作
+    if (m.boredom > 60) {
+      if (['walk', 'sneak', 'lookAround', 'peek', 'guitar', 'dance'].includes(action)) bonus += 3;
+      if (['idle', 'sitDown', 'meditate'].includes(action)) bonus -= 2;
+    }
+    // 高好奇 → 偏好观察动作
+    if (m.curiosity > 50) {
+      if (['peek', 'lookAround', 'sneak'].includes(action)) bonus += 3;
+    }
+    // 低精力 → 偏好休息
+    if (m.energy < 25) {
+      if (['sleep', 'yawn', 'sitDown', 'meditate', 'idle'].includes(action)) bonus += 4;
+      if (['crazyDance', 'run', 'backflip', 'rage'].includes(action)) bonus -= 3;
+    }
+    return bonus;
   }
 
   _weightedPick(actions, weights) {
@@ -735,6 +793,12 @@ class Stickman {
       if (r <= 0) return actions[i];
     }
     return actions[0] || 'idle';
+  }
+
+  // 情绪加权选择：在原始权重基础上叠加情绪偏好
+  _moodWeightedPick(actions, weights) {
+    const adjusted = actions.map((a, i) => Math.max(0.1, (weights[i] || 1) + this._moodActionAffinity(a)));
+    return this._weightedPick(actions, adjusted);
   }
 
   _matchBehaviorRule() {
@@ -777,6 +841,19 @@ class Stickman {
 
   update(dt) {
     this.stateTime += dt;
+
+    // 情绪自然衰减（每秒）
+    const m = this.mood;
+    m.happiness = clamp(m.happiness + (50 - m.happiness) * dt * 0.02, 0, 100); // 缓慢回归 50
+    m.irritation = clamp(m.irritation - dt * 2, 0, 100);  // 逐渐消气
+    m.boredom = clamp(m.boredom + dt * 0.5, 0, 100);      // 越来越无聊
+    m.curiosity = clamp(m.curiosity - dt * 0.3, 0, 100);   // 好奇消退
+    m.energy = clamp(m.energy - dt * 0.1, 0, 100);         // 缓慢消耗精力
+
+    // 静止/安静动作恢复精力
+    if (this.state === 'sleep' || this.state === 'meditate' || this.state === 'sitDown') {
+      m.energy = clamp(m.energy + dt * 3, 0, 100);
+    }
 
     // 处理表情计时
     if (this.exprTimer > 0) {
@@ -1190,6 +1267,15 @@ class Stickman {
   }
 
   transitionToNext() {
+    // 情绪自动设表情（无明确表情时）
+    if (this.exprTimer <= 0) {
+      const m = this.mood;
+      if (m.irritation > 70) { this.expression = 'angry'; this.exprTimer = 2; }
+      else if (m.happiness > 75) { this.expression = 'happy'; this.exprTimer = 2; }
+      else if (m.happiness < 25) { this.expression = 'sad'; this.exprTimer = 2; }
+      else if (m.energy < 20) { this.expression = 'sleepy'; this.exprTimer = 2; }
+    }
+
     let next;
     let queueDuration = null;
 
@@ -1289,6 +1375,9 @@ class Stickman {
       this.expression = 'dizzy';
       this.exprTimer = 3;
       this.setState('splat', 2);
+      // 情绪：摔重了很不开心
+      this.mood.happiness = clamp(this.mood.happiness - 15, 0, 100);
+      this.mood.irritation = clamp(this.mood.irritation + 20, 0, 100);
     } else {
       this.transitionToNext();
     }
@@ -1308,6 +1397,10 @@ class Stickman {
     this.exprTimer = 999;
     this.vx = 0;
     this.vy = 0;
+
+    // 情绪：被抓起增加烦躁
+    this.mood.irritation = clamp(this.mood.irritation + 15, 0, 100);
+    this.mood.boredom = clamp(this.mood.boredom - 20, 0, 100);
   }
 
   // 释放（投掷）
@@ -1354,6 +1447,14 @@ class Stickman {
     this.expression = 'surprised';
     this.exprTimer = 1.5;
     spawnStars(this.x, this.y - BONE.body, 5);
+
+    // 情绪：点击增加开心但也可能烦躁
+    const m = this.mood;
+    if (m.irritation < 40) {
+      m.happiness = clamp(m.happiness + 8, 0, 100);
+    }
+    m.irritation = clamp(m.irritation + 12, 0, 100);
+    m.boredom = clamp(m.boredom - 15, 0, 100);
   }
 
   // 线性插值姿态
@@ -1363,6 +1464,39 @@ class Stickman {
       result[key] = lerp(current[key] || 0, target[key], t);
     }
     return result;
+  }
+
+  // 文字换行
+  _wrapText(text, maxWidth) {
+    const chars = [...text];
+    const lines = [];
+    let current = '';
+    for (const ch of chars) {
+      const test = current + ch;
+      if (ctx.measureText(test).width > maxWidth && current.length > 0) {
+        lines.push(current);
+        current = ch;
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+    return lines.length > 0 ? lines : [''];
+  }
+
+  // 气泡碰撞检测
+  bubbleHitTest(mx, my) {
+    if (this.thoughtTimer <= 0 || !this.thought) return false;
+    const j = this.getJoints();
+    const by = j.headCenter.y - BONE.headR - 35;
+    ctx.font = 'bold 11px "PingFang SC", "Microsoft YaHei", sans-serif';
+    const tw = ctx.measureText(this.thought).width;
+    const pad = 10;
+    const bw = Math.min(tw + pad * 2, 160);
+    const bh = 28;
+    const left = clamp(this.x - bw / 2, 5, W - bw - 5);
+    const top = by - bh;
+    return mx >= left && mx <= left + bw && my >= top && my <= by + 8;
   }
 
   // ==================== 渲染 ====================
@@ -1437,44 +1571,75 @@ class Stickman {
       }
     }
 
-    // 思考气泡
+    // 思考气泡（增强版）
     if (this.thoughtTimer > 0 && this.thought) {
-      const j = this.getJoints();
+      const j2 = this.getJoints();
       const bx = this.x;
-      const by = j.headCenter.y - BONE.headR - 30;
-      const alpha = this.thoughtTimer < 0.5 ? this.thoughtTimer / 0.5 : 1;
+      const by = j2.headCenter.y - BONE.headR - 35;
+
+      // 渐入/渐出动画
+      const elapsed = this.thoughtDuration - this.thoughtTimer;
+      const fadeIn = Math.min(1, elapsed / 0.3);
+      const fadeOut = this.thoughtTimer < 0.5 ? this.thoughtTimer / 0.5 : 1;
+      const alpha = Math.min(fadeIn, fadeOut);
+      const scale = 0.85 + 0.15 * fadeIn;
 
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.font = 'bold 11px "PingFang SC", "Microsoft YaHei", sans-serif';
-      const tw = ctx.measureText(this.thought).width;
-      const pad = 8;
-      const bw = tw + pad * 2;
-      const bh = 22;
-      const left = bx - bw / 2;
-      const top = by - bh;
 
-      ctx.fillStyle = 'rgba(255,255,255,0.92)';
-      ctx.strokeStyle = '#888';
+      // 文字换行
+      const maxLineWidth = 140;
+      const lines = this._wrapText(this.thought, maxLineWidth);
+      const lineHeight = 16;
+      const textHeight = lines.length * lineHeight;
+
+      const pad = 10;
+      let maxW = 0;
+      for (const line of lines) maxW = Math.max(maxW, ctx.measureText(line).width);
+      const bw = maxW + pad * 2;
+      const bh = textHeight + pad * 1.5;
+      const left = clamp(bx - bw / 2, 5, W - bw - 5);
+      const top2 = by - bh;
+
+      // 弹出缩放
+      ctx.translate(bx, by);
+      ctx.scale(scale, scale);
+      ctx.translate(-bx, -by);
+
+      // 阴影
+      ctx.shadowColor = 'rgba(0,0,0,0.1)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 2;
+
+      // 气泡主体
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.strokeStyle = '#aaa';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(left, top, bw, bh, 6);
+      ctx.roundRect(left, top2, bw, bh, 8);
       ctx.fill();
       ctx.stroke();
 
+      // 清除阴影画尾巴
+      ctx.shadowColor = 'transparent';
       ctx.beginPath();
-      ctx.moveTo(bx - 4, by);
-      ctx.lineTo(bx, by + 7);
-      ctx.lineTo(bx + 4, by);
+      ctx.moveTo(bx - 5, by);
+      ctx.lineTo(bx, by + 8);
+      ctx.lineTo(bx + 5, by);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      ctx.fillRect(bx - 3, by - 1, 6, 2);
+      ctx.fillRect(bx - 4, by - 1, 8, 2);
 
+      // 文字
       ctx.fillStyle = '#333';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(this.thought, bx, top + bh / 2);
+      for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], left + bw / 2, top2 + pad + i * lineHeight + lineHeight / 2);
+      }
+
       ctx.restore();
     }
   }
@@ -1670,18 +1835,27 @@ setInterval(() => {
 }, 30000);
 
 // ==================== 鼠标交互 ====================
-let rightDragging = false;
-let rightDragMoved = false;
 let wasDragging = false;
+let isClickThrough = true; // 当前是否处于点击穿透状态
 
 canvas.addEventListener('mousemove', (e) => {
   const rect = canvas.getBoundingClientRect();
   man.mouseX = e.clientX - rect.left;
   man.mouseY = e.clientY - rect.top;
 
-  if (rightDragging) {
-    rightDragMoved = true;
-    window.electronAPI.dragWindow(e.movementX, e.movementY);
+  // 全屏模式：根据鼠标是否靠近火柴人切换点击穿透
+  const mx = man.mouseX;
+  const my = man.mouseY;
+  const nearStickman = man.hitTest(mx, my) || man.bubbleHitTest(mx, my) ||
+    (man.dragging) || (man.state === 'thrown' && Math.hypot(mx - man.x, my - man.y) < 80);
+  const shouldIgnore = !nearStickman && !chatVisible;
+
+  if (isClickThrough && !shouldIgnore) {
+    window.electronAPI?.setIgnoreMouse(false);
+    isClickThrough = false;
+  } else if (!isClickThrough && shouldIgnore) {
+    window.electronAPI?.setIgnoreMouse(true);
+    isClickThrough = true;
   }
 });
 
@@ -1690,12 +1864,6 @@ canvas.addEventListener('mousedown', (e) => {
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
 
-  if (e.button === 2) {
-    rightDragging = true;
-    rightDragMoved = false;
-    return;
-  }
-
   if (e.button === 0 && man.hitTest(mx, my)) {
     man.startDrag(mx, my);
     man.addInteractionEvent('drag');
@@ -1703,10 +1871,6 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 canvas.addEventListener('mouseup', (e) => {
-  if (e.button === 2) {
-    rightDragging = false;
-    return;
-  }
   if (e.button === 0 && man.dragging) {
     wasDragging = true;
     man.release();
@@ -1719,6 +1883,12 @@ canvas.addEventListener('click', (e) => {
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
 
+  // 点击气泡 → 打开聊天
+  if (man.bubbleHitTest(mx, my)) {
+    showChatInput();
+    return;
+  }
+
   if (man.hitTest(mx, my) && !man.dragging && man.state !== 'thrown') {
     man.poke();
     man.addInteractionEvent('click');
@@ -1729,15 +1899,84 @@ canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
 // ==================== 地面 ====================
 function drawGround() {
-  ctx.strokeStyle = 'rgba(100,100,100,0.3)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([5, 5]);
-  ctx.beginPath();
-  ctx.moveTo(10, GROUND);
-  ctx.lineTo(W - 10, GROUND);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  // 全屏模式下不画地面线，火柴人直接站在屏幕底部
 }
+
+// ==================== 聊天输入 ====================
+const chatContainer = document.getElementById('chat-container');
+const chatInput = document.getElementById('chat-input');
+let chatVisible = false;
+let chatPending = false;
+
+function showChatInput() {
+  if (chatPending) return;
+  chatVisible = true;
+  // 定位到火柴人头顶
+  const chatX = clamp(man.x - 130, 10, W - 270);
+  const chatY = clamp(man.y - BONE.body - 100, 10, H - 50);
+  chatContainer.style.left = chatX + 'px';
+  chatContainer.style.top = chatY + 'px';
+  chatContainer.style.display = 'block';
+  chatInput.value = '';
+  chatInput.focus();
+  // 聊天时关闭点击穿透
+  window.electronAPI?.setIgnoreMouse(false);
+  isClickThrough = false;
+}
+
+function hideChatInput() {
+  chatVisible = false;
+  chatContainer.style.display = 'none';
+  chatInput.blur();
+  // 恢复点击穿透
+  window.electronAPI?.setIgnoreMouse(true);
+  isClickThrough = true;
+}
+
+// 双击火柴人 → 打开聊天
+canvas.addEventListener('dblclick', (e) => {
+  if (wasDragging) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  if (man.hitTest(mx, my) || man.bubbleHitTest(mx, my)) {
+    showChatInput();
+  }
+});
+
+chatInput.addEventListener('keydown', async (e) => {
+  if (e.key === 'Enter' && chatInput.value.trim() && !chatPending) {
+    const message = chatInput.value.trim();
+    hideChatInput();
+    chatPending = true;
+
+    man.thought = '嗯...让我想想';
+    man.thoughtTimer = 10;
+    man.thoughtDuration = 10;
+
+    try {
+      const response = await window.electronAPI.sendChat(message);
+      if (response && response.actions) {
+        man.setActionQueue(response.actions, response.thought || '');
+      } else if (response && response.thought) {
+        man.thought = response.thought;
+        man.thoughtTimer = 5;
+        man.thoughtDuration = 5;
+      }
+    } catch (err) {
+      man.thought = '信号不好...';
+      man.thoughtTimer = 3;
+      man.thoughtDuration = 3;
+    }
+    chatPending = false;
+  } else if (e.key === 'Escape') {
+    hideChatInput();
+  }
+});
+
+chatInput.addEventListener('blur', () => {
+  if (!chatPending) setTimeout(hideChatInput, 150);
+});
 
 // ==================== 游戏循环 ====================
 let lastTime = performance.now();
