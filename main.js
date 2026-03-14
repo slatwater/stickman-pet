@@ -7,11 +7,13 @@ const { createAIManager } = require('./ai-manager');
 let win;
 let aiManager;
 
-// Load DeepSeek API key
-let DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+// Load AI config
+let AI_CONFIG = { apiKey: '', apiBaseUrl: '', modelId: '' };
 try {
   const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
-  if (config.deepseekApiKey) DEEPSEEK_API_KEY = config.deepseekApiKey;
+  AI_CONFIG.apiKey = config.apiKey || config.deepseekApiKey || '';
+  AI_CONFIG.apiBaseUrl = config.apiBaseUrl || 'https://api.deepseek.com';
+  AI_CONFIG.modelId = config.modelId || 'deepseek-chat';
 } catch (e) {}
 
 function createWindow() {
@@ -55,7 +57,9 @@ function createWindow() {
   // Initialize AI manager with external config files
   aiManager = createAIManager({
     baseDir: __dirname,
-    apiKey: DEEPSEEK_API_KEY,
+    apiKey: AI_CONFIG.apiKey,
+    apiBaseUrl: AI_CONFIG.apiBaseUrl,
+    modelId: AI_CONFIG.modelId,
   });
 
   // 加载行为规则文件
@@ -66,6 +70,31 @@ function createWindow() {
     } catch (_) {
       return null;
     }
+  });
+
+  // 加载组合动作
+  ipcMain.handle('load-combos', async () => {
+    try {
+      const data = fs.readFileSync(path.join(__dirname, 'ai', 'combos.json'), 'utf8');
+      return JSON.parse(data);
+    } catch (_) {
+      return {};
+    }
+  });
+
+  // 加载性格参数
+  ipcMain.handle('load-personality', async () => {
+    try {
+      const data = fs.readFileSync(path.join(__dirname, 'ai', 'personality.json'), 'utf8');
+      return JSON.parse(data);
+    } catch (_) {
+      return null;
+    }
+  });
+
+  // 用户交互上报（点击、拖拽等）
+  ipcMain.on('report-interaction', (_, type) => {
+    if (aiManager) aiManager.reportInteraction(type);
   });
 
   // 用户聊天

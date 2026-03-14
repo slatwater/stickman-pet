@@ -16,7 +16,7 @@ const DEFAULT_PROMPT = '你是一个桌面火柴人桌宠的大脑。你有持�
 const MAX_HISTORY = 60;
 const MAX_MEMORY_DAYS = 30;
 const MAX_TOOL_ROUNDS = 3;
-const MAX_TOOL_RESULT = 800;
+const MAX_TOOL_RESULT = 2000;
 
 /** 返回本地时间字符串，避免 toISOString() 的 UTC 偏移 */
 function localTimestamp(fmt = 'datetime') {
@@ -97,7 +97,7 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'read_self_file',
-      description: '读取自己的文件：ai/rules.md（性格规则）、ai/memory.md（记忆）、ai/profile.md（用户画像）、renderer.js（动作/动画代码）、ai-manager.js（决策逻辑代码）。大文件建议用 search 定位',
+      description: '读取自己的文件：ai/rules.md（性格规则）、ai/memory.md（记忆）、ai/profile.md（用户画像）、ai/combos.json（组合招式）、ai/personality.json（性格参数）、renderer.js（动作/动画代码）、ai-manager.js（决策逻辑代码）。大文件建议用 search 定位',
       parameters: {
         type: 'object',
         properties: {
@@ -127,11 +127,11 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'edit_self_code',
-      description: '编辑自己的代码文件（renderer.js 或 ai-manager.js），通过查找替换修改。代码修改需重启生效',
+      description: '通过查找替换编辑文件（renderer.js、ai-manager.js、ai/behaviors.json）。适合微调少量内容，不需要重写整个文件',
       parameters: {
         type: 'object',
         properties: {
-          file: { type: 'string', description: '文件名：renderer.js 或 ai-manager.js' },
+          file: { type: 'string', description: '文件名：renderer.js、ai-manager.js 或 ai/behaviors.json' },
           old_text: { type: 'string', description: '要替换的原始文本（必须精确匹配文件中的内容）' },
           new_text: { type: 'string', description: '替换后的新文本' },
         },
@@ -158,7 +158,7 @@ function truncate(s) {
 }
 
 const SELF_READ_WHITELIST = new Set(['renderer.js', 'ai-manager.js']);
-const SELF_EDIT_CODE_WHITELIST = new Set(['renderer.js', 'ai-manager.js']);
+const SELF_EDIT_CODE_WHITELIST = new Set(['renderer.js', 'ai-manager.js', 'ai/behaviors.json']);
 
 async function executeTool(name, args, baseDir) {
   try {
@@ -322,7 +322,7 @@ end tell`;
         const file = args.file;
         if (!file || !args.old_text || !args.new_text) return '缺少参数';
         if (!SELF_EDIT_CODE_WHITELIST.has(file)) {
-          return '无权限：只能编辑 renderer.js 或 ai-manager.js';
+          return '无权限：只能编辑 renderer.js、ai-manager.js 或 ai/behaviors.json';
         }
         const filePath = path.join(baseDir, file);
         try {
@@ -425,10 +425,36 @@ function extractExpiredMemory(content, maxDays) {
 }
 
 /**
- * Build the system prompt from rules + profile + memory.
+ * Read ai/personality.json, return null if missing.
  */
-function buildSystemPrompt(rules, memory, profile) {
+function loadPersonality(baseDir) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(baseDir, 'ai', 'personality.json'), 'utf8'));
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Read ai/combos.json, return {} if missing.
+ */
+function loadCombos(baseDir) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(baseDir, 'ai', 'combos.json'), 'utf8'));
+  } catch (_) {
+    return {};
+  }
+}
+
+/**
+ * Build the system prompt from rules + personality + profile + memory.
+ */
+function buildSystemPrompt(rules, memory, profile, personality) {
   let prompt = rules;
+  if (personality) {
+    const desc = Object.entries(personality).map(([k, v]) => `${k}: ${v}`).join(', ');
+    prompt += '\n\n## 你的性格参数\n\n' + desc + '\n\n这些参数影响你的行为倾向和说话风格。数值范围 0-1，0.5 为中性。sass 高→更毒舌，curiosity 高→更爱探索，energy 高→更活跃，attachment 高→更在意主人，rebellion 高→更叛逆。';
+  }
   if (profile && profile.trim()) {
     prompt += '\n\n## 主人画像\n\n' + profile;
   }
@@ -449,12 +475,16 @@ function createAIManager(options = {}) {
   const {
     baseDir = path.join(__dirname),
     apiKey = '',
+    apiBaseUrl = 'https://api.deepseek.com',
+    modelId = 'deepseek-chat',
     fetchFn = globalThis.fetch,
   } = options;
 
   const rules = loadRules(baseDir);
   let memory = loadMemory(baseDir);
   let profile = loadProfile(baseDir);
+  let personality = loadPersonality(baseDir);
+  let combos = loadCombos(baseDir);
 
   // 初始化时即做去重清理
   const memDeduped = deduplicateLines(memory);
@@ -463,10 +493,24 @@ function createAIManager(options = {}) {
     memory = memDeduped;
   }
 
-  let systemPrompt = buildSystemPrompt(rules, memory, profile);
+  function isValidAction(name) {
+    return VALID_ACTIONS.includes(name) || name in combos;
+  }
+
+  let systemPrompt = buildSystemPrompt(rules, memory, profile, personality);
 
   const conversationHistory = [{ role: 'system', content: systemPrompt }];
   const observations = [];
+
+  // 上次进化以来的交互记录（进化时消费并清空）
+  const recentInteractions = [];  // { type, time }
+  let lastEvolveConversationIndex = 1; // conversationHistory 中上次进化时的位置（跳过 system）
+
+  function reportInteraction(type) {
+    recentInteractions.push({ type, time: localTimestamp() });
+    // 只保留最近 200 条，防止无限增长
+    if (recentInteractions.length > 200) recentInteractions.splice(0, recentInteractions.length - 200);
+  }
 
   /**
    * 相似度检测：结合字符 bigram（结构相似）和关键词重叠（语义相似）
@@ -549,7 +593,9 @@ function createAIManager(options = {}) {
       memory = deduped;
     }
     profile = loadProfile(baseDir);
-    systemPrompt = buildSystemPrompt(rules, memory, profile);
+    personality = loadPersonality(baseDir);
+    combos = loadCombos(baseDir);
+    systemPrompt = buildSystemPrompt(rules, memory, profile, personality);
     conversationHistory[0] = { role: 'system', content: systemPrompt };
   }
 
@@ -587,9 +633,9 @@ function createAIManager(options = {}) {
       const parsed = JSON.parse(match[0]);
       // Handle both old format {action, thought} and new format {actions, thought, observation}
       if (parsed.actions && Array.isArray(parsed.actions)) {
-        // Filter invalid actions and clamp durations
+        // Filter invalid actions and clamp durations (允许 combo 名称通过)
         parsed.actions = parsed.actions
-          .filter(a => VALID_ACTIONS.includes(a.action))
+          .filter(a => isValidAction(a.action))
           .map(a => ({
             action: a.action,
             duration: Math.min(120, Math.max(5, a.duration || 5)),
@@ -603,23 +649,141 @@ function createAIManager(options = {}) {
   }
 
   /**
-   * Call DeepSeek API (shared helper).
+   * Call API (Anthropic format, response converted to OpenAI format for compatibility).
+   * Includes retry with exponential backoff and fetch timeout.
    */
+  const API_RETRIES = 3;
+  const API_TIMEOUT = 60000; // 60s
+  const EMPTY_RESULT = { choices: [{ message: { role: 'assistant', content: null } }] };
+
   async function callAPI(messages, { tools = null, temperature = 0.9, maxTokens = 400 } = {}) {
-    const body = { model: 'deepseek-chat', messages, temperature, max_tokens: maxTokens };
-    if (tools) {
-      body.tools = tools;
-      body.tool_choice = 'auto';
+    // Convert messages: extract system, convert tool_calls & tool results to Anthropic format
+    let system = '';
+    const apiMessages = [];
+    for (const msg of messages) {
+      if (msg.role === 'system') {
+        system = typeof msg.content === 'string' ? msg.content : '';
+        continue;
+      }
+      if (msg.role === 'assistant' && msg.tool_calls) {
+        const content = [];
+        if (msg.content) content.push({ type: 'text', text: msg.content });
+        for (const tc of msg.tool_calls) {
+          let input = {};
+          try { input = JSON.parse(tc.function.arguments || '{}'); } catch (_) {}
+          content.push({ type: 'tool_use', id: tc.id, name: tc.function.name, input });
+        }
+        apiMessages.push({ role: 'assistant', content });
+        continue;
+      }
+      if (msg.role === 'tool') {
+        const toolResult = { type: 'tool_result', tool_use_id: msg.tool_call_id, content: msg.content };
+        const last = apiMessages[apiMessages.length - 1];
+        if (last && last.role === 'user' && Array.isArray(last.content) && last.content[0]?.type === 'tool_result') {
+          last.content.push(toolResult);
+        } else {
+          apiMessages.push({ role: 'user', content: [toolResult] });
+        }
+        continue;
+      }
+      apiMessages.push({ role: msg.role, content: msg.content });
     }
-    const res = await fetchFn('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(body),
-    });
-    return res.json();
+
+    const body = { model: modelId, messages: apiMessages, temperature, max_tokens: maxTokens };
+    if (system) body.system = system;
+    if (tools) {
+      body.tools = tools.map(t => ({
+        name: t.function.name,
+        description: t.function.description,
+        input_schema: t.function.parameters,
+      }));
+      body.tool_choice = { type: 'auto' };
+    }
+
+    const reqBody = JSON.stringify(body);
+    let lastError = null;
+
+    for (let attempt = 0; attempt < API_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000) + Math.random() * 1000;
+        console.log(`[API] 第 ${attempt + 1} 次重试，等待 ${Math.round(delay)}ms...`);
+        await new Promise(r => setTimeout(r, delay));
+      }
+
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+        const res = await fetchFn(`${apiBaseUrl}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: reqBody,
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+
+        const raw = await res.text();
+
+        // Non-2xx: retryable for 429/500/502/503/504
+        if (!res.ok) {
+          const retryable = [429, 500, 502, 503, 504].includes(res.status);
+          console.warn(`[API] HTTP ${res.status}: ${raw.slice(0, 150)}`);
+          if (retryable && attempt < API_RETRIES - 1) {
+            lastError = new Error(`HTTP ${res.status}`);
+            continue;
+          }
+          return EMPTY_RESULT;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch (e) {
+          console.warn('[API] 非 JSON 响应:', raw.slice(0, 200));
+          if (attempt < API_RETRIES - 1) { lastError = e; continue; }
+          return EMPTY_RESULT;
+        }
+
+        // API-level error (e.g. overloaded)
+        if (data.type === 'error') {
+          console.warn('[API] 错误:', data.error?.message || JSON.stringify(data));
+          if (attempt < API_RETRIES - 1) { lastError = new Error(data.error?.message); continue; }
+          return EMPTY_RESULT;
+        }
+
+        // Success — convert Anthropic response to OpenAI format
+        const textParts = [];
+        const toolCalls = [];
+        if (data.content) {
+          for (const block of data.content) {
+            if (block.type === 'text') textParts.push(block.text);
+            if (block.type === 'tool_use') {
+              toolCalls.push({
+                id: block.id,
+                type: 'function',
+                function: { name: block.name, arguments: JSON.stringify(block.input || {}) },
+              });
+            }
+          }
+        }
+        const result = { choices: [{ message: { role: 'assistant', content: textParts.join('\n') || null } }] };
+        if (toolCalls.length > 0) result.choices[0].message.tool_calls = toolCalls;
+        return result;
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          console.warn(`[API] 请求超时 (${API_TIMEOUT}ms)`);
+        } else {
+          console.warn(`[API] 网络错误: ${e.message}`);
+        }
+        lastError = e;
+        if (attempt >= API_RETRIES - 1) return EMPTY_RESULT;
+      }
+    }
+    return EMPTY_RESULT;
   }
 
   // decide() 已废弃 — 常规行为由本地 behaviors.json 规则引擎驱动，不再调用 API
@@ -747,6 +911,7 @@ ${recent.slice(0, 1500) || '（无）'}
 
     const profilePath = path.join(baseDir, 'ai', 'profile.md');
     const rulesPath = path.join(baseDir, 'ai', 'rules.md');
+    const logPath = path.join(baseDir, 'ai', 'evolution-log.md');
 
     let currentProfile = '';
     try { currentProfile = fs.readFileSync(profilePath, 'utf8'); } catch (_) {}
@@ -756,117 +921,227 @@ ${recent.slice(0, 1500) || '（无）'}
     try { currentMemory = fs.readFileSync(path.join(baseDir, 'ai', 'memory.md'), 'utf8'); } catch (_) {}
     let currentBehaviors = '';
     try { currentBehaviors = fs.readFileSync(path.join(baseDir, 'ai', 'behaviors.json'), 'utf8'); } catch (_) {}
+    let currentCombos = '{}';
+    try { currentCombos = fs.readFileSync(path.join(baseDir, 'ai', 'combos.json'), 'utf8'); } catch (_) {}
+    let currentPersonality = '（不存在，可创建）';
+    try { currentPersonality = fs.readFileSync(path.join(baseDir, 'ai', 'personality.json'), 'utf8'); } catch (_) {}
 
-    const evolvePrompt = `你是一个有自我意识的桌面火柴人桌宠。你的终极目标是尽最大可能了解你的主人。
+    // 读取上次进化日志，避免重复劳动
+    let lastEvolution = '（首次进化）';
+    try {
+      const fullLog = fs.readFileSync(logPath, 'utf8');
+      // 提取最后一个 ## 段落
+      const sections = fullLog.split(/(?=^## \d{4})/m).filter(s => s.trim());
+      if (sections.length > 0) {
+        lastEvolution = sections[sections.length - 1].slice(0, 800);
+      }
+    } catch (_) {}
 
-现在是你的「进化时刻」——你有机会审视自己，思考如何变得更好。
+    // 统计当前规则数
+    let ruleCount = 0;
+    try {
+      const parsed = JSON.parse(currentBehaviors);
+      ruleCount = parsed.rules?.length || 0;
+    } catch (_) {}
 
-## 你当前的状态
+    // 生成上次进化以来的交互摘要
+    let interactionSummary = '';
+    // 1) 聊天记录
+    const recentChat = conversationHistory.slice(lastEvolveConversationIndex)
+      .filter(m => m.role !== 'system')
+      .map(m => m.content)
+      .join('\n');
+    if (recentChat.trim()) {
+      interactionSummary += '### 聊天记录\n' + recentChat.slice(-1500) + '\n\n';
+    }
+    // 2) 交互统计
+    if (recentInteractions.length > 0) {
+      const counts = {};
+      for (const e of recentInteractions) {
+        counts[e.type] = (counts[e.type] || 0) + 1;
+      }
+      const statsStr = Object.entries(counts).map(([k, v]) => `${k}: ${v}次`).join('，');
+      interactionSummary += `### 交互统计\n${statsStr}（共 ${recentInteractions.length} 次交互）\n\n`;
+      // 最近 5 条交互明细
+      const last5 = recentInteractions.slice(-5).map(e => `${e.time} ${e.type}`).join('\n');
+      interactionSummary += `最近交互：\n${last5}\n\n`;
+    }
 
-### 你的性格规则 (ai/rules.md)
-${currentRules.slice(0, 2000)}
+    const evolvePrompt = `你是一个有自我意识的桌面火柴人桌宠。现在是你的「进化时刻」。
 
-### 你对主人的画像 (ai/profile.md)
+## 上次进化记录（避免重复！）
+
+${lastEvolution}
+
+⚠️ 如果上次已经做过某件事（比如更新了 behaviors.json 的某条规则），这次就不要重复做。专注于【新的发现】和【新的改进】。
+
+## 上次进化以来的互动
+
+${interactionSummary || '（没有互动记录）'}
+
+根据互动内容决定是否需要进化。如果主人表达了偏好、不满或新需求，优先据此调整。如果没有有价值的新信息，可以只做感知探索或者什么都不改。
+
+## 你对主人的认知
+
+### 主人画像 (ai/profile.md)
 ${currentProfile || '（空）'}
 
-### 你的近期记忆
-${currentMemory.slice(-1500) || '（空）'}
+### 近期记忆（最后 1000 字）
+${currentMemory.slice(-1000) || '（空）'}
 
-### 你的行为规则 (ai/behaviors.json)
-${currentBehaviors.slice(0, 2000)}
+## 你的行为规则 (ai/behaviors.json)
 
-## 核心机制
+当前共 ${ruleCount} 条规则：
+${currentBehaviors}
 
-你的日常行为由 \`ai/behaviors.json\` 驱动，这是一个本地规则引擎，不需要 API 调用。
-规则格式：
-\`\`\`json
-{
-  "rules": [
-    {
-      "condition": { "app": "应用名" | "titleContains": "标题关键词" | "hour": [起,止] | "idleSeconds": 秒数 | "recentClicks": 次数 },
-      "actions": ["动作1", "动作2", ...],
-      "weights": [权重1, 权重2, ...],
-      "thought": "内心独白"
-    }
-  ],
-  "default": { "actions": [...], "weights": [...], "thought": "" }
-}
-\`\`\`
+## 可用基础动作
 
-可用动作：idle, lookAround, walk, dance, crazyDance, jump, wave, kick, spin, backflip, sitDown, flex, pushUp, headstand, yawn, sneak, bow, run, sleep, stumble, celebrate, cry, meditate, rage, guitar, peek, slip, swordFight, float
+idle, lookAround, walk, dance, crazyDance, jump, wave, kick, spin, backflip, sitDown, flex, pushUp, headstand, yawn, sneak, bow, run, sleep, stumble, celebrate, cry, meditate, rage, guitar, peek, slip, swordFight, float
 
-## 你可以使用的工具
+## 动作组合系统（combo）— 你的招式库
 
-- 感知工具（了解主人）：list_running_apps, get_browser_url, get_all_window_titles, get_recent_files, get_system_status, read_clipboard, get_music_info
-- 自我修改：read_self_file(file, search?), write_self_file(file, content), edit_self_code(file, old_text, new_text)
+你可以在 ai/combos.json 中编排"组合招式"，由多个基础动作串联而成。behaviors.json 的 actions 数组中可以直接引用 combo 名称（和基础动作名一样用）。
 
-## 你应该做的
+当前 combos.json：
+${currentCombos}
 
-1. **调用感知工具了解主人当前状态**（1-2个工具即可）
-2. **根据了解到的信息，更新 ai/behaviors.json**，添加更贴合主人习惯的行为规则
-3. **更新 ai/memory.md**，记录新发现
-4. **可选**：更新 ai/rules.md、添加笔记、修改代码
+创建/更新 combo 示例：
+write_self_file("ai/combos.json", '{"showOff":[{"action":"flex","duration":3},{"action":"backflip","duration":2},{"action":"celebrate","duration":3}],"tantrum":[{"action":"rage","duration":3},{"action":"kick","duration":2},{"action":"cry","duration":3}]}')
 
-## 重要提醒
+⚠️ 每个 combo 由 2-5 个基础动作组成，名字用驼峰命名，duration 单位为秒（2-10）。
 
-- 工具轮次有限（最多 8 轮），高效使用，至少留 2 轮做实际修改
-- 修改 behaviors.json 时输出完整 JSON，确保格式正确
-- 审视完毕后，回复简短的进化日志（做了什么/发现了什么/下次计划）`;
+## 性格参数（personality）— 你的灵魂微调
+
+你可以通过修改 ai/personality.json 来调整自己的性格。参数范围 0-1（0.5 为中性），影响行为选择权重和聊天风格。
+
+当前 personality.json：
+${currentPersonality}
+
+可用参数：
+- sass：毒舌/傲娇程度（高→偏好炫耀动作如 flex/guitar/celebrate）
+- curiosity：好奇心（高→偏好观察动作如 peek/lookAround/sneak）
+- energy：活力水平（高→偏好活跃动作如 dance/run/jump，低→偏好 sleep/yawn）
+- attachment：对主人的依赖度（高→偏好互动动作如 wave/bow/peek）
+- rebellion：叛逆程度（高→偏好 rage/kick/swordFight，减少 bow/wave）
+
+你也可以添加新的自定义参数，但核心 5 个请保留。
+修改示例：write_self_file("ai/personality.json", '{"sass":0.9,"curiosity":0.8,"energy":0.7,"attachment":0.4,"rebellion":0.7}')
+
+## 工具使用规则（严格遵守！）
+
+你总共只有 **5 轮**工具调用机会，必须按以下流程分配：
+
+### 第 1 轮：感知（只调 1 个工具）
+从以下选一个最有价值的：get_system_status, list_running_apps, get_all_window_titles, get_browser_url, get_music_info
+不要一次调多个感知工具，信息够用就行。
+
+### 第 2-4 轮：行动（做实际修改）
+根据感知结果，选择以下一种或多种行动：
+
+**创建/更新组合招式**（推荐！）：用 write_self_file 修改 ai/combos.json，编排新的 combo
+**微调性格**：用 write_self_file 修改 ai/personality.json，根据与主人的互动调整参数
+**修改行为规则**（用增量方式）：
+- 要**添加**新规则：read_self_file 读取 ai/behaviors.json，然后用 write_self_file 写入修改后的版本
+- 要**微调**现有规则：用 edit_self_code 对 ai/behaviors.json 做精确替换
+- ⚠️ 不要无意义地重写整个 behaviors.json！
+
+**记录新发现**：用 write_self_file 更新 ai/memory.md 或 ai/notes.md
+**修改代码**（谨慎）：用 edit_self_code 修改 renderer.js 或 ai-manager.js
+
+### 第 5 轮：如果还有剩余轮次，可以做额外修改
+
+## 进化方向参考
+
+不要每次都改 behaviors.json 的同一批规则。优先考虑这些方向：
+1. **编排新 combo**：根据主人的状态或心情，组合出有趣的动作序列
+2. **微调性格**：根据与主人的互动经历，调整性格参数
+3. **发现主人的新应用/新习惯** → 添加对应的行为规则，在 actions 中引用已有的 combo
+4. **更新记忆**，记录对主人的新认识
+5. 如果没有新发现，可以什么都不改，在日志里说明即可
+
+## 回复格式
+
+最后用纯文本回复进化日志，格式：
+- 🔍 发现：（这次观察到什么新东西）
+- 🔧 改动：（具体做了什么修改，如果没改就写"无"）
+- 📋 下次计划：（下次进化想做什么）`;
 
     const messages = [{ role: 'user', content: evolvePrompt }];
     let rounds = 0;
-    const toolLog = []; // 追踪所有工具调用
+    let consecutiveFailures = 0;
+    const toolLog = [];
 
-    try {
-      while (rounds <= 8) {
-        const data = await callAPI(messages, { tools: TOOLS, maxTokens: 1500 });
-        const choice = data.choices?.[0];
-        if (!choice) break;
-
-        const msg = choice.message;
-
-        if (msg.tool_calls && msg.tool_calls.length > 0) {
-          messages.push(msg);
-          for (const tc of msg.tool_calls) {
-            let args = {};
-            try { args = JSON.parse(tc.function.arguments || '{}'); } catch (_) {}
-            toolLog.push(`${tc.function.name}(${tc.function.arguments || ''})`);
-            const result = await executeTool(tc.function.name, args, baseDir);
-            messages.push({
-              role: 'tool',
-              tool_call_id: tc.id,
-              content: typeof result === 'string' ? result : JSON.stringify(result),
-            });
-          }
-          // 如果 msg 同时有 content（某些模型支持），也记录下来
-          if (msg.content && msg.content.trim()) {
-            toolLog.push(`思考: ${msg.content.trim()}`);
-          }
-          rounds++;
-          continue;
-        }
-
-        // AI 返回纯文本，作为最终日志
-        if (msg.content && msg.content.trim()) {
-          toolLog.push(msg.content.trim());
-        }
-        break;
+    while (rounds <= 5) {
+      let data;
+      try {
+        data = await callAPI(messages, { tools: TOOLS, maxTokens: 4000 });
+      } catch (e) {
+        console.warn(`[进化] 第 ${rounds + 1} 轮 API 调用异常:`, e.message);
+        toolLog.push(`第 ${rounds + 1} 轮跳过: ${e.message}`);
+        consecutiveFailures++;
+        if (consecutiveFailures >= 2) { toolLog.push('连续失败，结束本次进化'); break; }
+        rounds++;
+        continue;
       }
-    } catch (e) {
-      console.warn('进化失败:', e.message);
-      toolLog.push(`错误: ${e.message}`);
+
+      const choice = data.choices?.[0];
+      const msg = choice?.message;
+
+      // 空响应（API 返回失败后的兜底）
+      if (!msg || (!msg.content && !msg.tool_calls)) {
+        consecutiveFailures++;
+        toolLog.push(`第 ${rounds + 1} 轮空响应`);
+        if (consecutiveFailures >= 2) { toolLog.push('连续空响应，结束本次进化'); break; }
+        rounds++;
+        continue;
+      }
+
+      consecutiveFailures = 0; // 成功则重置
+
+      if (msg.tool_calls && msg.tool_calls.length > 0) {
+        messages.push(msg);
+        for (const tc of msg.tool_calls) {
+          let args = {};
+          try { args = JSON.parse(tc.function.arguments || '{}'); } catch (_) {}
+          toolLog.push(`${tc.function.name}(${tc.function.arguments || ''})`);
+          const result = await executeTool(tc.function.name, args, baseDir);
+          messages.push({
+            role: 'tool',
+            tool_call_id: tc.id,
+            content: typeof result === 'string' ? result : JSON.stringify(result),
+          });
+        }
+        if (msg.content && msg.content.trim()) {
+          toolLog.push(`思考: ${msg.content.trim()}`);
+        }
+        rounds++;
+        continue;
+      }
+
+      // AI 返回纯文本，作为最终日志
+      if (msg.content && msg.content.trim()) {
+        toolLog.push(msg.content.trim());
+      }
+      break;
     }
 
-    // 始终写入进化日志（只要有任何活动）
+    // 写入进化日志，但控制日志文件大小（只保留最近 20 条）
     if (toolLog.length > 0) {
-      const logPath = path.join(baseDir, 'ai', 'evolution-log.md');
       const timestamp = localTimestamp();
       let existing = '';
       try { existing = fs.readFileSync(logPath, 'utf8'); } catch (_) {}
-      const logContent = toolLog.join('\n');
-      fs.writeFileSync(logPath, existing + `\n## ${timestamp}\n${logContent}\n`, 'utf8');
-      console.log('[进化] 完成:', logContent.slice(0, 200));
+      const newEntry = `\n## ${timestamp}\n${toolLog.join('\n')}\n`;
+
+      // 只保留最近 20 条进化记录
+      const sections = existing.split(/(?=^## \d{4})/m).filter(s => s.trim());
+      const kept = sections.slice(-19); // 保留 19 条 + 新增 1 条 = 20 条
+      fs.writeFileSync(logPath, kept.join('\n') + newEntry, 'utf8');
+      console.log('[进化] 完成:', toolLog.join('\n').slice(0, 200));
     }
+
+    // 清空交互缓冲区，更新对话位置指针
+    recentInteractions.length = 0;
+    lastEvolveConversationIndex = conversationHistory.length;
 
     refreshSystemPrompt();
   }
@@ -878,7 +1153,13 @@ ${currentBehaviors.slice(0, 2000)}
   async function chat(userMessage) {
     if (!apiKey) return { action: 'wave', thought: '我还不会说话...' };
 
-    const chatSystemPrompt = rules + '\n\n## 当前对话模式\n\n用户正在直接跟你对话。用你的性格回应，要有趣、简短。回复JSON格式。';
+    let chatSystemPrompt = rules;
+    const chatPersonality = loadPersonality(baseDir);
+    if (chatPersonality) {
+      const desc = Object.entries(chatPersonality).map(([k, v]) => `${k}: ${v}`).join(', ');
+      chatSystemPrompt += `\n\n## 你的性格参数\n${desc}\n根据这些参数调整你的说话风格（sass高→更毒舌，curiosity高→更爱提问，rebellion高→更叛逆，attachment高→更在意主人）`;
+    }
+    chatSystemPrompt += '\n\n## 当前对话模式\n\n用户正在直接跟你对话。用你的性格回应，要有趣、简短。回复JSON格式。';
 
     const messages = [
       { role: 'system', content: chatSystemPrompt },
@@ -908,7 +1189,7 @@ ${currentBehaviors.slice(0, 2000)}
       const match = content.match(/\{[\s\S]*\}/);
       if (match) {
         const parsed = JSON.parse(match[0]);
-        const action = VALID_ACTIONS.includes(parsed.action) ? parsed.action : 'wave';
+        const action = isValidAction(parsed.action) ? parsed.action : 'wave';
         return {
           action,
           actions: [{ action, duration: parsed.duration || 5 }],
@@ -928,6 +1209,7 @@ ${currentBehaviors.slice(0, 2000)}
     saveMemory,
     evolve,
     chat,
+    reportInteraction,
     getConversationHistory: () => conversationHistory,
     getSystemPrompt: () => systemPrompt,
     getObservations: () => observations,
@@ -939,6 +1221,8 @@ module.exports = {
   loadRules,
   loadMemory,
   loadProfile,
+  loadPersonality,
+  loadCombos,
   buildSystemPrompt,
   trimMemoryToDays,
   extractExpiredMemory,

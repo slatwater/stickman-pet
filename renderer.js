@@ -635,9 +635,10 @@ class Stickman {
     }
   }
 
-  // 用户交互事件记录
+  // 用户交互事件记录（同时上报到主进程供进化使用）
   addInteractionEvent(type) {
     this.userInteractionsLog.push({ type, time: new Date().toISOString() });
+    window.electronAPI?.reportInteraction?.(type);
   }
 
   // 构建决策上下文
@@ -654,9 +655,26 @@ class Stickman {
     this.userInteractionsLog = [];
   }
 
+  // 展开动作列表中的 combo 引用为基础动作
+  _expandCombos(actions) {
+    const expanded = [];
+    for (const item of actions) {
+      if (ACTIONS[item.action]) {
+        expanded.push(item);
+      } else if (_combos[item.action]) {
+        for (const step of _combos[item.action]) {
+          if (ACTIONS[step.action]) {
+            expanded.push({ action: step.action, duration: step.duration || 3 });
+          }
+        }
+      }
+    }
+    return expanded;
+  }
+
   // 设置动作队列
   setActionQueue(actions, thought) {
-    this.actionQueue = [...actions];
+    this.actionQueue = this._expandCombos(actions);
     this.batchDecisionPending = false;
     if (thought) {
       this.thought = thought;
@@ -735,23 +753,36 @@ class Stickman {
   // 基于上下文的本地行为决策（规则来自 ai/behaviors.json，可被 AI 进化修改）
   nextAction() {
     const matched = this._matchBehaviorRule();
+    let pick;
     if (matched) {
       if (matched.thought) {
         this.thought = matched.thought;
         this.thoughtTimer = 5;
         this.thoughtDuration = 5;
       }
-      return this._moodWeightedPick(matched.actions, matched.weights);
+      pick = this._moodWeightedPick(matched.actions, matched.weights);
+    } else {
+      // 默认随机
+      const def = this._behaviors?.default || {
+        actions: ['idle', 'lookAround', 'walk', 'dance', 'jump', 'wave', 'sitDown', 'yawn', 'sneak', 'peek', 'meditate'],
+        weights: [3, 2, 4, 2, 2, 1, 1, 2, 2, 1, 1],
+      };
+      pick = this._moodWeightedPick(def.actions, def.weights);
     }
-    // 默认随机
-    const def = this._behaviors?.default || {
-      actions: ['idle', 'lookAround', 'walk', 'dance', 'jump', 'wave', 'sitDown', 'yawn', 'sneak', 'peek', 'meditate'],
-      weights: [3, 2, 4, 2, 2, 1, 1, 2, 2, 1, 1],
-    };
-    return this._moodWeightedPick(def.actions, def.weights);
+    // 如果选中的是 combo，展开为基础动作队列
+    if (!ACTIONS[pick] && _combos[pick]) {
+      const steps = _combos[pick]
+        .filter(s => ACTIONS[s.action])
+        .map(s => ({ action: s.action, duration: s.duration || 3 }));
+      if (steps.length > 1) {
+        this.actionQueue = steps.slice(1);
+      }
+      return steps.length > 0 ? steps[0].action : 'idle';
+    }
+    return pick;
   }
 
-  // 情绪对动作的亲和度映射
+  // 情绪对动作的亲和度映射（叠加性格参数影响）
   _moodActionAffinity(action) {
     const m = this.mood;
     let bonus = 0;
@@ -782,6 +813,50 @@ class Stickman {
       if (['sleep', 'yawn', 'sitDown', 'meditate', 'idle'].includes(action)) bonus += 4;
       if (['crazyDance', 'run', 'backflip', 'rage'].includes(action)) bonus -= 3;
     }
+
+    // === 性格参数影响（长期基准，叠加在情绪之上） ===
+    const p = _personality || {};
+    const energy = p.energy ?? 0.5;
+    const curiosity = p.curiosity ?? 0.5;
+    const sass = p.sass ?? 0.5;
+    const rebellion = p.rebellion ?? 0.5;
+    const attachment = p.attachment ?? 0.5;
+
+    // energy 高 → 偏好活跃动作，低 → 偏好安静动作
+    if (energy > 0.6) {
+      if (['dance', 'crazyDance', 'run', 'jump', 'backflip', 'spin', 'celebrate'].includes(action))
+        bonus += (energy - 0.5) * 6;
+      if (['sleep', 'yawn', 'idle', 'sitDown', 'meditate'].includes(action))
+        bonus -= (energy - 0.5) * 4;
+    } else if (energy < 0.4) {
+      if (['sleep', 'yawn', 'sitDown', 'meditate', 'idle'].includes(action))
+        bonus += (0.5 - energy) * 6;
+      if (['crazyDance', 'run', 'backflip', 'rage'].includes(action))
+        bonus -= (0.5 - energy) * 4;
+    }
+    // curiosity 高 → 偏好观察/探索动作
+    if (curiosity > 0.6) {
+      if (['peek', 'lookAround', 'sneak', 'walk'].includes(action))
+        bonus += (curiosity - 0.5) * 6;
+    }
+    // sass 高 → 偏好炫耀动作
+    if (sass > 0.6) {
+      if (['flex', 'dance', 'crazyDance', 'guitar', 'swordFight', 'celebrate'].includes(action))
+        bonus += (sass - 0.5) * 4;
+    }
+    // rebellion 高 → 偏好叛逆动作
+    if (rebellion > 0.6) {
+      if (['rage', 'kick', 'swordFight', 'stumble', 'crazyDance'].includes(action))
+        bonus += (rebellion - 0.5) * 4;
+      if (['bow', 'wave', 'idle'].includes(action))
+        bonus -= (rebellion - 0.5) * 3;
+    }
+    // attachment 高 → 偏好互动动作
+    if (attachment > 0.6) {
+      if (['wave', 'bow', 'peek', 'celebrate', 'dance'].includes(action))
+        bonus += (attachment - 0.5) * 4;
+    }
+
     return bonus;
   }
 
@@ -1279,12 +1354,22 @@ class Stickman {
     let next;
     let queueDuration = null;
 
-    // 优先从动作队列取
+    // 优先从动作队列取（支持 combo 展开）
     if (this.actionQueue && this.actionQueue.length > 0) {
       const nextItem = this.actionQueue.shift();
       if (ACTIONS[nextItem.action]) {
         next = nextItem.action;
         queueDuration = nextItem.duration;
+      } else if (_combos[nextItem.action]) {
+        const steps = _combos[nextItem.action]
+          .filter(s => ACTIONS[s.action])
+          .map(s => ({ action: s.action, duration: s.duration || 3 }));
+        this.actionQueue.unshift(...steps);
+        if (this.actionQueue.length > 0) {
+          const first = this.actionQueue.shift();
+          next = first.action;
+          queueDuration = first.duration;
+        }
       }
     }
 
@@ -1824,9 +1909,37 @@ async function loadBehaviors() {
   }
 }
 
+// 组合动作（combo）：AI 进化时可在 ai/combos.json 中定义
+let _combos = {};
+async function loadCombos() {
+  if (!window.electronAPI?.loadCombos) return;
+  try {
+    const data = await window.electronAPI.loadCombos();
+    if (data) _combos = data;
+  } catch (e) {
+    console.warn('组合动作加载失败:', e.message);
+  }
+}
+
+// 性格参数：AI 进化时可在 ai/personality.json 中调整
+let _personality = { sass: 0.5, curiosity: 0.5, energy: 0.5, attachment: 0.5, rebellion: 0.5 };
+async function loadPersonality() {
+  if (!window.electronAPI?.loadPersonality) return;
+  try {
+    const data = await window.electronAPI.loadPersonality();
+    if (data) _personality = data;
+  } catch (e) {
+    console.warn('性格参数加载失败:', e.message);
+  }
+}
+
 // 启动时加载，之后每 5 分钟重新加载（进化后生效）
 loadBehaviors();
+loadCombos();
+loadPersonality();
 setInterval(loadBehaviors, 5 * 60 * 1000);
+setInterval(loadCombos, 5 * 60 * 1000);
+setInterval(loadPersonality, 5 * 60 * 1000);
 
 // 定期清理过长的交互日志（保留最近 30 秒的）
 setInterval(() => {
@@ -1933,13 +2046,13 @@ function hideChatInput() {
   isClickThrough = true;
 }
 
-// 双击火柴人 → 打开聊天
-canvas.addEventListener('dblclick', (e) => {
-  if (wasDragging) return;
+// 右键点击火柴人 → 打开聊天
+canvas.addEventListener('contextmenu', (e) => {
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
   if (man.hitTest(mx, my) || man.bubbleHitTest(mx, my)) {
+    e.preventDefault();
     showChatInput();
   }
 });

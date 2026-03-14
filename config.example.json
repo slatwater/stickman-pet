@@ -1,3 +1,5 @@
 {
-  "deepseekApiKey": "sk-your-api-key-here"
+  "apiKey": "sk-your-api-key-here",
+  "apiBaseUrl": "https://api.deepseek.com",
+  "modelId": "deepseek-chat"
 }

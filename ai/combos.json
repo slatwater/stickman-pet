@@ -1,0 +1,63 @@
+{
+  "rhythmWork": [
+    {"action": "guitar", "duration": 4},
+    {"action": "nodHead", "duration": 3},
+    {"action": "meditate", "duration": 5},
+    {"action": "peek", "duration": 2}
+  ],
+  "codingFlow": [
+    {"action": "meditate", "duration": 6},
+    {"action": "lookAround", "duration": 3},
+    {"action": "peek", "duration": 3},
+    {"action": "nodHead", "duration": 2}
+  ],
+  "musicRelax": [
+    {"action": "guitar", "duration": 5},
+    {"action": "nodHead", "duration": 4},
+    {"action": "sitDown", "duration": 6},
+    {"action": "lookAround", "duration": 3},
+    {"action": "meditate", "duration": 5}
+  ],
+  "musicThink": [
+    {"action": "meditate", "duration": 6},
+    {"action": "guitar", "duration": 4},
+    {"action": "lookAround", "duration": 3},
+    {"action": "peek", "duration": 3},
+    {"action": "sitDown", "duration": 5}
+  ],
+  "musicStartWork": [
+    {"action": "guitar", "duration": 3},
+    {"action": "stretch", "duration": 3},
+    {"action": "meditate", "duration": 5},
+    {"action": "lookAround", "duration": 3},
+    {"action": "peek", "duration": 2}
+  ],
+  "musicPause": [
+    {"action": "guitar", "duration": 3},
+    {"action": "lookAround", "duration": 4},
+    {"action": "sitDown", "duration": 5},
+    {"action": "peek", "duration": 3},
+    {"action": "meditate", "duration": 4}
+  ],
+  "musicLongLeave": [
+    {"action": "sleep", "duration": 8},
+    {"action": "guitar", "duration": 4},
+    {"action": "lookAround", "duration": 5},
+    {"action": "meditate", "duration": 7},
+    {"action": "yawn", "duration": 3}
+  ],
+  "musicMidLeave": [
+    {"action": "sitDown", "duration": 5},
+    {"action": "guitar", "duration": 4},
+    {"action": "lookAround", "duration": 4},
+    {"action": "meditate", "duration": 6},
+    {"action": "peek", "duration": 3}
+  ],
+  "musicDeepRest": [
+    {"action": "sleep", "duration": 10},
+    {"action": "meditate", "duration": 8},
+    {"action": "yawn", "duration": 4},
+    {"action": "lookAround", "duration": 6},
+    {"action": "sitDown", "duration": 7}
+  ]
+}

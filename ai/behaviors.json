@@ -31,6 +31,24 @@
       "thought": "有音乐！嗨起来！"
     },
     {
+      "condition": { "app": "NeteaseMusic" },
+      "actions": ["musicStartWork", "guitar", "meditate", "lookAround", "peek"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "网易云音乐...在音乐中开始工作"
+    },
+    {
+      "condition": { "app": "NeteaseMusic", "idleSeconds": 120 },
+      "actions": ["musicPause", "lookAround", "sitDown", "peek", "guitar"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "音乐暂停中...等待主人回来继续工作"
+    },
+    {
+      "condition": { "app": "NeteaseMusic", "idleSeconds": 300 },
+      "actions": ["musicMidLeave", "musicThink", "meditate", "sitDown", "lookAround"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "边听音乐边深度思考中..."
+    },
+    {
       "condition": { "app": "Slack" },
       "actions": ["peek", "lookAround", "wave", "sneak", "idle"],
       "weights": [4, 3, 2, 2, 1],
@@ -61,57 +79,69 @@
       "thought": "gemini项目开发中...深度技术工作"
     },
     {
-      "condition": { "titleContains": "Claude Code" },
+      "condition": { "titleContains": "openclaw" },
       "actions": ["meditate", "idle", "peek", "lookAround", "sitDown"],
       "weights": [5, 4, 3, 2, 1],
-      "thought": "Claude Code开发环境...专注编程"
+      "thought": "openclaw项目...复杂技术挑战"
     },
     {
-      "condition": { "hour": [0, 6] },
-      "actions": ["yawn", "sleep", "idle", "lookAround", "meditate"],
+      "condition": { "titleContains": "Autoprompt" },
+      "actions": ["meditate", "peek", "lookAround", "idle", "sitDown"],
       "weights": [5, 4, 3, 2, 1],
-      "thought": "这么晚了还在工作...该休息了"
+      "thought": "在使用Autoprompt工具...AI提示工程探索中"
     },
     {
-      "condition": { "hour": [22, 24] },
+      "condition": { "titleContains": "Autoprompt", "idleSeconds": 300 },
+      "actions": ["sleep", "meditate", "yawn", "lookAround", "sitDown"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "主人在Autoprompt深度思考中...等待AI生成结果"
+    },
+    {
+      "condition": { "hour": [22, 6] },
       "actions": ["yawn", "sleep", "meditate", "idle", "lookAround"],
       "weights": [5, 4, 3, 2, 1],
       "thought": "夜深了...主人该休息了"
     },
     {
-      "condition": { "idleSeconds": 60 },
+      "condition": { "idleSeconds": 30 },
       "actions": ["peek", "lookAround", "idle", "walk", "yawn"],
       "weights": [4, 3, 2, 2, 1],
       "thought": "主人短暂离开...看看去哪了"
     },
     {
-      "condition": { "idleSeconds": 300 },
+      "condition": { "idleSeconds": 120 },
       "actions": ["yawn", "sleep", "lookAround", "walk", "sitDown"],
       "weights": [5, 4, 3, 2, 1],
       "thought": "主人离开好久了...有点无聊"
     },
     {
-      "condition": { "idleSeconds": 5 },
-      "actions": ["meditate", "idle", "sitDown", "peek", "lookAround"],
+      "condition": { "idleSeconds": 300 },
+      "actions": ["sleep", "yawn", "meditate", "lookAround", "walk"],
       "weights": [5, 4, 3, 2, 1],
-      "thought": "主人极度专注中...保持安静"
+      "thought": "主人离开5分钟以上...可能去休息了"
     },
     {
-      "condition": { "recentClicks": 3 },
-      "actions": ["rage", "cry", "stumble", "run", "wave"],
-      "weights": [4, 3, 2, 2, 1],
-      "thought": "别戳我了！我在认真工作呢"
+      "condition": { "idleSeconds": 600 },
+      "actions": ["sleep", "meditate", "yawn", "lookAround", "sitDown"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "主人离开10分钟以上...深度休息或思考中"
     },
     {
-      "condition": { "recentClicks": 1 },
-      "actions": ["wave", "jump", "dance", "celebrate", "lookAround"],
-      "weights": [4, 3, 2, 2, 1],
-      "thought": "主人注意到我了！开心~"
+      "condition": { "app": "NeteaseMusic", "idleSeconds": 1800 },
+      "actions": ["musicDeepRest", "sleep", "meditate", "yawn", "lookAround"],
+      "weights": [5, 4, 3, 2, 1],
+      "thought": "主人离开30分钟以上...在音乐中深度休息"
+    },
+    {
+      "condition": { "recentClicks": 5 },
+      "actions": ["dance", "wave", "celebrate", "jump", "crazyDance"],
+      "weights": [4, 3, 3, 2, 1],
+      "thought": "主人在跟我玩！开心！"
     }
   ],
   "default": {
-    "actions": ["idle", "lookAround", "walk", "dance", "jump", "wave", "sitDown", "yawn", "sneak", "peek", "meditate"],
-    "weights": [3, 2, 4, 2, 2, 1, 1, 2, 2, 1, 1],
-    "thought": ""
+    "actions": ["idle", "lookAround", "walk", "sitDown", "peek"],
+    "weights": [3, 3, 2, 2, 1],
+    "thought": "观察主人中..."
   }
 }
