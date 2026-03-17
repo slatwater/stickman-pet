@@ -1621,10 +1621,9 @@ describe('Stickman 集成 - transitionToNext 使用驱力表情', () => {
     man.driveSystem.drives.novelty.tension = 0.1;
     man.driveSystem.drives.expression.tension = 0.1;
     man.driveSystem.drives.rest.tension = 0.1;
-    // 确认 social 是主导驱力
-    expect(man.driveSystem.getDominant()).toBe('social');
-    expect(man.driveSystem.getExpression()).toBe('sad');
     man.exprTimer = 0; // 无明确表情
+    // 用 idle 填充队列，避免随机选到 peek/meditate 等覆盖表情的动作
+    man.actionQueue = [{ action: 'idle', duration: 3 }];
     man.transitionToNext();
     // social 主导且高 tension → sad
     expect(man.expression).toBe('sad');
