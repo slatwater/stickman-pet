@@ -829,13 +829,13 @@ describe('AI 批量决策 - API 调用失败回退', () => {
 // ============================================================
 
 describe('DriveSystem - 初始化', () => {
-  it.skip('Stickman 实例包含 driveSystem 属性', () => {
+  it('Stickman 实例包含 driveSystem 属性', () => {
     const man = new Stickman(200);
     expect(man.driveSystem).toBeDefined();
     expect(man.driveSystem).toBeInstanceOf(DriveSystem);
   });
 
-  it.skip('四维驱力初始 tension 值正确', () => {
+  it('四维驱力初始 tension 值正确', () => {
     const man = new Stickman(200);
     const d = man.driveSystem.drives;
     expect(d.social.tension).toBeCloseTo(0.3, 2);
@@ -844,14 +844,14 @@ describe('DriveSystem - 初始化', () => {
     expect(d.rest.tension).toBeCloseTo(0.1, 2);
   });
 
-  it.skip('四维驱力初始 courage 均为 0.5', () => {
+  it('四维驱力初始 courage 均为 0.5', () => {
     const man = new Stickman(200);
     for (const drive of Object.values(man.driveSystem.drives)) {
       expect(drive.courage).toBeCloseTo(0.5, 2);
     }
   });
 
-  it.skip('四维驱力初始 threshold 值正确', () => {
+  it('四维驱力初始 threshold 值正确', () => {
     const man = new Stickman(200);
     const d = man.driveSystem.drives;
     expect(d.social.threshold).toBeCloseTo(0.35, 2);
@@ -860,19 +860,19 @@ describe('DriveSystem - 初始化', () => {
     expect(d.rest.threshold).toBeCloseTo(0.50, 2);
   });
 
-  it.skip('hesitating 初始为 false', () => {
+  it('hesitating 初始为 false', () => {
     const man = new Stickman(200);
     expect(man.driveSystem.hesitating).toBe(false);
   });
 
-  it.skip('Stickman 不再有 this.mood 五维对象', () => {
+  it('Stickman 不再有 this.mood 五维对象', () => {
     const man = new Stickman(200);
     expect(man.mood).toBeUndefined();
   });
 });
 
 describe('DriveSystem - tension 自然增长', () => {
-  it.skip('social tension 按 0.008/s 增长', () => {
+  it('social tension 按 0.008/s 增长', () => {
     const man = new Stickman(200);
     const before = man.driveSystem.drives.social.tension;
     man.driveSystem.update(10, { currentAction: 'idle', lastScreenApp: '' });
@@ -880,7 +880,7 @@ describe('DriveSystem - tension 自然增长', () => {
     expect(after - before).toBeCloseTo(0.008 * 10, 1);
   });
 
-  it.skip('novelty tension 按 0.005/s 增长', () => {
+  it('novelty tension 按 0.005/s 增长', () => {
     const man = new Stickman(200);
     const before = man.driveSystem.drives.novelty.tension;
     man.driveSystem.update(10, { currentAction: 'idle', lastScreenApp: '' });
@@ -888,7 +888,7 @@ describe('DriveSystem - tension 自然增长', () => {
     expect(after - before).toBeCloseTo(0.005 * 10, 1);
   });
 
-  it.skip('expression tension 按 0.006/s 增长', () => {
+  it('expression tension 按 0.006/s 增长', () => {
     const man = new Stickman(200);
     const before = man.driveSystem.drives.expression.tension;
     man.driveSystem.update(10, { currentAction: 'idle', lastScreenApp: '' });
@@ -896,7 +896,7 @@ describe('DriveSystem - tension 自然增长', () => {
     expect(after - before).toBeCloseTo(0.006 * 10, 1);
   });
 
-  it.skip('rest tension 按 0.003/s 增长', () => {
+  it('rest tension 按 0.003/s 增长', () => {
     const man = new Stickman(200);
     const before = man.driveSystem.drives.rest.tension;
     man.driveSystem.update(10, { currentAction: 'idle', lastScreenApp: '' });
@@ -904,14 +904,14 @@ describe('DriveSystem - tension 自然增长', () => {
     expect(after - before).toBeCloseTo(0.003 * 10, 1);
   });
 
-  it.skip('tension 上限钳制为 1', () => {
+  it('tension 上限钳制为 1', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.99;
     man.driveSystem.update(60, { currentAction: 'idle', lastScreenApp: '' });
     expect(man.driveSystem.drives.social.tension).toBeLessThanOrEqual(1);
   });
 
-  it.skip('tension 下限钳制为 0', () => {
+  it('tension 下限钳制为 0', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0;
     man.driveSystem.update(1, { currentAction: 'wave', lastScreenApp: '' });
@@ -920,35 +920,35 @@ describe('DriveSystem - tension 自然增长', () => {
 });
 
 describe('DriveSystem - 当前动作满足驱力时 tension 下降', () => {
-  it.skip('执行 social 偏好动作时 social.tension 下降', () => {
+  it('执行 social 偏好动作时 social.tension 下降', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.8;
     man.driveSystem.update(1, { currentAction: 'wave', lastScreenApp: '' });
     expect(man.driveSystem.drives.social.tension).toBeLessThan(0.8);
   });
 
-  it.skip('执行 rest 偏好动作（sleep）时 rest.tension 下降', () => {
+  it('执行 rest 偏好动作（sleep）时 rest.tension 下降', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.rest.tension = 0.8;
     man.driveSystem.update(1, { currentAction: 'sleep', lastScreenApp: '' });
     expect(man.driveSystem.drives.rest.tension).toBeLessThan(0.8);
   });
 
-  it.skip('执行 expression 偏好动作（dance）时 expression.tension 下降', () => {
+  it('执行 expression 偏好动作（dance）时 expression.tension 下降', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.expression.tension = 0.8;
     man.driveSystem.update(1, { currentAction: 'dance', lastScreenApp: '' });
     expect(man.driveSystem.drives.expression.tension).toBeLessThan(0.8);
   });
 
-  it.skip('执行 novelty 偏好动作（sneak）时 novelty.tension 下降', () => {
+  it('执行 novelty 偏好动作（sneak）时 novelty.tension 下降', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.novelty.tension = 0.8;
     man.driveSystem.update(1, { currentAction: 'sneak', lastScreenApp: '' });
     expect(man.driveSystem.drives.novelty.tension).toBeLessThan(0.8);
   });
 
-  it.skip('下降速率为 0.05/s', () => {
+  it('下降速率为 0.05/s', () => {
     const man = new Stickman(200);
     // Set growth to 0 by using very high initial value and short dt
     man.driveSystem.drives.rest.tension = 0.5;
@@ -961,21 +961,21 @@ describe('DriveSystem - 当前动作满足驱力时 tension 下降', () => {
 });
 
 describe('DriveSystem - courage 自然回归 0.5', () => {
-  it.skip('courage > 0.5 时缓慢下降', () => {
+  it('courage > 0.5 时缓慢下降', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.courage = 0.9;
     man.driveSystem.update(100, { currentAction: 'idle', lastScreenApp: '' });
     expect(man.driveSystem.drives.social.courage).toBeLessThan(0.9);
   });
 
-  it.skip('courage < 0.5 时缓慢上升', () => {
+  it('courage < 0.5 时缓慢上升', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.courage = 0.1;
     man.driveSystem.update(100, { currentAction: 'idle', lastScreenApp: '' });
     expect(man.driveSystem.drives.social.courage).toBeGreaterThan(0.1);
   });
 
-  it.skip('回归速率极慢（0.002/s），250 秒回归 0.1 的偏差', () => {
+  it('回归速率极慢（0.002/s），250 秒回归 0.1 的偏差', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.courage = 0.6;
     // 模拟 250 秒
@@ -987,7 +987,7 @@ describe('DriveSystem - courage 自然回归 0.5', () => {
 });
 
 describe('DriveSystem - getDominant', () => {
-  it.skip('返回 tension 最高的驱力 key', () => {
+  it('返回 tension 最高的驱力 key', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9;
     man.driveSystem.drives.novelty.tension = 0.1;
@@ -996,7 +996,7 @@ describe('DriveSystem - getDominant', () => {
     expect(man.driveSystem.getDominant()).toBe('social');
   });
 
-  it.skip('多个驱力 tension 最高时返回其中之一', () => {
+  it('多个驱力 tension 最高时返回其中之一', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.5;
     man.driveSystem.drives.novelty.tension = 0.5;
@@ -1011,7 +1011,7 @@ describe('DriveSystem - getDominant', () => {
 // ============================================================
 
 describe('DriveSystem - checkExpression 表达触发', () => {
-  it.skip('tension × courage > threshold 时触发单个表达', () => {
+  it('tension × courage > threshold 时触发单个表达', () => {
     const man = new Stickman(200);
     // social: threshold 0.35, 设置 tension=0.8, courage=0.5 → 0.4 > 0.35
     man.driveSystem.drives.social.tension = 0.8;
@@ -1026,7 +1026,7 @@ describe('DriveSystem - checkExpression 表达触发', () => {
     expect(result.triggered).toBe(true);
   });
 
-  it.skip('tension × courage ≤ threshold 时不触发', () => {
+  it('tension × courage ≤ threshold 时不触发', () => {
     const man = new Stickman(200);
     // social: threshold 0.35, 设置 tension=0.5, courage=0.5 → 0.25 < 0.35
     man.driveSystem.drives.social.tension = 0.5;
@@ -1038,7 +1038,7 @@ describe('DriveSystem - checkExpression 表达触发', () => {
     expect(result).toBeNull();
   });
 
-  it.skip('两个驱力同时超阈值时返回冲突', () => {
+  it('两个驱力同时超阈值时返回冲突', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9;
     man.driveSystem.drives.social.courage = 0.5;
@@ -1053,7 +1053,7 @@ describe('DriveSystem - checkExpression 表达触发', () => {
     expect([result.a, result.b]).toContain('expression');
   });
 
-  it.skip('所有驱力都低于阈值时返回 null', () => {
+  it('所有驱力都低于阈值时返回 null', () => {
     const man = new Stickman(200);
     for (const drive of Object.values(man.driveSystem.drives)) {
       drive.tension = 0.1;
@@ -1068,14 +1068,14 @@ describe('DriveSystem - checkExpression 表达触发', () => {
 // ============================================================
 
 describe('DriveSystem - onExpress 表达代价', () => {
-  it.skip('表达后 tension 扣减 30%', () => {
+  it('表达后 tension 扣减 30%', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.8;
     man.driveSystem.onExpress('social');
     expect(man.driveSystem.drives.social.tension).toBeCloseTo(0.8 * 0.7, 2);
   });
 
-  it.skip('扣减不影响其他驱力的 tension', () => {
+  it('扣减不影响其他驱力的 tension', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.8;
     man.driveSystem.drives.novelty.tension = 0.6;
@@ -1083,7 +1083,7 @@ describe('DriveSystem - onExpress 表达代价', () => {
     expect(man.driveSystem.drives.novelty.tension).toBeCloseTo(0.6, 2);
   });
 
-  it.skip('连续两次表达后 tension 扣减两次', () => {
+  it('连续两次表达后 tension 扣减两次', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 1.0;
     man.driveSystem.onExpress('social');
@@ -1099,42 +1099,42 @@ describe('DriveSystem - onExpress 表达代价', () => {
 // ============================================================
 
 describe('DriveSystem - onFeedback courage 调整', () => {
-  it.skip('click 反馈 courage += 0.05', () => {
+  it('click 反馈 courage += 0.05', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.courage = 0.5;
     man.driveSystem.onFeedback('social', 'click');
     expect(man.driveSystem.drives.social.courage).toBeCloseTo(0.55, 2);
   });
 
-  it.skip('chat 反馈 courage += 0.08', () => {
+  it('chat 反馈 courage += 0.08', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.courage = 0.5;
     man.driveSystem.onFeedback('social', 'chat');
     expect(man.driveSystem.drives.social.courage).toBeCloseTo(0.58, 2);
   });
 
-  it.skip('silence 反馈 courage -= 0.02', () => {
+  it('silence 反馈 courage -= 0.02', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.courage = 0.5;
     man.driveSystem.onFeedback('social', 'silence');
     expect(man.driveSystem.drives.social.courage).toBeCloseTo(0.48, 2);
   });
 
-  it.skip('drag 反馈 courage -= 0.15', () => {
+  it('drag 反馈 courage -= 0.15', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.courage = 0.5;
     man.driveSystem.onFeedback('social', 'drag');
     expect(man.driveSystem.drives.social.courage).toBeCloseTo(0.35, 2);
   });
 
-  it.skip('courage 上限钳制为 1', () => {
+  it('courage 上限钳制为 1', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.courage = 0.98;
     man.driveSystem.onFeedback('social', 'chat');
     expect(man.driveSystem.drives.social.courage).toBeLessThanOrEqual(1);
   });
 
-  it.skip('courage 下限钳制为 0', () => {
+  it('courage 下限钳制为 0', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.courage = 0.05;
     man.driveSystem.onFeedback('social', 'drag');
@@ -1147,7 +1147,7 @@ describe('DriveSystem - onFeedback courage 调整', () => {
 // ============================================================
 
 describe('DriveSystem - 犹豫与决议', () => {
-  it.skip('两个驱力同时超阈值进入犹豫状态', () => {
+  it('两个驱力同时超阈值进入犹豫状态', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9;
     man.driveSystem.drives.social.courage = 0.5;
@@ -1163,7 +1163,7 @@ describe('DriveSystem - 犹豫与决议', () => {
     expect(man.driveSystem.hesitating).toBe(true);
   });
 
-  it.skip('犹豫最长 3 秒后自动决议', () => {
+  it('犹豫最长 3 秒后自动决议', () => {
     const man = new Stickman(200);
     man.driveSystem.hesitating = true;
     man.driveSystem.hesitateTimer = 3;
@@ -1171,7 +1171,7 @@ describe('DriveSystem - 犹豫与决议', () => {
     expect(man.driveSystem.hesitating).toBe(false);
   });
 
-  it.skip('resolveHesitation 返回 tension×courage 更大者', () => {
+  it('resolveHesitation 返回 tension×courage 更大者', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9;
     man.driveSystem.drives.social.courage = 0.5; // 0.45
@@ -1182,7 +1182,7 @@ describe('DriveSystem - 犹豫与决议', () => {
     expect(winner).toBe('expression'); // 0.56 > 0.45
   });
 
-  it.skip('两个 courage 都 < 0.2 时放弃表达，返回 rest 低调动作', () => {
+  it('两个 courage 都 < 0.2 时放弃表达，返回 rest 低调动作', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9;
     man.driveSystem.drives.social.courage = 0.1;
@@ -1193,7 +1193,7 @@ describe('DriveSystem - 犹豫与决议', () => {
     expect(winner).toBeNull(); // 放弃表达
   });
 
-  it.skip('犹豫期间 checkExpression 返回 null', () => {
+  it('犹豫期间 checkExpression 返回 null', () => {
     const man = new Stickman(200);
     man.driveSystem.hesitating = true;
     man.driveSystem.hesitateTimer = 2;
@@ -1206,7 +1206,7 @@ describe('DriveSystem - 犹豫与决议', () => {
 // ============================================================
 
 describe('DriveSystem - getActionAffinity 动作偏好', () => {
-  it.skip('主导驱力的偏好动作获得高权重加成', () => {
+  it('主导驱力的偏好动作获得高权重加成', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9;
     man.driveSystem.drives.novelty.tension = 0.1;
@@ -1218,7 +1218,7 @@ describe('DriveSystem - getActionAffinity 动作偏好', () => {
     expect(waveBonus).toBeGreaterThan(idleBonus);
   });
 
-  it.skip('非主导驱力的偏好按 tension 比例贡献', () => {
+  it('非主导驱力的偏好按 tension 比例贡献', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9; // dominant
     man.driveSystem.drives.novelty.tension = 0.6;
@@ -1229,7 +1229,7 @@ describe('DriveSystem - getActionAffinity 动作偏好', () => {
     expect(sneakBonus).toBeGreaterThan(0);
   });
 
-  it.skip('替代原 _moodActionAffinity，保留性格参数影响', () => {
+  it('替代原 _moodActionAffinity，保留性格参数影响', () => {
     const man = new Stickman(200);
     // 验证 getActionAffinity 返回数值而不报错
     const bonus = man.driveSystem.getActionAffinity('dance');
@@ -1243,7 +1243,7 @@ describe('DriveSystem - getActionAffinity 动作偏好', () => {
 // ============================================================
 
 describe('DriveSystem - getExpression 驱力→表情', () => {
-  it.skip('social 主导且高 tension → sad（未满足）', () => {
+  it('social 主导且高 tension → sad（未满足）', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9;
     man.driveSystem.drives.novelty.tension = 0.1;
@@ -1252,7 +1252,7 @@ describe('DriveSystem - getExpression 驱力→表情', () => {
     expect(man.driveSystem.getExpression()).toBe('sad');
   });
 
-  it.skip('novelty 主导且高 tension → nervous（未满足）', () => {
+  it('novelty 主导且高 tension → nervous（未满足）', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.novelty.tension = 0.9;
     man.driveSystem.drives.social.tension = 0.1;
@@ -1261,7 +1261,7 @@ describe('DriveSystem - getExpression 驱力→表情', () => {
     expect(man.driveSystem.getExpression()).toBe('nervous');
   });
 
-  it.skip('rest 主导且高 tension → sleepy（未满足）', () => {
+  it('rest 主导且高 tension → sleepy（未满足）', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.rest.tension = 0.9;
     man.driveSystem.drives.social.tension = 0.1;
@@ -1270,7 +1270,7 @@ describe('DriveSystem - getExpression 驱力→表情', () => {
     expect(man.driveSystem.getExpression()).toBe('sleepy');
   });
 
-  it.skip('expression 主导且低 tension → happy（已满足）', () => {
+  it('expression 主导且低 tension → happy（已满足）', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.expression.tension = 0.05; // 刚表达过
     man.driveSystem.drives.social.tension = 0.01;
@@ -1286,26 +1286,26 @@ describe('DriveSystem - getExpression 驱力→表情', () => {
 // ============================================================
 
 describe('ResponseTracker - 初始化', () => {
-  it.skip('Stickman 实例包含 responseTracker 属性', () => {
+  it('Stickman 实例包含 responseTracker 属性', () => {
     const man = new Stickman(200);
     expect(man.responseTracker).toBeDefined();
     expect(man.responseTracker).toBeInstanceOf(ResponseTracker);
   });
 
-  it.skip('初始状态未在追踪', () => {
+  it('初始状态未在追踪', () => {
     const man = new Stickman(200);
     expect(man.responseTracker.isTracking()).toBe(false);
   });
 });
 
 describe('ResponseTracker - startTracking', () => {
-  it.skip('开始追踪后 isTracking 返回 true', () => {
+  it('开始追踪后 isTracking 返回 true', () => {
     const man = new Stickman(200);
     man.responseTracker.startTracking('social');
     expect(man.responseTracker.isTracking()).toBe(true);
   });
 
-  it.skip('追踪窗口为 30 秒', () => {
+  it('追踪窗口为 30 秒', () => {
     const man = new Stickman(200);
     man.responseTracker.startTracking('social');
     // 29 秒后仍在追踪
@@ -1315,7 +1315,7 @@ describe('ResponseTracker - startTracking', () => {
 });
 
 describe('ResponseTracker - 30 秒到期无响应', () => {
-  it.skip('30 秒无响应触发 silence 反馈', () => {
+  it('30 秒无响应触发 silence 反馈', () => {
     const man = new Stickman(200);
     const initialCourage = man.driveSystem.drives.social.courage;
     man.responseTracker.startTracking('social');
@@ -1324,7 +1324,7 @@ describe('ResponseTracker - 30 秒到期无响应', () => {
     expect(man.driveSystem.drives.social.courage).toBeCloseTo(initialCourage - 0.02, 2);
   });
 
-  it.skip('到期后自动关闭追踪窗口', () => {
+  it('到期后自动关闭追踪窗口', () => {
     const man = new Stickman(200);
     man.responseTracker.startTracking('social');
     man.responseTracker.update(31);
@@ -1333,7 +1333,7 @@ describe('ResponseTracker - 30 秒到期无响应', () => {
 });
 
 describe('ResponseTracker - 用户响应', () => {
-  it.skip('点击事件在窗口内触发 click 反馈', () => {
+  it('点击事件在窗口内触发 click 反馈', () => {
     const man = new Stickman(200);
     const initialCourage = man.driveSystem.drives.social.courage;
     man.responseTracker.startTracking('social');
@@ -1341,7 +1341,7 @@ describe('ResponseTracker - 用户响应', () => {
     expect(man.driveSystem.drives.social.courage).toBeCloseTo(initialCourage + 0.05, 2);
   });
 
-  it.skip('chat 事件在窗口内触发 chat 反馈', () => {
+  it('chat 事件在窗口内触发 chat 反馈', () => {
     const man = new Stickman(200);
     const initialCourage = man.driveSystem.drives.social.courage;
     man.responseTracker.startTracking('social');
@@ -1349,7 +1349,7 @@ describe('ResponseTracker - 用户响应', () => {
     expect(man.driveSystem.drives.social.courage).toBeCloseTo(initialCourage + 0.08, 2);
   });
 
-  it.skip('drag 事件在窗口内触发 drag 反馈', () => {
+  it('drag 事件在窗口内触发 drag 反馈', () => {
     const man = new Stickman(200);
     const initialCourage = man.driveSystem.drives.social.courage;
     man.responseTracker.startTracking('social');
@@ -1357,14 +1357,14 @@ describe('ResponseTracker - 用户响应', () => {
     expect(man.driveSystem.drives.social.courage).toBeCloseTo(initialCourage - 0.15, 2);
   });
 
-  it.skip('响应后立即关闭追踪窗口', () => {
+  it('响应后立即关闭追踪窗口', () => {
     const man = new Stickman(200);
     man.responseTracker.startTracking('social');
     man.responseTracker.onUserEvent('click');
     expect(man.responseTracker.isTracking()).toBe(false);
   });
 
-  it.skip('窗口外事件不触发反馈', () => {
+  it('窗口外事件不触发反馈', () => {
     const man = new Stickman(200);
     const initialCourage = man.driveSystem.drives.social.courage;
     // 不调用 startTracking
@@ -1372,7 +1372,7 @@ describe('ResponseTracker - 用户响应', () => {
     expect(man.driveSystem.drives.social.courage).toBeCloseTo(initialCourage, 2);
   });
 
-  it.skip('已响应后重复事件不触发', () => {
+  it('已响应后重复事件不触发', () => {
     const man = new Stickman(200);
     man.responseTracker.startTracking('social');
     man.responseTracker.onUserEvent('click'); // 第一次
@@ -1387,7 +1387,7 @@ describe('ResponseTracker - 用户响应', () => {
 // ============================================================
 
 describe('Stickman 集成 - DriveSystem update 调用', () => {
-  it.skip('update(dt) 中调用 driveSystem.update', () => {
+  it('update(dt) 中调用 driveSystem.update', () => {
     const man = new Stickman(200);
     const before = man.driveSystem.drives.social.tension;
     man.update(1);
@@ -1395,7 +1395,7 @@ describe('Stickman 集成 - DriveSystem update 调用', () => {
     expect(man.driveSystem.drives.social.tension).toBeGreaterThan(before);
   });
 
-  it.skip('update(dt) 中调用 responseTracker.update', () => {
+  it('update(dt) 中调用 responseTracker.update', () => {
     const man = new Stickman(200);
     man.responseTracker.startTracking('social');
     // 模拟 31 秒
@@ -1404,7 +1404,7 @@ describe('Stickman 集成 - DriveSystem update 调用', () => {
     expect(man.responseTracker.isTracking()).toBe(false);
   });
 
-  it.skip('update 不再有情绪衰减逻辑', () => {
+  it('update 不再有情绪衰减逻辑', () => {
     const man = new Stickman(200);
     // mood 对象不再存在
     expect(man.mood).toBeUndefined();
@@ -1416,7 +1416,7 @@ describe('Stickman 集成 - DriveSystem update 调用', () => {
 // ============================================================
 
 describe('Stickman 集成 - 表达触发流程', () => {
-  it.skip('checkExpression 每秒调用一次（不是每帧）', () => {
+  it('checkExpression 每秒调用一次（不是每帧）', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9;
     man.driveSystem.drives.social.courage = 0.5;
@@ -1431,7 +1431,7 @@ describe('Stickman 集成 - 表达触发流程', () => {
     // 但 60 帧后（1 秒）可能触发
   });
 
-  it.skip('表达触发弹 thought 气泡', () => {
+  it('表达触发弹 thought 气泡', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9;
     man.driveSystem.drives.social.courage = 0.9;
@@ -1445,7 +1445,7 @@ describe('Stickman 集成 - 表达触发流程', () => {
     expect(man.thoughtTimer).toBeGreaterThan(0);
   });
 
-  it.skip('表达触发执行偏好动作', () => {
+  it('表达触发执行偏好动作', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.95;
     man.driveSystem.drives.social.courage = 0.9;
@@ -1457,7 +1457,7 @@ describe('Stickman 集成 - 表达触发流程', () => {
     expect(['wave', 'peek', 'lookAround', 'bow']).toContain(man.state);
   });
 
-  it.skip('表达触发后启动 ResponseTracker', () => {
+  it('表达触发后启动 ResponseTracker', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.95;
     man.driveSystem.drives.social.courage = 0.9;
@@ -1474,7 +1474,7 @@ describe('Stickman 集成 - 表达触发流程', () => {
 // ============================================================
 
 describe('边界条件 - 表达间隔冷却', () => {
-  it.skip('两次主动表达之间最少间隔 15 秒', () => {
+  it('两次主动表达之间最少间隔 15 秒', () => {
     const man = new Stickman(200);
     // 强制触发第一次表达
     man.driveSystem.drives.social.tension = 0.95;
@@ -1495,7 +1495,7 @@ describe('边界条件 - 表达间隔冷却', () => {
 });
 
 describe('边界条件 - 拖拽中不触发表达', () => {
-  it.skip('dragging === true 时 checkExpression 返回 null', () => {
+  it('dragging === true 时 checkExpression 返回 null', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.95;
     man.driveSystem.drives.social.courage = 0.9;
@@ -1508,7 +1508,7 @@ describe('边界条件 - 拖拽中不触发表达', () => {
 });
 
 describe('边界条件 - 投掷中不触发表达', () => {
-  it.skip('state === "thrown" 时不检查表达', () => {
+  it('state === "thrown" 时不检查表达', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.95;
     man.driveSystem.drives.social.courage = 0.9;
@@ -1520,7 +1520,7 @@ describe('边界条件 - 投掷中不触发表达', () => {
 });
 
 describe('边界条件 - 聊天窗口打开时不触发表达', () => {
-  it.skip('chatVisible === true 时跳过表达检查', () => {
+  it('chatVisible === true 时跳过表达检查', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.95;
     man.driveSystem.drives.social.courage = 0.9;
@@ -1529,7 +1529,7 @@ describe('边界条件 - 聊天窗口打开时不触发表达', () => {
     expect(man.responseTracker.isTracking()).toBe(false);
   });
 
-  it.skip('聊天窗口内双击开聊在 30 秒窗口内触发 chat 反馈', () => {
+  it('聊天窗口内双击开聊在 30 秒窗口内触发 chat 反馈', () => {
     const man = new Stickman(200);
     // 先触发表达
     man.driveSystem.drives.social.tension = 0.95;
@@ -1551,7 +1551,7 @@ describe('边界条件 - 聊天窗口打开时不触发表达', () => {
 // ============================================================
 
 describe('Stickman 集成 - 事件转发到 ResponseTracker', () => {
-  it.skip('poke() 调用 responseTracker.onUserEvent("click")', () => {
+  it('poke() 调用 responseTracker.onUserEvent("click")', () => {
     const man = new Stickman(200);
     man.responseTracker.startTracking('social');
     const courBefore = man.driveSystem.drives.social.courage;
@@ -1560,7 +1560,7 @@ describe('Stickman 集成 - 事件转发到 ResponseTracker', () => {
     expect(man.driveSystem.drives.social.courage).toBeCloseTo(courBefore + 0.05, 2);
   });
 
-  it.skip('startDrag() 调用 responseTracker.onUserEvent("drag")', () => {
+  it('startDrag() 调用 responseTracker.onUserEvent("drag")', () => {
     const man = new Stickman(200);
     man.responseTracker.startTracking('social');
     const courBefore = man.driveSystem.drives.social.courage;
@@ -1569,13 +1569,13 @@ describe('Stickman 集成 - 事件转发到 ResponseTracker', () => {
     expect(man.driveSystem.drives.social.courage).toBeCloseTo(courBefore - 0.15, 2);
   });
 
-  it.skip('poke() 不再直接操作 mood 对象', () => {
+  it('poke() 不再直接操作 mood 对象', () => {
     const man = new Stickman(200);
     man.poke();
     expect(man.mood).toBeUndefined();
   });
 
-  it.skip('startDrag() 不再直接操作 mood 对象', () => {
+  it('startDrag() 不再直接操作 mood 对象', () => {
     const man = new Stickman(200);
     man.startDrag(200, 250);
     expect(man.mood).toBeUndefined();
@@ -1587,7 +1587,7 @@ describe('Stickman 集成 - 事件转发到 ResponseTracker', () => {
 // ============================================================
 
 describe('Stickman 集成 - onScreenInfo 驱力更新', () => {
-  it.skip('检测到新应用 → novelty.tension 骤降 0.15', () => {
+  it('检测到新应用 → novelty.tension 骤降 0.15', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.novelty.tension = 0.5;
     man._lastScreenApp = 'Chrome';
@@ -1595,7 +1595,7 @@ describe('Stickman 集成 - onScreenInfo 驱力更新', () => {
     expect(man.driveSystem.drives.novelty.tension).toBeCloseTo(0.35, 2);
   });
 
-  it.skip('相同应用不触发 novelty 骤降', () => {
+  it('相同应用不触发 novelty 骤降', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.novelty.tension = 0.5;
     man._lastScreenApp = 'VS Code';
@@ -1603,7 +1603,7 @@ describe('Stickman 集成 - onScreenInfo 驱力更新', () => {
     expect(man.driveSystem.drives.novelty.tension).toBeCloseTo(0.5, 2);
   });
 
-  it.skip('不再操作 mood.curiosity 和 mood.boredom', () => {
+  it('不再操作 mood.curiosity 和 mood.boredom', () => {
     const man = new Stickman(200);
     man.onScreenInfo({ app: 'NewApp', title: 'title' });
     expect(man.mood).toBeUndefined();
@@ -1615,19 +1615,21 @@ describe('Stickman 集成 - onScreenInfo 驱力更新', () => {
 // ============================================================
 
 describe('Stickman 集成 - transitionToNext 使用驱力表情', () => {
-  it.skip('transitionToNext 调用 driveSystem.getExpression() 设置表情', () => {
+  it('transitionToNext 调用 driveSystem.getExpression() 设置表情', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9;
     man.driveSystem.drives.novelty.tension = 0.1;
     man.driveSystem.drives.expression.tension = 0.1;
     man.driveSystem.drives.rest.tension = 0.1;
     man.exprTimer = 0; // 无明确表情
+    // 用 idle 填充队列，避免随机选到 peek/meditate 等覆盖表情的动作
+    man.actionQueue = [{ action: 'idle', duration: 3 }];
     man.transitionToNext();
     // social 主导且高 tension → sad
     expect(man.expression).toBe('sad');
   });
 
-  it.skip('不再使用 mood.irritation/happiness/energy 判断表情', () => {
+  it('不再使用 mood.irritation/happiness/energy 判断表情', () => {
     const man = new Stickman(200);
     expect(man.mood).toBeUndefined();
     man.transitionToNext();
@@ -1641,13 +1643,13 @@ describe('Stickman 集成 - transitionToNext 使用驱力表情', () => {
 // ============================================================
 
 describe('Stickman 集成 - nextAction 使用驱力权重', () => {
-  it.skip('nextAction 不再调用 _moodWeightedPick', () => {
+  it('nextAction 不再调用 _moodWeightedPick', () => {
     const man = new Stickman(200);
     // _moodWeightedPick 应不存在或未被使用
     expect(man._moodWeightedPick).toBeUndefined();
   });
 
-  it.skip('nextAction 使用 driveSystem.getActionAffinity 加权', () => {
+  it('nextAction 使用 driveSystem.getActionAffinity 加权', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.rest.tension = 0.9;
     man.driveSystem.drives.social.tension = 0.01;
@@ -1670,7 +1672,7 @@ describe('Stickman 集成 - nextAction 使用驱力权重', () => {
 // ============================================================
 
 describe('behaviors.json 规则与驱力叠加', () => {
-  it.skip('规则匹配返回候选动作，驱力通过 getActionAffinity 叠加权重', () => {
+  it('规则匹配返回候选动作，驱力通过 getActionAffinity 叠加权重', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.expression.tension = 0.9;
     // 当规则返回 [dance, idle, walk] 时，dance 应因 expression 偏好获得更高权重
@@ -1679,7 +1681,7 @@ describe('behaviors.json 规则与驱力叠加', () => {
     expect(danceAffinity).toBeGreaterThan(idleAffinity);
   });
 
-  it.skip('规则的 thought 字段仍然生效（被动观察）', () => {
+  it('规则的 thought 字段仍然生效（被动观察）', () => {
     const man = new Stickman(200);
     // 验证 _matchBehaviorRule 仍存在
     expect(typeof man._matchBehaviorRule).toBe('function');
@@ -1691,7 +1693,7 @@ describe('behaviors.json 规则与驱力叠加', () => {
 // ============================================================
 
 describe('rest 驱力与安静动作互动', () => {
-  it.skip('执行 sleep 时 rest.tension 以 0.05/s 下降', () => {
+  it('执行 sleep 时 rest.tension 以 0.05/s 下降', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.rest.tension = 0.8;
     man.driveSystem.update(1, { currentAction: 'sleep', lastScreenApp: '' });
@@ -1699,14 +1701,14 @@ describe('rest 驱力与安静动作互动', () => {
     expect(man.driveSystem.drives.rest.tension).toBeLessThan(0.8);
   });
 
-  it.skip('执行 meditate 时 rest.tension 下降', () => {
+  it('执行 meditate 时 rest.tension 下降', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.rest.tension = 0.8;
     man.driveSystem.update(1, { currentAction: 'meditate', lastScreenApp: '' });
     expect(man.driveSystem.drives.rest.tension).toBeLessThan(0.8);
   });
 
-  it.skip('执行 sitDown 时 rest.tension 下降', () => {
+  it('执行 sitDown 时 rest.tension 下降', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.rest.tension = 0.8;
     man.driveSystem.update(1, { currentAction: 'sitDown', lastScreenApp: '' });
@@ -1719,7 +1721,7 @@ describe('rest 驱力与安静动作互动', () => {
 // ============================================================
 
 describe('犹豫状态 - 冲突独白气泡', () => {
-  it.skip('social+rest 冲突显示对应独白', () => {
+  it('social+rest 冲突显示对应独白', () => {
     const man = new Stickman(200);
     man.driveSystem.drives.social.tension = 0.9;
     man.driveSystem.drives.social.courage = 0.5;
@@ -1734,7 +1736,7 @@ describe('犹豫状态 - 冲突独白气泡', () => {
     }
   });
 
-  it.skip('犹豫期间动画冻结到 idle 变体', () => {
+  it('犹豫期间动画冻结到 idle 变体', () => {
     const man = new Stickman(200);
     man.driveSystem.hesitating = true;
     man.driveSystem.hesitateTimer = 3;

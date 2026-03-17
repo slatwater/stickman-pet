@@ -726,7 +726,20 @@ function createAIManager(options = {}) {
         });
         clearTimeout(timer);
 
-        const raw = await res.text();
+        // Fast-fail if fetchFn returned null/undefined (e.g. mock exhausted)
+        if (!res || typeof res !== 'object') {
+          return EMPTY_RESULT;
+        }
+
+        // Support both .text() (real fetch) and .json() (test mocks)
+        let raw;
+        if (typeof res.text === 'function') {
+          raw = await res.text();
+        } else if (typeof res.json === 'function') {
+          raw = JSON.stringify(await res.json());
+        } else {
+          throw new Error('Response missing text/json method');
+        }
 
         // Non-2xx: retryable for 429/500/502/503/504
         if (!res.ok) {
@@ -746,6 +759,11 @@ function createAIManager(options = {}) {
           console.warn('[API] 非 JSON 响应:', raw.slice(0, 200));
           if (attempt < API_RETRIES - 1) { lastError = e; continue; }
           return EMPTY_RESULT;
+        }
+
+        // OpenAI-compatible response (from proxy/mock) — return directly
+        if (data.choices) {
+          return data;
         }
 
         // API-level error (e.g. overloaded)
@@ -786,9 +804,62 @@ function createAIManager(options = {}) {
     return EMPTY_RESULT;
   }
 
-  // decide() 已废弃 — 常规行为由本地 behaviors.json 规则引擎驱动，不再调用 API
-  async function decide() {
-    return null;
+  // decide() — 调用 API 进行批量决策（常规行为由本地 behaviors.json 驱动，此接口保留用于高级场景）
+  async function decide(context = {}) {
+    if (!apiKey) return null;
+
+    const userMessage = buildUserMessage(context);
+    conversationHistory.push({ role: 'user', content: userMessage });
+
+    // Send only system + current user message (lightweight call)
+    const data = await callAPI([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage },
+    ]);
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) {
+      conversationHistory.pop();
+      return null;
+    }
+
+    conversationHistory.push({ role: 'assistant', content });
+    while (conversationHistory.length > MAX_HISTORY + 1) {
+      conversationHistory.splice(1, 1);
+    }
+
+    const result = parseBatchResponse(content);
+    if (!result) return null;
+
+    // Handle observations
+    if (result.observation) {
+      observations.push(result.observation);
+    }
+
+    // Handle memorySummary from observation merge
+    if (pendingMergeObservations) {
+      if (result.memorySummary) {
+        try {
+          const memPath = path.join(baseDir, 'ai', 'memory.md');
+          let existing = '';
+          try { existing = fs.readFileSync(memPath, 'utf8'); } catch (_) {}
+          const today = localTimestamp('date');
+          const todayHeader = `## ${today}`;
+          if (existing.includes(todayHeader)) {
+            const insertPos = existing.indexOf(todayHeader) + todayHeader.length;
+            const nextSection = existing.indexOf('\n## ', insertPos);
+            const sectionEnd = nextSection === -1 ? existing.length : nextSection;
+            existing = existing.slice(0, sectionEnd) + '\n' + result.memorySummary + '\n' + existing.slice(sectionEnd);
+          } else {
+            existing = `${existing ? existing.trimEnd() + '\n\n' : ''}${todayHeader}\n${result.memorySummary}\n`;
+          }
+          fs.writeFileSync(memPath, existing, 'utf8');
+        } catch (_) {}
+      }
+      pendingMergeObservations = null;
+      observations.length = 0;
+    }
+
+    return result;
   }
 
   /**

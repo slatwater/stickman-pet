@@ -560,6 +560,209 @@ const ACTIONS = {
 
 };
 
+// ==================== 驱力常量 ====================
+const DRIVE_GROWTH = { social: 0.008, novelty: 0.005, expression: 0.006, rest: 0.003 };
+
+const DRIVE_ACTIONS = {
+  social:     { prefer: ['wave', 'peek', 'lookAround', 'bow'], weight: 4 },
+  novelty:    { prefer: ['sneak', 'peek', 'walk', 'lookAround'], weight: 4 },
+  expression: { prefer: ['dance', 'guitar', 'flex', 'backflip'], weight: 4 },
+  rest:       { prefer: ['yawn', 'sitDown', 'sleep', 'meditate'], weight: 4 },
+};
+
+const DRIVE_EXPRESSIONS = {
+  social:     { unmet: 'sad', met: 'happy' },
+  novelty:    { unmet: 'nervous', met: 'surprised' },
+  expression: { unmet: 'normal', met: 'happy' },
+  rest:       { unmet: 'sleepy', met: 'peaceful' },
+};
+
+const DRIVE_THOUGHTS = {
+  social: ['……想跟你说句话', '你在忙吗……', '好久没人理我了……'],
+  novelty: ['那边有什么？', '想去看看……', '总觉得少了点什么'],
+  expression: ['好想动一动！', '闷得慌……', '让我来一段！'],
+  rest: ['有点累了……', '想歇一会……', '眼皮好重……'],
+};
+
+const HESITATE_THOUGHTS = {
+  'expression+rest': '想嗨一把……但好困……',
+  'expression+social': '想找你……但也想跳个舞……',
+  'novelty+rest': '想去看看……但走不动了……',
+  'novelty+social': '想跟你聊聊……但那边好像有什么……',
+  'expression+novelty': '想探索……但更想表演……',
+  'rest+social': '想找你说话……但好累……',
+};
+
+// ==================== 驱力系统 ====================
+class DriveSystem {
+  constructor() {
+    this.drives = {
+      social:     { tension: 0.3, courage: 0.5, threshold: 0.35 },
+      novelty:    { tension: 0.2, courage: 0.5, threshold: 0.40 },
+      expression: { tension: 0.2, courage: 0.5, threshold: 0.45 },
+      rest:       { tension: 0.1, courage: 0.5, threshold: 0.50 },
+    };
+    this.hesitating = false;
+    this.hesitateTimer = 0;
+    this.hesitateContenders = [];
+    this.pendingExpression = null;
+  }
+
+  update(dt, context) {
+    for (const [key, drive] of Object.entries(this.drives)) {
+      drive.tension = clamp(drive.tension + DRIVE_GROWTH[key] * dt, 0, 1);
+      if (DRIVE_ACTIONS[key].prefer.includes(context.currentAction)) {
+        drive.tension = clamp(drive.tension - dt * 0.05, 0, 1);
+      }
+    }
+    for (const drive of Object.values(this.drives)) {
+      drive.courage += (0.5 - drive.courage) * dt * 0.01;
+    }
+    if (this.hesitating) {
+      this.hesitateTimer -= dt;
+      if (this.hesitateTimer <= 0) {
+        this.hesitating = false;
+      }
+    }
+  }
+
+  getDominant() {
+    let maxKey = 'social';
+    let maxTension = -1;
+    for (const [key, drive] of Object.entries(this.drives)) {
+      if (drive.tension > maxTension) {
+        maxTension = drive.tension;
+        maxKey = key;
+      }
+    }
+    return maxKey;
+  }
+
+  checkExpression() {
+    if (this.hesitating) return null;
+    const exceeding = [];
+    for (const [key, drive] of Object.entries(this.drives)) {
+      if (drive.tension * drive.courage > drive.threshold) {
+        exceeding.push(key);
+      }
+    }
+    if (exceeding.length === 0) return null;
+    if (exceeding.length === 1) return { driveKey: exceeding[0], triggered: true };
+    exceeding.sort((a, b) =>
+      this.drives[b].tension * this.drives[b].courage -
+      this.drives[a].tension * this.drives[a].courage
+    );
+    return { conflict: true, a: exceeding[0], b: exceeding[1] };
+  }
+
+  resolveHesitation() {
+    const [a, b] = this.hesitateContenders;
+    const dA = this.drives[a];
+    const dB = this.drives[b];
+    if (dA.courage < 0.2 && dB.courage < 0.2) return null;
+    return (dA.tension * dA.courage >= dB.tension * dB.courage) ? a : b;
+  }
+
+  onExpress(driveKey) {
+    this.drives[driveKey].tension *= 0.7;
+  }
+
+  onFeedback(driveKey, type) {
+    const delta = { click: 0.05, chat: 0.08, silence: -0.02, drag: -0.15 };
+    this.drives[driveKey].courage = clamp(this.drives[driveKey].courage + (delta[type] || 0), 0, 1);
+  }
+
+  getActionAffinity(action) {
+    let bonus = 0;
+    const dominant = this.getDominant();
+    for (const [key, drive] of Object.entries(this.drives)) {
+      if (DRIVE_ACTIONS[key].prefer.includes(action)) {
+        if (key === dominant) {
+          bonus += DRIVE_ACTIONS[key].weight;
+        } else {
+          bonus += drive.tension * 2;
+        }
+      }
+    }
+    const p = _personality || {};
+    const energy = p.energy ?? 0.5;
+    const curiosity = p.curiosity ?? 0.5;
+    const sass = p.sass ?? 0.5;
+    const rebellion = p.rebellion ?? 0.5;
+    const attachment = p.attachment ?? 0.5;
+    if (energy > 0.6) {
+      if (['dance', 'crazyDance', 'run', 'jump', 'backflip', 'spin', 'celebrate'].includes(action))
+        bonus += (energy - 0.5) * 6;
+      if (['sleep', 'yawn', 'idle', 'sitDown', 'meditate'].includes(action))
+        bonus -= (energy - 0.5) * 4;
+    } else if (energy < 0.4) {
+      if (['sleep', 'yawn', 'sitDown', 'meditate', 'idle'].includes(action))
+        bonus += (0.5 - energy) * 6;
+      if (['crazyDance', 'run', 'backflip', 'rage'].includes(action))
+        bonus -= (0.5 - energy) * 4;
+    }
+    if (curiosity > 0.6) {
+      if (['peek', 'lookAround', 'sneak', 'walk'].includes(action))
+        bonus += (curiosity - 0.5) * 6;
+    }
+    if (sass > 0.6) {
+      if (['flex', 'dance', 'crazyDance', 'guitar', 'swordFight', 'celebrate'].includes(action))
+        bonus += (sass - 0.5) * 4;
+    }
+    if (rebellion > 0.6) {
+      if (['rage', 'kick', 'swordFight', 'stumble', 'crazyDance'].includes(action))
+        bonus += (rebellion - 0.5) * 4;
+      if (['bow', 'wave', 'idle'].includes(action))
+        bonus -= (rebellion - 0.5) * 3;
+    }
+    if (attachment > 0.6) {
+      if (['wave', 'bow', 'peek', 'celebrate', 'dance'].includes(action))
+        bonus += (attachment - 0.5) * 4;
+    }
+    return bonus;
+  }
+
+  getExpression() {
+    const dominant = this.getDominant();
+    const drive = this.drives[dominant];
+    const expr = DRIVE_EXPRESSIONS[dominant];
+    return drive.tension > 0.3 ? expr.unmet : expr.met;
+  }
+}
+
+// ==================== 响应追踪器 ====================
+class ResponseTracker {
+  constructor(driveSystem) {
+    this.driveSystem = driveSystem;
+    this.tracking = null;
+  }
+
+  startTracking(driveKey) {
+    this.tracking = { driveKey, remaining: 30, responded: false };
+  }
+
+  update(dt) {
+    if (!this.tracking) return;
+    this.tracking.remaining -= dt;
+    if (this.tracking.remaining <= 0 && !this.tracking.responded) {
+      this.driveSystem.onFeedback(this.tracking.driveKey, 'silence');
+      this.tracking = null;
+    }
+  }
+
+  onUserEvent(type) {
+    if (!this.tracking || this.tracking.responded) return;
+    const feedbackType = (type === 'drag') ? 'drag' : (type === 'chat') ? 'chat' : 'click';
+    this.driveSystem.onFeedback(this.tracking.driveKey, feedbackType);
+    this.tracking.responded = true;
+    this.tracking = null;
+  }
+
+  isTracking() {
+    return this.tracking !== null;
+  }
+}
+
 // ==================== 火柴人颜色 ====================
 const STICKMAN_COLOR = { body: '#222', back: '#555', head: '#222', fill: '#fff' };
 
@@ -598,15 +801,13 @@ class Stickman {
     this.stretch = 1;
     this.bounceCount = 0;
 
-    // 情绪状态机
-    this.mood = {
-      happiness: 50,   // 开心 (点击/善待 +, 被忽略 -)
-      irritation: 0,   // 烦躁 (频繁点击/拖拽 +, 时间衰减 -)
-      boredom: 20,     // 无聊 (无操作 +, 互动/新应用 -)
-      curiosity: 30,   // 好奇 (新应用/新窗口 +, 时间衰减 -)
-      energy: 70,      // 精力 (休息 +, 活动/时间 -)
-    };
+    // 内驱力系统
+    this.driveSystem = new DriveSystem();
+    this.responseTracker = new ResponseTracker(this.driveSystem);
     this._lastScreenApp = '';
+    this.chatVisible = false;
+    this._expressionCheckAccum = 0;
+    this._expressionCooldown = 0;
 
     // AI 自主行为
     this.thought = '';
@@ -627,10 +828,8 @@ class Stickman {
   // 屏幕活动记录
   onScreenInfo({ app, title }) {
     this.screenActivityLog.push({ app, title, time: new Date().toISOString() });
-    // 情绪：检测到新应用切换 → 好奇
     if (app && app !== this._lastScreenApp) {
-      this.mood.curiosity = clamp(this.mood.curiosity + 15, 0, 100);
-      this.mood.boredom = clamp(this.mood.boredom - 10, 0, 100);
+      this.driveSystem.drives.novelty.tension = clamp(this.driveSystem.drives.novelty.tension - 0.15, 0, 1);
       this._lastScreenApp = app;
     }
   }
@@ -760,14 +959,14 @@ class Stickman {
         this.thoughtTimer = 5;
         this.thoughtDuration = 5;
       }
-      pick = this._moodWeightedPick(matched.actions, matched.weights);
+      pick = this._driveWeightedPick(matched.actions, matched.weights);
     } else {
       // 默认随机
       const def = this._behaviors?.default || {
-        actions: ['idle', 'lookAround', 'walk', 'dance', 'jump', 'wave', 'sitDown', 'yawn', 'sneak', 'peek', 'meditate'],
-        weights: [3, 2, 4, 2, 2, 1, 1, 2, 2, 1, 1],
+        actions: ['idle', 'lookAround', 'walk', 'dance', 'jump', 'wave', 'sitDown', 'yawn', 'sneak', 'peek', 'meditate', 'cry', 'rage', 'guitar', 'slip', 'swordFight', 'float'],
+        weights: [3, 2, 4, 2, 2, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1],
       };
-      pick = this._moodWeightedPick(def.actions, def.weights);
+      pick = this._driveWeightedPick(def.actions, def.weights);
     }
     // 如果选中的是 combo，展开为基础动作队列
     if (!ACTIONS[pick] && _combos[pick]) {
@@ -782,84 +981,6 @@ class Stickman {
     return pick;
   }
 
-  // 情绪对动作的亲和度映射（叠加性格参数影响）
-  _moodActionAffinity(action) {
-    const m = this.mood;
-    let bonus = 0;
-    // 高开心 → 偏好欢快动作
-    if (m.happiness > 70) {
-      if (['dance', 'crazyDance', 'celebrate', 'guitar', 'jump', 'wave', 'backflip'].includes(action)) bonus += 3;
-    }
-    // 低开心 → 偏好安静/悲伤动作
-    if (m.happiness < 30) {
-      if (['cry', 'sitDown', 'idle', 'sleep'].includes(action)) bonus += 3;
-    }
-    // 高烦躁 → 偏好暴力/宣泄动作
-    if (m.irritation > 60) {
-      if (['rage', 'kick', 'swordFight', 'run', 'stumble'].includes(action)) bonus += 4;
-      if (['dance', 'wave', 'celebrate'].includes(action)) bonus -= 2;
-    }
-    // 高无聊 → 偏好自嗨/探索动作
-    if (m.boredom > 60) {
-      if (['walk', 'sneak', 'lookAround', 'peek', 'guitar', 'dance'].includes(action)) bonus += 3;
-      if (['idle', 'sitDown', 'meditate'].includes(action)) bonus -= 2;
-    }
-    // 高好奇 → 偏好观察动作
-    if (m.curiosity > 50) {
-      if (['peek', 'lookAround', 'sneak'].includes(action)) bonus += 3;
-    }
-    // 低精力 → 偏好休息
-    if (m.energy < 25) {
-      if (['sleep', 'yawn', 'sitDown', 'meditate', 'idle'].includes(action)) bonus += 4;
-      if (['crazyDance', 'run', 'backflip', 'rage'].includes(action)) bonus -= 3;
-    }
-
-    // === 性格参数影响（长期基准，叠加在情绪之上） ===
-    const p = _personality || {};
-    const energy = p.energy ?? 0.5;
-    const curiosity = p.curiosity ?? 0.5;
-    const sass = p.sass ?? 0.5;
-    const rebellion = p.rebellion ?? 0.5;
-    const attachment = p.attachment ?? 0.5;
-
-    // energy 高 → 偏好活跃动作，低 → 偏好安静动作
-    if (energy > 0.6) {
-      if (['dance', 'crazyDance', 'run', 'jump', 'backflip', 'spin', 'celebrate'].includes(action))
-        bonus += (energy - 0.5) * 6;
-      if (['sleep', 'yawn', 'idle', 'sitDown', 'meditate'].includes(action))
-        bonus -= (energy - 0.5) * 4;
-    } else if (energy < 0.4) {
-      if (['sleep', 'yawn', 'sitDown', 'meditate', 'idle'].includes(action))
-        bonus += (0.5 - energy) * 6;
-      if (['crazyDance', 'run', 'backflip', 'rage'].includes(action))
-        bonus -= (0.5 - energy) * 4;
-    }
-    // curiosity 高 → 偏好观察/探索动作
-    if (curiosity > 0.6) {
-      if (['peek', 'lookAround', 'sneak', 'walk'].includes(action))
-        bonus += (curiosity - 0.5) * 6;
-    }
-    // sass 高 → 偏好炫耀动作
-    if (sass > 0.6) {
-      if (['flex', 'dance', 'crazyDance', 'guitar', 'swordFight', 'celebrate'].includes(action))
-        bonus += (sass - 0.5) * 4;
-    }
-    // rebellion 高 → 偏好叛逆动作
-    if (rebellion > 0.6) {
-      if (['rage', 'kick', 'swordFight', 'stumble', 'crazyDance'].includes(action))
-        bonus += (rebellion - 0.5) * 4;
-      if (['bow', 'wave', 'idle'].includes(action))
-        bonus -= (rebellion - 0.5) * 3;
-    }
-    // attachment 高 → 偏好互动动作
-    if (attachment > 0.6) {
-      if (['wave', 'bow', 'peek', 'celebrate', 'dance'].includes(action))
-        bonus += (attachment - 0.5) * 4;
-    }
-
-    return bonus;
-  }
-
   _weightedPick(actions, weights) {
     const total = weights.reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
@@ -870,10 +991,37 @@ class Stickman {
     return actions[0] || 'idle';
   }
 
-  // 情绪加权选择：在原始权重基础上叠加情绪偏好
-  _moodWeightedPick(actions, weights) {
-    const adjusted = actions.map((a, i) => Math.max(0.1, (weights[i] || 1) + this._moodActionAffinity(a)));
+  // 驱力加权选择：在原始权重基础上叠加驱力偏好
+  _driveWeightedPick(actions, weights) {
+    const adjusted = actions.map((a, i) => Math.max(0.1, (weights[i] || 1) + this.driveSystem.getActionAffinity(a)));
     return this._weightedPick(actions, adjusted);
+  }
+
+  // 主动表达触发
+  _triggerExpression(driveKey) {
+    this.driveSystem.onExpress(driveKey);
+    const thoughts = DRIVE_THOUGHTS[driveKey];
+    this.thought = thoughts[Math.floor(Math.random() * thoughts.length)];
+    this.thoughtTimer = 5;
+    this.thoughtDuration = 5;
+    const preferActions = DRIVE_ACTIONS[driveKey].prefer;
+    const pick = preferActions[Math.floor(Math.random() * preferActions.length)];
+    if (ACTIONS[pick]) {
+      this.setState(pick, rand(2, 4));
+    }
+    this.responseTracker.startTracking(driveKey);
+    this._expressionCooldown = 15;
+  }
+
+  // 犹豫开始
+  _startHesitation(a, b) {
+    this.driveSystem.hesitating = true;
+    this.driveSystem.hesitateTimer = 3;
+    this.driveSystem.hesitateContenders = [a, b];
+    const key = [a, b].sort().join('+');
+    this.thought = HESITATE_THOUGHTS[key] || '嗯……';
+    this.thoughtTimer = 3;
+    this.thoughtDuration = 3;
   }
 
   _matchBehaviorRule() {
@@ -917,17 +1065,39 @@ class Stickman {
   update(dt) {
     this.stateTime += dt;
 
-    // 情绪自然衰减（每秒）
-    const m = this.mood;
-    m.happiness = clamp(m.happiness + (50 - m.happiness) * dt * 0.02, 0, 100); // 缓慢回归 50
-    m.irritation = clamp(m.irritation - dt * 2, 0, 100);  // 逐渐消气
-    m.boredom = clamp(m.boredom + dt * 0.5, 0, 100);      // 越来越无聊
-    m.curiosity = clamp(m.curiosity - dt * 0.3, 0, 100);   // 好奇消退
-    m.energy = clamp(m.energy - dt * 0.1, 0, 100);         // 缓慢消耗精力
+    // 驱力系统 + 响应追踪
+    this.driveSystem.update(dt, { currentAction: this.state, lastScreenApp: this._lastScreenApp });
+    this.responseTracker.update(dt);
 
-    // 静止/安静动作恢复精力
-    if (this.state === 'sleep' || this.state === 'meditate' || this.state === 'sitDown') {
-      m.energy = clamp(m.energy + dt * 3, 0, 100);
+    // 表达冷却
+    if (this._expressionCooldown > 0) this._expressionCooldown -= dt;
+
+    // 表达检查（每秒一次，不在拖拽/投掷/聊天中）
+    this._expressionCheckAccum += dt;
+    if (this._expressionCheckAccum >= 1) {
+      this._expressionCheckAccum = 0;
+      if (!this.dragging && this.state !== 'thrown' && !this.chatVisible && this._expressionCooldown <= 0) {
+        const exprResult = this.driveSystem.checkExpression();
+        if (exprResult) {
+          if (exprResult.triggered) {
+            this._triggerExpression(exprResult.driveKey);
+          } else if (exprResult.conflict) {
+            this._startHesitation(exprResult.a, exprResult.b);
+          }
+        }
+      }
+    }
+
+    // 犹豫决议
+    if (this.driveSystem.hesitating && this.driveSystem.hesitateTimer <= 0) {
+      this.driveSystem.hesitating = false;
+      const winner = this.driveSystem.resolveHesitation();
+      if (winner) {
+        this._triggerExpression(winner);
+      } else {
+        const restActs = ['sitDown', 'idle'];
+        this.setState(restActs[Math.floor(Math.random() * restActs.length)], rand(2, 4));
+      }
     }
 
     // 处理表情计时
@@ -1342,13 +1512,10 @@ class Stickman {
   }
 
   transitionToNext() {
-    // 情绪自动设表情（无明确表情时）
+    // 驱力自动设表情（无明确表情时）
     if (this.exprTimer <= 0) {
-      const m = this.mood;
-      if (m.irritation > 70) { this.expression = 'angry'; this.exprTimer = 2; }
-      else if (m.happiness > 75) { this.expression = 'happy'; this.exprTimer = 2; }
-      else if (m.happiness < 25) { this.expression = 'sad'; this.exprTimer = 2; }
-      else if (m.energy < 20) { this.expression = 'sleepy'; this.exprTimer = 2; }
+      this.expression = this.driveSystem.getExpression();
+      this.exprTimer = 2;
     }
 
     let next;
@@ -1460,9 +1627,7 @@ class Stickman {
       this.expression = 'dizzy';
       this.exprTimer = 3;
       this.setState('splat', 2);
-      // 情绪：摔重了很不开心
-      this.mood.happiness = clamp(this.mood.happiness - 15, 0, 100);
-      this.mood.irritation = clamp(this.mood.irritation + 20, 0, 100);
+      // 摔重了 → 无直接驱力影响
     } else {
       this.transitionToNext();
     }
@@ -1483,9 +1648,7 @@ class Stickman {
     this.vx = 0;
     this.vy = 0;
 
-    // 情绪：被抓起增加烦躁
-    this.mood.irritation = clamp(this.mood.irritation + 15, 0, 100);
-    this.mood.boredom = clamp(this.mood.boredom - 20, 0, 100);
+    this.responseTracker.onUserEvent('drag');
   }
 
   // 释放（投掷）
@@ -1494,6 +1657,8 @@ class Stickman {
     this.dragging = false;
     this.expression = 'surprised';
     this.exprTimer = 2;
+    this._expressionCooldown = 3;
+    this._expressionCheckAccum = 0;
 
     // 从鼠标历史计算投掷速度
     if (this.mouseHistory.length >= 2) {
@@ -1533,13 +1698,7 @@ class Stickman {
     this.exprTimer = 1.5;
     spawnStars(this.x, this.y - BONE.body, 5);
 
-    // 情绪：点击增加开心但也可能烦躁
-    const m = this.mood;
-    if (m.irritation < 40) {
-      m.happiness = clamp(m.happiness + 8, 0, 100);
-    }
-    m.irritation = clamp(m.irritation + 12, 0, 100);
-    m.boredom = clamp(m.boredom - 15, 0, 100);
+    this.responseTracker.onUserEvent('click');
   }
 
   // 线性插值姿态
@@ -2116,6 +2275,8 @@ requestAnimationFrame(gameLoop);
 if (typeof globalThis !== 'undefined') {
   globalThis.ACTIONS = ACTIONS;
   globalThis.Stickman = Stickman;
+  globalThis.DriveSystem = DriveSystem;
+  globalThis.ResponseTracker = ResponseTracker;
   globalThis.particles = particles;
   globalThis.HIP_GROUND = HIP_GROUND;
   globalThis.W = W;
