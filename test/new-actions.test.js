@@ -2654,3 +2654,1257 @@ describe('偏好涌现 - 可解释性思绪模板', () => {
   });
 });
 
+// ============================================================
+//  Phase 2: 主动施压 — 新增动画动作（5 个）
+// ============================================================
+
+describe('施压动作 - climb（爬行）', () => {
+  it.skip('ACTIONS.climb 已注册为函数', () => {
+    expect(typeof ACTIONS.climb).toBe('function');
+  });
+
+  it.skip('climb(t) 返回完整骨骼姿态对象', () => {
+    const pose = ACTIONS.climb(0);
+    const requiredKeys = ['body', 'head', 'lArmUp', 'lArmLow', 'rArmUp', 'rArmLow', 'lLegUp', 'lLegLow', 'rLegUp', 'rLegLow'];
+    for (const key of requiredKeys) {
+      expect(pose).toHaveProperty(key);
+      expect(typeof pose[key]).toBe('number');
+    }
+  });
+
+  it.skip('身体前倾约 15°', () => {
+    const pose = ACTIONS.climb(0.5);
+    expect(pose.body).toBeGreaterThan(5);
+    expect(pose.body).toBeLessThan(30);
+  });
+
+  it.skip('左右臂交替上举（正弦）：不同时间点臂值反向变化', () => {
+    const p1 = ACTIONS.climb(0.25);
+    const p2 = ACTIONS.climb(0.75);
+    const lDiff = p1.lArmUp - p2.lArmUp;
+    const rDiff = p1.rArmUp - p2.rArmUp;
+    expect(lDiff * rDiff).toBeLessThan(0);
+  });
+
+  it.skip('腿部交替弯曲推蹬', () => {
+    const p1 = ACTIONS.climb(0.25);
+    const p2 = ACTIONS.climb(0.75);
+    const lDiff = p1.lLegUp - p2.lLegUp;
+    const rDiff = p1.rLegUp - p2.rLegUp;
+    expect(lDiff * rDiff).toBeLessThan(0);
+  });
+
+  it.skip('不同时间点有动画变化', () => {
+    const p0 = ACTIONS.climb(0);
+    const p1 = ACTIONS.climb(0.5);
+    const keys = Object.keys(p0);
+    const changed = keys.some(k => p0[k] !== p1[k]);
+    expect(changed).toBe(true);
+  });
+});
+
+describe('施压动作 - sitProtest（坐下抗议）', () => {
+  it.skip('ACTIONS.sitProtest 已注册为函数', () => {
+    expect(typeof ACTIONS.sitProtest).toBe('function');
+  });
+
+  it.skip('sitProtest(t) 返回完整骨骼姿态对象', () => {
+    const pose = ACTIONS.sitProtest(0);
+    expect(pose).toHaveProperty('body');
+    expect(pose).toHaveProperty('lArmUp');
+    expect(pose).toHaveProperty('rArmUp');
+  });
+
+  it.skip('双臂交叉在胸前：lArmUp 和 rArmUp 约 -30°', () => {
+    const pose = ACTIONS.sitProtest(0.5);
+    expect(pose.lArmUp).toBeLessThan(0);
+    expect(pose.rArmUp).toBeLessThan(0);
+    expect(Math.abs(pose.lArmUp + 30)).toBeLessThan(20);
+    expect(Math.abs(pose.rArmUp + 30)).toBeLessThan(20);
+  });
+
+  it.skip('头偶尔摇动：不同时间点 head 值有变化', () => {
+    const values = [0.2, 0.4, 0.6, 0.8].map(t => ACTIONS.sitProtest(t).head);
+    const range = Math.max(...values) - Math.min(...values);
+    expect(range).toBeGreaterThan(0);
+  });
+
+  it.skip('腿部折叠（坐姿）', () => {
+    const pose = ACTIONS.sitProtest(0.5);
+    expect(pose.lLegLow).toBeGreaterThan(30);
+    expect(pose.rLegLow).toBeGreaterThan(30);
+  });
+});
+
+describe('施压动作 - lieBlock（横躺遮挡）', () => {
+  it.skip('ACTIONS.lieBlock 已注册为函数', () => {
+    expect(typeof ACTIONS.lieBlock).toBe('function');
+  });
+
+  it.skip('lieBlock(t) 返回完整骨骼姿态对象', () => {
+    const pose = ACTIONS.lieBlock(0);
+    expect(pose).toHaveProperty('body');
+    expect(typeof pose.body).toBe('number');
+  });
+
+  it.skip('body 角度约 90°（横向）', () => {
+    const pose = ACTIONS.lieBlock(0.5);
+    expect(Math.abs(pose.body)).toBeGreaterThan(70);
+    expect(Math.abs(pose.body)).toBeLessThan(100);
+  });
+
+  it.skip('偶尔翻身：body 在 85-95° 之间摆动', () => {
+    const values = [0.2, 0.4, 0.6, 0.8].map(t => Math.abs(ACTIONS.lieBlock(t).body));
+    const range = Math.max(...values) - Math.min(...values);
+    expect(range).toBeGreaterThan(0);
+    expect(range).toBeLessThan(20);
+  });
+
+  it.skip('四肢自然舒展', () => {
+    const pose = ACTIONS.lieBlock(0.5);
+    expect(Math.abs(pose.lArmUp)).toBeLessThan(60);
+    expect(Math.abs(pose.rArmUp)).toBeLessThan(60);
+  });
+});
+
+describe('施压动作 - cling（悬挂）', () => {
+  it.skip('ACTIONS.cling 已注册为函数', () => {
+    expect(typeof ACTIONS.cling).toBe('function');
+  });
+
+  it.skip('cling(t) 返回完整骨骼姿态对象', () => {
+    const pose = ACTIONS.cling(0);
+    expect(pose).toHaveProperty('body');
+    expect(pose).toHaveProperty('lArmUp');
+  });
+
+  it.skip('双臂上举抓握：lArmUp 和 rArmUp 为较大负值', () => {
+    const pose = ACTIONS.cling(0.5);
+    expect(pose.lArmUp).toBeLessThan(-60);
+    expect(pose.rArmUp).toBeLessThan(-60);
+  });
+
+  it.skip('腿轻微摆动（正弦）', () => {
+    const values = [0.2, 0.4, 0.6, 0.8].map(t => ACTIONS.cling(t).lLegUp);
+    const range = Math.max(...values) - Math.min(...values);
+    expect(range).toBeGreaterThan(0);
+  });
+
+  it.skip('身体自然下垂', () => {
+    const pose = ACTIONS.cling(0.5);
+    expect(pose.body).toBeGreaterThanOrEqual(-10);
+    expect(pose.body).toBeLessThanOrEqual(10);
+  });
+});
+
+describe('施压动作 - coldShoulder（冷战背对）', () => {
+  it.skip('ACTIONS.coldShoulder 已注册为函数', () => {
+    expect(typeof ACTIONS.coldShoulder).toBe('function');
+  });
+
+  it.skip('coldShoulder(t) 返回完整骨骼姿态对象', () => {
+    const pose = ACTIONS.coldShoulder(0);
+    expect(pose).toHaveProperty('body');
+    expect(pose).toHaveProperty('head');
+  });
+
+  it.skip('头低垂：head 约 15°', () => {
+    const pose = ACTIONS.coldShoulder(0.5);
+    expect(pose.head).toBeGreaterThan(5);
+    expect(pose.head).toBeLessThan(30);
+  });
+
+  it.skip('臂自然下垂', () => {
+    const pose = ACTIONS.coldShoulder(0.5);
+    expect(Math.abs(pose.lArmUp)).toBeLessThan(20);
+    expect(Math.abs(pose.rArmUp)).toBeLessThan(20);
+  });
+});
+
+// ============================================================
+//  Phase 2: 施压策略模板
+// ============================================================
+
+describe('施压策略模板 - PRESSURE_STRATEGIES', () => {
+  it.skip('PRESSURE_STRATEGIES 已定义', () => {
+    expect(PRESSURE_STRATEGIES).toBeDefined();
+  });
+
+  it.skip('包含 attention_protest 策略', () => {
+    expect(PRESSURE_STRATEGIES.attention_protest).toBeDefined();
+  });
+
+  it.skip('包含 rest_demand 策略', () => {
+    expect(PRESSURE_STRATEGIES.rest_demand).toBeDefined();
+  });
+
+  it.skip('attention_protest 包含 3 个升级等级的 actions', () => {
+    const s = PRESSURE_STRATEGIES.attention_protest.actions;
+    expect(s[0]).toBeDefined();
+    expect(s[1]).toBeDefined();
+    expect(s[2]).toBeDefined();
+  });
+
+  it.skip('rest_demand 包含 3 个升级等级的 actions', () => {
+    const s = PRESSURE_STRATEGIES.rest_demand.actions;
+    expect(s[0]).toBeDefined();
+    expect(s[1]).toBeDefined();
+    expect(s[2]).toBeDefined();
+  });
+
+  it.skip('每个等级的 actions 包含 poses/thoughts/expression', () => {
+    for (const key of ['attention_protest', 'rest_demand']) {
+      for (const level of [0, 1, 2]) {
+        const a = PRESSURE_STRATEGIES[key].actions[level];
+        expect(Array.isArray(a.poses)).toBe(true);
+        expect(a.poses.length).toBeGreaterThan(0);
+        expect(Array.isArray(a.thoughts)).toBe(true);
+        expect(a.thoughts.length).toBeGreaterThan(0);
+        expect(typeof a.expression).toBe('string');
+      }
+    }
+  });
+
+  it.skip('attention_protest level 0 表情为 nervous', () => {
+    expect(PRESSURE_STRATEGIES.attention_protest.actions[0].expression).toBe('nervous');
+  });
+
+  it.skip('attention_protest level 1 表情为 angry', () => {
+    expect(PRESSURE_STRATEGIES.attention_protest.actions[1].expression).toBe('angry');
+  });
+
+  it.skip('attention_protest level 2 poses 包含 sitProtest/lieBlock/cling', () => {
+    const poses = PRESSURE_STRATEGIES.attention_protest.actions[2].poses;
+    expect(poses).toContain('sitProtest');
+    expect(poses).toContain('lieBlock');
+    expect(poses).toContain('cling');
+  });
+
+  it.skip('rest_demand level 0 表情为 sleepy', () => {
+    expect(PRESSURE_STRATEGIES.rest_demand.actions[0].expression).toBe('sleepy');
+  });
+
+  it.skip('rest_demand level 2 poses 包含 lieBlock', () => {
+    expect(PRESSURE_STRATEGIES.rest_demand.actions[2].poses).toContain('lieBlock');
+  });
+});
+
+// ============================================================
+//  Phase 2: PRESSURE_CONSTANTS 常量
+// ============================================================
+
+describe('施压常量 - PRESSURE_CONSTANTS', () => {
+  it.skip('PRESSURE_CONSTANTS 已定义', () => {
+    expect(PRESSURE_CONSTANTS).toBeDefined();
+  });
+
+  it.skip('VIOLATION_STRENGTH_THRESHOLD = 0.5', () => {
+    expect(PRESSURE_CONSTANTS.VIOLATION_STRENGTH_THRESHOLD).toBe(0.5);
+  });
+
+  it.skip('VIOLATION_POLARITY_THRESHOLD = -0.4', () => {
+    expect(PRESSURE_CONSTANTS.VIOLATION_POLARITY_THRESHOLD).toBe(-0.4);
+  });
+
+  it.skip('VIOLATION_HOLD_TIME = 180', () => {
+    expect(PRESSURE_CONSTANTS.VIOLATION_HOLD_TIME).toBe(180);
+  });
+
+  it.skip('VIOLATION_HOLD_COUNT = 6', () => {
+    expect(PRESSURE_CONSTANTS.VIOLATION_HOLD_COUNT).toBe(6);
+  });
+
+  it.skip('IGNORE_TIMEOUT = 120', () => {
+    expect(PRESSURE_CONSTANTS.IGNORE_TIMEOUT).toBe(120);
+  });
+
+  it.skip('ACK_ESCALATION_DELAY_FACTOR = 1.5', () => {
+    expect(PRESSURE_CONSTANTS.ACK_ESCALATION_DELAY_FACTOR).toBe(1.5);
+  });
+
+  it.skip('MAX_RESOLVED_HISTORY = 5', () => {
+    expect(PRESSURE_CONSTANTS.MAX_RESOLVED_HISTORY).toBe(5);
+  });
+
+  it.skip('CAMPAIGN_COOLDOWN = 600', () => {
+    expect(PRESSURE_CONSTANTS.CAMPAIGN_COOLDOWN).toBe(600);
+  });
+});
+
+describe('升级常量 - ESCALATION_CONSTANTS', () => {
+  it.skip('ESCALATION_CONSTANTS 已定义', () => {
+    expect(ESCALATION_CONSTANTS).toBeDefined();
+  });
+
+  it.skip('LEVEL_0_TO_1_BASE = 300（暗示→表态 5 分钟）', () => {
+    expect(ESCALATION_CONSTANTS.LEVEL_0_TO_1_BASE).toBe(300);
+  });
+
+  it.skip('LEVEL_1_TO_2_BASE = 600（表态→抗议 10 分钟）', () => {
+    expect(ESCALATION_CONSTANTS.LEVEL_1_TO_2_BASE).toBe(600);
+  });
+
+  it.skip('IGNORE_ACCELERATION = 0.8', () => {
+    expect(ESCALATION_CONSTANTS.IGNORE_ACCELERATION).toBe(0.8);
+  });
+
+  it.skip('COOLING_LEVEL_0 = 120（2 分钟冷却）', () => {
+    expect(ESCALATION_CONSTANTS.COOLING_LEVEL_0).toBe(120);
+  });
+
+  it.skip('COOLING_LEVEL_1 = 480（8 分钟冷却）', () => {
+    expect(ESCALATION_CONSTANTS.COOLING_LEVEL_1).toBe(480);
+  });
+
+  it.skip('COOLING_LEVEL_2 = 1200（20 分钟冷却）', () => {
+    expect(ESCALATION_CONSTANTS.COOLING_LEVEL_2).toBe(1200);
+  });
+
+  it.skip('COOLING_DEESCALATE_INTERVAL = 300（冷却中每 5 分钟降一级）', () => {
+    expect(ESCALATION_CONSTANTS.COOLING_DEESCALATE_INTERVAL).toBe(300);
+  });
+});
+
+describe('空间常量 - SPATIAL_CONSTANTS', () => {
+  it.skip('SPATIAL_CONSTANTS 已定义', () => {
+    expect(SPATIAL_CONSTANTS).toBeDefined();
+  });
+
+  it.skip('CLIMB_SPEED = 80', () => {
+    expect(SPATIAL_CONSTANTS.CLIMB_SPEED).toBe(80);
+  });
+
+  it.skip('RETURN_DELAY = 5', () => {
+    expect(SPATIAL_CONSTANTS.RETURN_DELAY).toBe(5);
+  });
+
+  it.skip('POSITION_TOLERANCE = 20', () => {
+    expect(SPATIAL_CONSTANTS.POSITION_TOLERANCE).toBe(20);
+  });
+
+  it.skip('DESCENT_SPEED = 120', () => {
+    expect(SPATIAL_CONSTANTS.DESCENT_SPEED).toBe(120);
+  });
+});
+
+// ============================================================
+//  Phase 2: M1 ContractEnforcer — 社会契约执行器
+// ============================================================
+
+describe('ContractEnforcer - 构造与初始化', () => {
+  it.skip('ContractEnforcer 类已定义', () => {
+    expect(typeof ContractEnforcer).toBe('function');
+  });
+
+  it.skip('构造时接收 socialContractTable 参数', () => {
+    const mockTable = { query: () => [] };
+    const enforcer = new ContractEnforcer(mockTable);
+    expect(enforcer.activeCampaign).toBeNull();
+    expect(enforcer.resolvedCampaigns).toEqual([]);
+  });
+
+  it.skip('_violationHoldCounter 初始为 0', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    expect(enforcer._violationHoldCounter).toBe(0);
+  });
+
+  it.skip('_lastCampaignResolvedAt 初始为 null', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    expect(enforcer._lastCampaignResolvedAt).toBeNull();
+  });
+});
+
+describe('ContractEnforcer - scanViolations 违约扫描', () => {
+  it.skip('无偏好时返回 null', () => {
+    const table = { query: () => [] };
+    const enforcer = new ContractEnforcer(table);
+    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)).toBeNull();
+  });
+
+  it.skip('strength < 0.5 的偏好不触发违约', () => {
+    const table = { query: () => [{ id: 'p1', strength: 0.3, polarity: -0.8 }] };
+    const enforcer = new ContractEnforcer(table);
+    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)).toBeNull();
+  });
+
+  it.skip('polarity > -0.4 的偏好不触发违约', () => {
+    const table = { query: () => [{ id: 'p1', strength: 0.8, polarity: -0.2 }] };
+    const enforcer = new ContractEnforcer(table);
+    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)).toBeNull();
+  });
+
+  it.skip('strength >= 0.5 且 polarity <= -0.4 触发违约', () => {
+    const pref = { id: 'p1', strength: 0.6, polarity: -0.5 };
+    const table = { query: () => [pref] };
+    const enforcer = new ContractEnforcer(table);
+    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)).toEqual(pref);
+  });
+
+  it.skip('多个违约偏好按 |polarity| * strength 降序取第一个', () => {
+    const pref1 = { id: 'p1', strength: 0.6, polarity: -0.5 }; // score 0.3
+    const pref2 = { id: 'p2', strength: 0.8, polarity: -0.7 }; // score 0.56
+    const table = { query: () => [pref1, pref2] };
+    const enforcer = new ContractEnforcer(table);
+    expect(enforcer.scanViolations('app:x', 'time:y', table).id).toBe('p2');
+  });
+
+  it.skip('最近 CAMPAIGN_COOLDOWN 秒内解决过的同一偏好被排除', () => {
+    const pref = { id: 'p1', strength: 0.8, polarity: -0.7 };
+    const table = { query: () => [pref] };
+    const enforcer = new ContractEnforcer(table);
+    enforcer.resolvedCampaigns = [{ preferenceId: 'p1', resolvedAt: Date.now() }];
+    expect(enforcer.scanViolations('app:x', 'time:y', table)).toBeNull();
+  });
+});
+
+describe('ContractEnforcer - startCampaign 发起战役', () => {
+  it.skip('创建 PressureCampaign 对象，level=0, status=active', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    const pref = { id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 };
+    enforcer.startCampaign(pref);
+    expect(enforcer.activeCampaign).toBeDefined();
+    expect(enforcer.activeCampaign.level).toBe(0);
+    expect(enforcer.activeCampaign.status).toBe('active');
+  });
+
+  it.skip('campaign.id 格式为 campaign_{target}_{timestamp}', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    expect(enforcer.activeCampaign.id).toMatch(/^campaign_.+_\d+$/);
+  });
+
+  it.skip('app 类偏好选择 attention_protest 策略', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    expect(enforcer.activeCampaign.trigger.axis).toBe('app');
+  });
+
+  it.skip('time 类偏好选择 rest_demand 策略', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'time', strength: 0.8, polarity: -0.6 });
+    expect(enforcer.activeCampaign.trigger.axis).toBe('time');
+  });
+
+  it.skip('ignoreCount 和 ackCount 初始为 0', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    expect(enforcer.activeCampaign.ignoreCount).toBe(0);
+    expect(enforcer.activeCampaign.ackCount).toBe(0);
+  });
+
+  it.skip('lastAckAt 初始为 null', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    expect(enforcer.activeCampaign.lastAckAt).toBeNull();
+  });
+});
+
+describe('ContractEnforcer - onScreenInfo 主循环', () => {
+  it.skip('无活跃战役时扫描违约', () => {
+    const pref = { id: 'p1', axis: 'app', strength: 0.8, polarity: -0.7 };
+    const table = { query: () => [pref] };
+    const enforcer = new ContractEnforcer(table);
+    // 需要连续 6 次才触发
+    for (let i = 0; i < 5; i++) {
+      enforcer.onScreenInfo('app:bilibili', 'time:night', table, []);
+    }
+    expect(enforcer.activeCampaign).toBeNull();
+    enforcer.onScreenInfo('app:bilibili', 'time:night', table, []);
+    expect(enforcer.activeCampaign).not.toBeNull();
+  });
+
+  it.skip('违约中断时 holdCounter 重置', () => {
+    const pref = { id: 'p1', axis: 'app', strength: 0.8, polarity: -0.7 };
+    const table = { query: () => [pref] };
+    const emptyTable = { query: () => [] };
+    const enforcer = new ContractEnforcer(table);
+    for (let i = 0; i < 4; i++) {
+      enforcer.onScreenInfo('app:bilibili', 'time:night', table, []);
+    }
+    enforcer.onScreenInfo('app:vscode', 'time:night', emptyTable, []);
+    expect(enforcer._violationHoldCounter).toBe(0);
+  });
+
+  it.skip('有活跃战役时评估解压信号', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    enforcer.activeCampaign.trigger.target = 'bilibili';
+    const result = enforcer.evaluateResolution('vscode', 'time:night');
+    expect(result).toBe(true);
+  });
+
+  it.skip('返回事件类型：started / escalated / cooling / resolved / null', () => {
+    const pref = { id: 'p1', axis: 'app', strength: 0.8, polarity: -0.7 };
+    const table = { query: () => [pref] };
+    const enforcer = new ContractEnforcer(table);
+    for (let i = 0; i < 6; i++) {
+      const result = enforcer.onScreenInfo('app:bilibili', 'time:night', table, []);
+      if (i === 5) {
+        expect(result.event).toBe('started');
+      }
+    }
+  });
+});
+
+describe('ContractEnforcer - evaluateResolution 解压检测', () => {
+  it.skip('app 违约：当前应用不再匹配 → 返回 true', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    enforcer.activeCampaign.trigger.target = 'bilibili';
+    expect(enforcer.evaluateResolution('vscode', 'time:night')).toBe(true);
+  });
+
+  it.skip('app 违约：当前应用仍匹配 → 返回 false', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    enforcer.activeCampaign.trigger.target = 'bilibili';
+    expect(enforcer.evaluateResolution('bilibili', 'time:night')).toBe(false);
+  });
+
+  it.skip('time 违约：当前时段不再匹配 → 返回 true', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'time', strength: 0.8, polarity: -0.6 });
+    enforcer.activeCampaign.trigger.target = 'night';
+    expect(enforcer.evaluateResolution('vscode', 'time:morning')).toBe(true);
+  });
+});
+
+describe('ContractEnforcer - beginCooling 冷却', () => {
+  it.skip('将 campaign status 设为 cooling', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    enforcer.beginCooling();
+    expect(enforcer.activeCampaign.status).toBe('cooling');
+  });
+
+  it.skip('设置 coolingStartedAt 为当前时间', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    const before = Date.now();
+    enforcer.beginCooling();
+    expect(enforcer.activeCampaign.coolingStartedAt).toBeGreaterThanOrEqual(before);
+  });
+});
+
+describe('ContractEnforcer - checkCoolingRelapse 冷却期复发', () => {
+  it.skip('冷却期间违约上下文重现 → status 回退到 active', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    enforcer.activeCampaign.trigger.target = 'bilibili';
+    enforcer.activeCampaign.status = 'cooling';
+    enforcer.checkCoolingRelapse('bilibili', 'time:night');
+    expect(enforcer.activeCampaign.status).toBe('active');
+  });
+
+  it.skip('冷却期间违约未重现 → 保持 cooling', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    enforcer.activeCampaign.trigger.target = 'bilibili';
+    enforcer.activeCampaign.status = 'cooling';
+    enforcer.checkCoolingRelapse('vscode', 'time:night');
+    expect(enforcer.activeCampaign.status).toBe('cooling');
+  });
+});
+
+describe('ContractEnforcer - hydrate/serialize 持久化', () => {
+  it.skip('serialize 返回 campaigns 数组和 restartDuringPressure 标记', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    const data = enforcer.serialize();
+    expect(data).toHaveProperty('campaigns');
+    expect(data).toHaveProperty('restartDuringPressure');
+  });
+
+  it.skip('有活跃战役时 restartDuringPressure = true', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.8, polarity: -0.6 });
+    expect(enforcer.serialize().restartDuringPressure).toBe(true);
+  });
+
+  it.skip('无活跃战役时 restartDuringPressure = false', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    expect(enforcer.serialize().restartDuringPressure).toBe(false);
+  });
+
+  it.skip('hydrate 恢复 activeCampaign', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    const campaign = { id: 'c1', status: 'active', level: 1, ignoreCount: 2 };
+    enforcer.hydrate({ campaigns: [campaign], restartDuringPressure: false });
+    expect(enforcer.activeCampaign).toBeDefined();
+    expect(enforcer.activeCampaign.id).toBe('c1');
+  });
+
+  it.skip('restartDuringPressure=true 时 ignoreCount += 1（重启视为无视）', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    const campaign = { id: 'c1', status: 'active', level: 1, ignoreCount: 2 };
+    enforcer.hydrate({ campaigns: [campaign], restartDuringPressure: true });
+    expect(enforcer.activeCampaign.ignoreCount).toBe(3);
+  });
+
+  it.skip('resolvedCampaigns 最多保留 MAX_RESOLVED_HISTORY 条', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    const campaigns = [];
+    for (let i = 0; i < 8; i++) {
+      campaigns.push({ id: `c${i}`, status: 'resolved', resolvedAt: Date.now() - i * 1000 });
+    }
+    enforcer.hydrate({ campaigns, restartDuringPressure: false });
+    expect(enforcer.resolvedCampaigns.length).toBeLessThanOrEqual(5);
+  });
+});
+
+// ============================================================
+//  Phase 2: M2 EscalationGradient — 升级梯度状态机
+// ============================================================
+
+describe('EscalationGradient - 构造与初始化', () => {
+  it.skip('EscalationGradient 类已定义', () => {
+    expect(typeof EscalationGradient).toBe('function');
+  });
+
+  it.skip('初始 level 为 0', () => {
+    const g = new EscalationGradient();
+    expect(g.level).toBe(0);
+  });
+
+  it.skip('初始 frozen 为 false', () => {
+    const g = new EscalationGradient();
+    expect(g.frozen).toBe(false);
+  });
+});
+
+describe('EscalationGradient - tick 升级计时', () => {
+  it.skip('active 状态下 escalationTimer 递减', () => {
+    const g = new EscalationGradient();
+    g.init(0, 300);
+    g.tick(10, 'active');
+    expect(g.escalationTimer).toBe(290);
+  });
+
+  it.skip('escalationTimer 倒计到 0 时 level 从 0 升级到 1', () => {
+    const g = new EscalationGradient();
+    g.init(0, 10);
+    const result = g.tick(10, 'active');
+    expect(g.level).toBe(1);
+    expect(result.event).toBe('escalated');
+  });
+
+  it.skip('level 从 1 升级到 2', () => {
+    const g = new EscalationGradient();
+    g.init(1, 10);
+    g.tick(10, 'active');
+    expect(g.level).toBe(2);
+  });
+
+  it.skip('level 2 不再升级（最高级）', () => {
+    const g = new EscalationGradient();
+    g.init(2, 10);
+    g.tick(100, 'active');
+    expect(g.level).toBe(2);
+  });
+
+  it.skip('frozen 状态下 escalationTimer 不递减', () => {
+    const g = new EscalationGradient();
+    g.init(0, 300);
+    g.freeze();
+    g.tick(100, 'active');
+    expect(g.escalationTimer).toBe(300);
+  });
+});
+
+describe('EscalationGradient - tick 冷却计时', () => {
+  it.skip('cooling 状态下 coolingTimer 递减', () => {
+    const g = new EscalationGradient();
+    g.init(1, 0);
+    g.startCooling();
+    const initialTimer = g.coolingTimer;
+    g.tick(10, 'cooling');
+    expect(g.coolingTimer).toBe(initialTimer - 10);
+  });
+
+  it.skip('冷却中每 COOLING_DEESCALATE_INTERVAL 秒降一级', () => {
+    const g = new EscalationGradient();
+    g.init(2, 0);
+    g.startCooling();
+    g.tick(300, 'cooling');
+    expect(g.level).toBe(1);
+  });
+
+  it.skip('level 降至 0 以下 → 返回 resolved 事件', () => {
+    const g = new EscalationGradient();
+    g.init(0, 0);
+    g.startCooling();
+    g.tick(300, 'cooling');
+    // level should have gone below 0 → resolved
+    expect(g.level).toBeLessThan(1);
+  });
+});
+
+describe('EscalationGradient - onAcknowledge/onIgnore', () => {
+  it.skip('onAcknowledge 将 escalationTimer 乘以 ACK_ESCALATION_DELAY_FACTOR', () => {
+    const g = new EscalationGradient();
+    g.init(0, 200);
+    g.onAcknowledge();
+    expect(g.escalationTimer).toBe(300); // 200 * 1.5
+  });
+
+  it.skip('onIgnore 将 escalationTimer 乘以 IGNORE_ACCELERATION', () => {
+    const g = new EscalationGradient();
+    g.init(0, 200);
+    g.onIgnore();
+    expect(g.escalationTimer).toBe(160); // 200 * 0.8
+  });
+
+  it.skip('多次 onIgnore 持续加速', () => {
+    const g = new EscalationGradient();
+    g.init(0, 200);
+    g.onIgnore();
+    g.onIgnore();
+    expect(g.escalationTimer).toBeCloseTo(128); // 200 * 0.8 * 0.8
+  });
+});
+
+describe('EscalationGradient - freeze/unfreeze', () => {
+  it.skip('freeze 后 frozen 为 true', () => {
+    const g = new EscalationGradient();
+    g.freeze();
+    expect(g.frozen).toBe(true);
+  });
+
+  it.skip('unfreeze 后 frozen 为 false', () => {
+    const g = new EscalationGradient();
+    g.freeze();
+    g.unfreeze();
+    expect(g.frozen).toBe(false);
+  });
+
+  it.skip('unfreeze 后升级计时器从冻结点继续', () => {
+    const g = new EscalationGradient();
+    g.init(0, 200);
+    g.tick(50, 'active');
+    g.freeze();
+    g.tick(100, 'active');
+    g.unfreeze();
+    expect(g.escalationTimer).toBe(150); // 200 - 50, 冻结期间不变
+  });
+});
+
+describe('EscalationGradient - startCooling', () => {
+  it.skip('level 0 冷却时长 = COOLING_LEVEL_0 (120s)', () => {
+    const g = new EscalationGradient();
+    g.init(0, 0);
+    g.startCooling();
+    expect(g.coolingTimer).toBe(120);
+  });
+
+  it.skip('level 1 冷却时长 = COOLING_LEVEL_1 (480s)', () => {
+    const g = new EscalationGradient();
+    g.init(1, 0);
+    g.startCooling();
+    expect(g.coolingTimer).toBe(480);
+  });
+
+  it.skip('level 2 冷却时长 = COOLING_LEVEL_2 (1200s)', () => {
+    const g = new EscalationGradient();
+    g.init(2, 0);
+    g.startCooling();
+    expect(g.coolingTimer).toBe(1200);
+  });
+});
+
+describe('EscalationGradient - getBehaviorDirective', () => {
+  it.skip('返回当前等级对应的行为指令', () => {
+    const g = new EscalationGradient();
+    g.init(0, 300);
+    const strategy = {
+      actions: {
+        0: { poses: ['lookAround'], thoughts: ['嗯...'], expression: 'nervous' },
+        1: { poses: ['rage'], thoughts: ['不喜欢'], expression: 'angry' },
+        2: { poses: ['sitProtest'], thoughts: ['不走了'], expression: 'angry' },
+      },
+    };
+    const d = g.getBehaviorDirective(strategy);
+    expect(d).toHaveProperty('action');
+    expect(d).toHaveProperty('thought');
+    expect(d).toHaveProperty('expression');
+    expect(d.expression).toBe('nervous');
+  });
+
+  it.skip('level 2 时返回抗议级行为', () => {
+    const g = new EscalationGradient();
+    g.init(2, 0);
+    const strategy = {
+      actions: {
+        0: { poses: ['idle'], thoughts: ['...'], expression: 'nervous' },
+        1: { poses: ['rage'], thoughts: ['!'], expression: 'angry' },
+        2: { poses: ['sitProtest'], thoughts: ['不走了'], expression: 'angry' },
+      },
+    };
+    const d = g.getBehaviorDirective(strategy);
+    expect(d.expression).toBe('angry');
+    expect(['sitProtest']).toContain(d.action);
+  });
+});
+
+describe('EscalationGradient - serialize/hydrate', () => {
+  it.skip('serialize 返回 level/escalationTimer/coolingTimer/frozen', () => {
+    const g = new EscalationGradient();
+    g.init(1, 250);
+    const data = g.serialize();
+    expect(data).toHaveProperty('level', 1);
+    expect(data).toHaveProperty('escalationTimer', 250);
+    expect(data).toHaveProperty('coolingTimer');
+    expect(data).toHaveProperty('frozen');
+  });
+
+  it.skip('hydrate 恢复状态', () => {
+    const g = new EscalationGradient();
+    g.hydrate({ level: 2, escalationTimer: 100, coolingTimer: 500, frozen: true });
+    expect(g.level).toBe(2);
+    expect(g.escalationTimer).toBe(100);
+    expect(g.coolingTimer).toBe(500);
+    expect(g.frozen).toBe(true);
+  });
+});
+
+// ============================================================
+//  Phase 2: M3 SpatialPressure — 空间施压系统
+// ============================================================
+
+describe('SpatialPressure - 构造与初始化', () => {
+  it.skip('SpatialPressure 类已定义', () => {
+    expect(typeof SpatialPressure).toBe('function');
+  });
+
+  it.skip('初始 active 为 false', () => {
+    const sp = new SpatialPressure();
+    expect(sp.active).toBe(false);
+  });
+
+  it.skip('初始 atTarget 为 false', () => {
+    const sp = new SpatialPressure();
+    expect(sp.atTarget).toBe(false);
+  });
+
+  it.skip('初始 returning 为 false', () => {
+    const sp = new SpatialPressure();
+    expect(sp.returning).toBe(false);
+  });
+
+  it.skip('初始 descending 为 false', () => {
+    const sp = new SpatialPressure();
+    expect(sp.descending).toBe(false);
+  });
+});
+
+describe('SpatialPressure - activate', () => {
+  it.skip('activate 设置 active=true 和目标坐标', () => {
+    const sp = new SpatialPressure();
+    sp.activate(500, 200);
+    expect(sp.active).toBe(true);
+    expect(sp.targetX).toBe(500);
+    expect(sp.targetY).toBe(200);
+  });
+
+  it.skip('activate 重置 atTarget 为 false', () => {
+    const sp = new SpatialPressure();
+    sp.atTarget = true;
+    sp.activate(500, 200);
+    expect(sp.atTarget).toBe(false);
+  });
+});
+
+describe('SpatialPressure - update 移动', () => {
+  it.skip('未到达目标时向目标移动', () => {
+    const sp = new SpatialPressure();
+    sp.activate(500, 200);
+    const stickman = { x: 100, y: 500, state: 'idle' };
+    sp.update(1, stickman);
+    // 应该向目标方向移动
+    expect(stickman.x).not.toBe(100);
+  });
+
+  it.skip('移动速度为 CLIMB_SPEED (80 px/s)', () => {
+    const sp = new SpatialPressure();
+    sp.activate(1000, 500); // 远距离目标
+    const stickman = { x: 100, y: 500, state: 'idle' };
+    sp.update(1, stickman); // 1 秒
+    const dist = Math.sqrt((stickman.x - 100) ** 2 + (stickman.y - 500) ** 2);
+    expect(dist).toBeCloseTo(80, 0);
+  });
+
+  it.skip('距离 < POSITION_TOLERANCE 时 atTarget 变为 true', () => {
+    const sp = new SpatialPressure();
+    sp.activate(105, 500);
+    const stickman = { x: 100, y: 500, state: 'idle' };
+    sp.update(1, stickman);
+    expect(sp.atTarget).toBe(true);
+  });
+
+  it.skip('atTarget 时返回 true（锁定位置）', () => {
+    const sp = new SpatialPressure();
+    sp.activate(100, 500);
+    sp.atTarget = true;
+    const result = sp.update(1, { x: 100, y: 500, state: 'idle' });
+    expect(result).toBe(true);
+  });
+
+  it.skip('active=false 时 update 返回 false', () => {
+    const sp = new SpatialPressure();
+    const result = sp.update(1, { x: 100, y: 500 });
+    expect(result).toBe(false);
+  });
+});
+
+describe('SpatialPressure - descending 下降', () => {
+  it.skip('descending 时 stickman.y 以 DESCENT_SPEED 增加', () => {
+    const sp = new SpatialPressure();
+    sp.active = true;
+    sp.descending = true;
+    const stickman = { x: 100, y: 200 };
+    sp.update(1, stickman);
+    expect(stickman.y).toBeCloseTo(320, 0); // 200 + 120
+  });
+
+  it.skip('下降到地面后 deactivate', () => {
+    const sp = new SpatialPressure();
+    sp.active = true;
+    sp.descending = true;
+    const stickman = { x: 100, y: 490 };
+    sp.update(1, stickman);
+    expect(sp.active).toBe(false);
+    expect(sp.descending).toBe(false);
+  });
+});
+
+describe('SpatialPressure - onDraggedAway', () => {
+  it.skip('level 2 时设置 returning=true，returnTimer=RETURN_DELAY', () => {
+    const sp = new SpatialPressure();
+    sp.activate(500, 200);
+    sp.atTarget = true;
+    sp.onDraggedAway(2);
+    expect(sp.returning).toBe(true);
+    expect(sp.returnTimer).toBe(5);
+    expect(sp.atTarget).toBe(false);
+  });
+
+  it.skip('level 0 时不返回（放弃空间施压）', () => {
+    const sp = new SpatialPressure();
+    sp.activate(500, 200);
+    sp.atTarget = true;
+    sp.onDraggedAway(0);
+    expect(sp.returning).toBe(false);
+  });
+
+  it.skip('被拖走后 atTarget 重置为 false', () => {
+    const sp = new SpatialPressure();
+    sp.activate(500, 200);
+    sp.atTarget = true;
+    sp.onDraggedAway(2);
+    expect(sp.atTarget).toBe(false);
+  });
+});
+
+describe('SpatialPressure - returning 返回行为', () => {
+  it.skip('returning 期间 returnTimer 递减', () => {
+    const sp = new SpatialPressure();
+    sp.activate(500, 200);
+    sp.returning = true;
+    sp.returnTimer = 5;
+    sp.update(2, { x: 100, y: 500, state: 'idle' });
+    expect(sp.returnTimer).toBe(3);
+  });
+
+  it.skip('returnTimer 到 0 后 returning=false，恢复向目标移动', () => {
+    const sp = new SpatialPressure();
+    sp.activate(500, 200);
+    sp.returning = true;
+    sp.returnTimer = 1;
+    sp.update(2, { x: 100, y: 500, state: 'idle' });
+    expect(sp.returning).toBe(false);
+  });
+});
+
+describe('SpatialPressure - deactivate', () => {
+  it.skip('在地面时直接 deactivate', () => {
+    const sp = new SpatialPressure();
+    sp.activate(500, 500); // 地面高度
+    sp.atTarget = true;
+    sp.deactivate();
+    expect(sp.active).toBe(false);
+  });
+
+  it.skip('不在地面时进入 descending 模式', () => {
+    const sp = new SpatialPressure();
+    sp.activate(500, 200); // 高空
+    sp.atTarget = true;
+    sp.deactivate();
+    expect(sp.descending).toBe(true);
+  });
+});
+
+describe('SpatialPressure - calcTargetPosition 静态方法', () => {
+  it.skip('attention_protest + 有 windowBounds → 窗口顶部中央', () => {
+    const bounds = { x: 100, y: 100, width: 800, height: 600 };
+    const pos = SpatialPressure.calcTargetPosition('attention_protest', bounds, 1920, 1080);
+    expect(pos.x).toBeCloseTo(500); // 100 + 800/2
+    expect(pos.y).toBeCloseTo(130); // 100 + 30
+  });
+
+  it.skip('attention_protest + 无 windowBounds → 屏幕上方 1/3 中央', () => {
+    const pos = SpatialPressure.calcTargetPosition('attention_protest', null, 1920, 1080);
+    expect(pos.x).toBeCloseTo(960);  // 1920/2
+    expect(pos.y).toBeCloseTo(324);  // 1080 * 0.3
+  });
+
+  it.skip('rest_demand + 有 windowBounds → 窗口正中', () => {
+    const bounds = { x: 100, y: 100, width: 800, height: 600 };
+    const pos = SpatialPressure.calcTargetPosition('rest_demand', bounds, 1920, 1080);
+    expect(pos.x).toBeCloseTo(500); // 100 + 800/2
+    expect(pos.y).toBeCloseTo(400); // 100 + 600/2
+  });
+
+  it.skip('rest_demand + 无 windowBounds → 屏幕中央', () => {
+    const pos = SpatialPressure.calcTargetPosition('rest_demand', null, 1920, 1080);
+    expect(pos.x).toBeCloseTo(960);
+    expect(pos.y).toBeCloseTo(540);
+  });
+});
+
+// ============================================================
+//  Phase 2: 集成行为 — Stickman 施压优先级分支
+// ============================================================
+
+describe('Stickman 施压集成 - 初始化', () => {
+  it.skip('Stickman 实例拥有 _contractEnforcer 属性', () => {
+    const man = new Stickman(200);
+    expect(man._contractEnforcer).toBeDefined();
+  });
+
+  it.skip('Stickman 实例拥有 _escalationGradient 属性', () => {
+    const man = new Stickman(200);
+    expect(man._escalationGradient).toBeDefined();
+  });
+
+  it.skip('Stickman 实例拥有 _spatialPressure 属性', () => {
+    const man = new Stickman(200);
+    expect(man._spatialPressure).toBeDefined();
+  });
+
+  it.skip('Stickman 实例拥有 _windowBounds 缓存', () => {
+    const man = new Stickman(200);
+    expect(man).toHaveProperty('_windowBounds');
+  });
+});
+
+describe('Stickman 施压集成 - onScreenInfo 解析 windowBounds', () => {
+  it.skip('screen-info 包含 windowBounds 时缓存到 _windowBounds', () => {
+    const man = new Stickman(200);
+    man.onScreenInfo({ app: 'VS Code', title: 'test.js', windowBounds: { x: 100, y: 50, width: 800, height: 600 } });
+    expect(man._windowBounds).toEqual({ x: 100, y: 50, width: 800, height: 600 });
+  });
+
+  it.skip('windowBounds 为 null 时 _windowBounds 设为 null', () => {
+    const man = new Stickman(200);
+    man._windowBounds = { x: 0, y: 0, width: 100, height: 100 };
+    man.onScreenInfo({ app: 'Finder', title: '', windowBounds: null });
+    expect(man._windowBounds).toBeNull();
+  });
+
+  it.skip('onScreenInfo 调用 _contractEnforcer.onScreenInfo', () => {
+    const man = new Stickman(200);
+    let called = false;
+    man._contractEnforcer = { onScreenInfo: () => { called = true; return { campaign: null, event: null }; } };
+    man.onScreenInfo({ app: 'Safari', title: 'page', windowBounds: null });
+    expect(called).toBe(true);
+  });
+});
+
+describe('Stickman 施压集成 - update 优先级', () => {
+  it.skip('施压 active 时 update 使用施压动作而非正常状态机', () => {
+    const man = new Stickman(200);
+    man._spatialPressure = { active: true, atTarget: true, update: () => true };
+    man._escalationGradient = { level: 2, getBehaviorDirective: () => ({ action: 'sitProtest', thought: '不走了', expression: 'angry' }) };
+    man.update(0.016);
+    expect(man.expression).toBe('angry');
+  });
+
+  it.skip('施压 active + 未到达目标时使用 climb 动画', () => {
+    const man = new Stickman(200);
+    man._spatialPressure = { active: true, atTarget: false, update: () => true };
+    man.update(0.016);
+    // stickman should be in climbing state
+    expect(man.state).toBe('climb');
+  });
+
+  it.skip('无施压时正常行为循环不受干扰', () => {
+    const man = new Stickman(200);
+    man._spatialPressure = { active: false, update: () => false };
+    const stateBefore = man.state;
+    man.update(0.016);
+    // 不会强制切换到施压状态
+    expect(man.state).not.toBe('climb');
+  });
+});
+
+describe('Stickman 施压集成 - 拖拽交互', () => {
+  it.skip('施压中被拖拽 → 通知 spatialPressure.onDraggedAway', () => {
+    const man = new Stickman(200);
+    let dragLevel = null;
+    man._spatialPressure = { active: true, atTarget: true, onDraggedAway: (l) => { dragLevel = l; } };
+    man._escalationGradient = { level: 2 };
+    man._contractEnforcer = { activeCampaign: { ackCount: 0, lastAckAt: null } };
+    man.startDrag(200, 200);
+    expect(dragLevel).toBe(2);
+  });
+
+  it.skip('施压中拖拽 → 签收信号（ackCount += 1）', () => {
+    const man = new Stickman(200);
+    man._spatialPressure = { active: true, atTarget: true, onDraggedAway: () => {} };
+    man._escalationGradient = { level: 1 };
+    man._contractEnforcer = { activeCampaign: { ackCount: 0, lastAckAt: null } };
+    man.startDrag(200, 200);
+    expect(man._contractEnforcer.activeCampaign.ackCount).toBe(1);
+  });
+});
+
+describe('Stickman 施压集成 - 聊天交互', () => {
+  it.skip('施压中双击聊天 → 签收信号', () => {
+    const man = new Stickman(200);
+    man._contractEnforcer = { activeCampaign: { ackCount: 0, lastAckAt: null } };
+    man._escalationGradient = { level: 1, onAcknowledge: () => {} };
+    man.addInteractionEvent('chat');
+    expect(man._contractEnforcer.activeCampaign.ackCount).toBe(1);
+  });
+
+  it.skip('chatVisible 时施压动画暂停但计时器不暂停', () => {
+    const man = new Stickman(200);
+    man.chatVisible = true;
+    man._spatialPressure = { active: true, atTarget: true, update: () => true };
+    man._escalationGradient = { level: 1, tick: (dt) => { man._testTickCalled = true; return { event: null }; } };
+    man.update(0.016);
+    // 计时器仍在运行
+    expect(man._testTickCalled).toBe(true);
+  });
+});
+
+// ============================================================
+//  Phase 2: 边界条件
+// ============================================================
+
+describe('施压边界条件 - 冷启动（零偏好）', () => {
+  it.skip('无偏好时施压系统完全静默', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    for (let i = 0; i < 10; i++) {
+      enforcer.onScreenInfo('app:chrome', 'time:morning', { query: () => [] }, []);
+    }
+    expect(enforcer.activeCampaign).toBeNull();
+  });
+});
+
+describe('施压边界条件 - 偏好被侵蚀', () => {
+  it.skip('战役关联偏好 strength 降至阈值以下 → beginCooling', () => {
+    const enforcer = new ContractEnforcer({ query: () => [] });
+    enforcer.startCampaign({ id: 'p1', axis: 'app', strength: 0.6, polarity: -0.5 });
+    // 模拟偏好被 EmergenceEngine 侵蚀
+    const weakPref = { id: 'p1', strength: 0.3, polarity: -0.5 };
+    const table = { query: () => [weakPref] };
+    // 检测到关联偏好变弱 → 应触发冷却
+    enforcer.onScreenInfo('app:bilibili', 'time:night', table, []);
+    expect(enforcer.activeCampaign.status).toBe('cooling');
+  });
+});
+
+describe('施压边界条件 - 多个偏好同时违约', () => {
+  it.skip('同一时间最多一个活跃战役', () => {
+    const pref1 = { id: 'p1', axis: 'app', strength: 0.6, polarity: -0.5 };
+    const pref2 = { id: 'p2', axis: 'time', strength: 0.8, polarity: -0.7 };
+    const table = { query: () => [pref1, pref2] };
+    const enforcer = new ContractEnforcer(table);
+    for (let i = 0; i < 6; i++) {
+      enforcer.onScreenInfo('app:bilibili', 'time:night', table, []);
+    }
+    expect(enforcer.activeCampaign).not.toBeNull();
+    // 只有一个战役
+    expect(typeof enforcer.activeCampaign.id).toBe('string');
+  });
+});
+
+describe('施压边界条件 - 窗口几何获取失败', () => {
+  it.skip('windowBounds=null 时使用 fallback 位置', () => {
+    const pos = SpatialPressure.calcTargetPosition('attention_protest', null, 1920, 1080);
+    expect(pos.x).toBeDefined();
+    expect(pos.y).toBeDefined();
+  });
+
+  it.skip('windowBounds=null 不影响违约检测', () => {
+    const pref = { id: 'p1', axis: 'app', strength: 0.8, polarity: -0.7 };
+    const table = { query: () => [pref] };
+    const enforcer = new ContractEnforcer(table);
+    for (let i = 0; i < 6; i++) {
+      enforcer.onScreenInfo('app:bilibili', 'time:night', table, []);
+    }
+    expect(enforcer.activeCampaign).not.toBeNull();
+  });
+});
+
+describe('施压边界条件 - 性格参数调制', () => {
+  it.skip('rebellion > 0.7 时升级计时器 ×0.8（更快升级）', () => {
+    const g = new EscalationGradient();
+    g.init(0, 300, { rebellion: 0.8 });
+    expect(g.escalationTimer).toBeCloseTo(240); // 300 * 0.8
+  });
+
+  it.skip('rebellion < 0.3 时升级计时器 ×1.3（更慢升级）', () => {
+    const g = new EscalationGradient();
+    g.init(0, 300, { rebellion: 0.2 });
+    expect(g.escalationTimer).toBeCloseTo(390); // 300 * 1.3
+  });
+
+  it.skip('attachment > 0.7 时冷却时长 ×0.7（更快原谅）', () => {
+    const g = new EscalationGradient();
+    g.init(1, 0);
+    g.startCooling({ attachment: 0.8 });
+    expect(g.coolingTimer).toBeCloseTo(336); // 480 * 0.7
+  });
+
+  it.skip('attachment < 0.3 时冷却时长 ×1.5（更难原谅）', () => {
+    const g = new EscalationGradient();
+    g.init(1, 0);
+    g.startCooling({ attachment: 0.2 });
+    expect(g.coolingTimer).toBeCloseTo(720); // 480 * 1.5
+  });
+});
+
+describe('施压边界条件 - 情绪影响', () => {
+  it.skip('活跃施压期间 expression.tension 逐步增加', () => {
+    const man = new Stickman(200);
+    man._contractEnforcer = { activeCampaign: { status: 'active' } };
+    const tensionBefore = man.drives?.expression?.tension ?? 0;
+    // 模拟多帧 tick
+    for (let i = 0; i < 10; i++) man.update(0.016);
+    const tensionAfter = man.drives?.expression?.tension ?? 0;
+    expect(tensionAfter).toBeGreaterThan(tensionBefore);
+  });
+
+  it.skip('被拖走时 expression.tension += 0.15', () => {
+    const man = new Stickman(200);
+    man._spatialPressure = { active: true, atTarget: true, onDraggedAway: () => {} };
+    man._escalationGradient = { level: 2 };
+    man._contractEnforcer = { activeCampaign: { ackCount: 0, lastAckAt: null } };
+    man.drives = { expression: { tension: 0.3 }, social: { tension: 0.2 } };
+    man.startDrag(200, 200);
+    expect(man.drives.expression.tension).toBeCloseTo(0.45);
+    expect(man.drives.social.tension).toBeCloseTo(0.3);
+  });
+
+  it.skip('战役 resolved 时所有 tension 各减 0.1', () => {
+    const man = new Stickman(200);
+    man.drives = { expression: { tension: 0.5 }, social: { tension: 0.4 }, rest: { tension: 0.3 } };
+    man._contractEnforcer = { activeCampaign: null };
+    // 模拟 resolved 事件
+    man.onCampaignResolved();
+    expect(man.drives.expression.tension).toBeCloseTo(0.4);
+    expect(man.drives.social.tension).toBeCloseTo(0.3);
+    expect(man.drives.rest.tension).toBeCloseTo(0.2);
+  });
+});
+
