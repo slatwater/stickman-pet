@@ -270,6 +270,54 @@ describe('osascript 屏幕感知 - main.js', () => {
 });
 
 // ============================================================
+//  偏好涌现 — IPC 通道 (main.js + preload.js)
+// ============================================================
+
+describe('偏好持久化 IPC - main.js', () => {
+  it.skip('main.js 包含 load-preferences IPC handler', () => {
+    const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
+    expect(src).toContain('load-preferences');
+  });
+
+  it.skip('main.js 包含 save-preferences IPC handler', () => {
+    const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
+    expect(src).toContain('save-preferences');
+  });
+
+  it.skip('save-preferences 使用原子写入（先 .tmp 再 rename）', () => {
+    const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
+    expect(src).toMatch(/\.tmp|rename/);
+  });
+
+  it.skip('load-preferences 读取 ai/preferences.json', () => {
+    const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
+    expect(src).toContain('preferences.json');
+  });
+});
+
+describe('偏好持久化 IPC - preload.js', () => {
+  it.skip('preload.js 暴露 loadPreferences 方法', () => {
+    const src = readFileSync(resolve(ROOT, 'preload.js'), 'utf8');
+    expect(src).toContain('loadPreferences');
+  });
+
+  it.skip('preload.js 暴露 savePreferences 方法', () => {
+    const src = readFileSync(resolve(ROOT, 'preload.js'), 'utf8');
+    expect(src).toContain('savePreferences');
+  });
+
+  it.skip('loadPreferences 调用 invoke("load-preferences")', () => {
+    const src = readFileSync(resolve(ROOT, 'preload.js'), 'utf8');
+    expect(src).toContain('load-preferences');
+  });
+
+  it.skip('savePreferences 调用 invoke("save-preferences")', () => {
+    const src = readFileSync(resolve(ROOT, 'preload.js'), 'utf8');
+    expect(src).toContain('save-preferences');
+  });
+});
+
+// ============================================================
 //  6. preload.js - onScreenInfo IPC 桥接
 // ============================================================
 
