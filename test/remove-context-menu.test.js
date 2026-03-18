@@ -361,24 +361,24 @@ describe('screen-info IPC 数据格式', () => {
 // ============================================================
 
 describe('screen-info 扩展 windowBounds - main.js', () => {
-  it.skip('AppleScript 获取窗口 position 和 size', () => {
+  it('AppleScript 获取窗口 position 和 size', () => {
     const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
     expect(src).toMatch(/position of win|winPos/);
     expect(src).toMatch(/size of win|winSize/);
   });
 
-  it.skip('screen-info 发送数据包含 windowBounds 字段', () => {
+  it('screen-info 发送数据包含 windowBounds 字段', () => {
     const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
     expect(src).toContain('windowBounds');
   });
 
-  it.skip('windowBounds 包含 x/y/width/height', () => {
+  it('windowBounds 包含 x/y/width/height', () => {
     const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
     // 解析代码应包含对 x, y, width, height 的赋值
     expect(src).toMatch(/windowBounds/);
   });
 
-  it.skip('AppleScript 获取失败时 windowBounds 为 null', () => {
+  it('AppleScript 获取失败时 windowBounds 为 null', () => {
     const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
     // 应有 on error 分支或 try-catch 处理
     expect(src).toMatch(/on error|catch/);
@@ -390,28 +390,28 @@ describe('screen-info 扩展 windowBounds - main.js', () => {
 // ============================================================
 
 describe('施压状态持久化 IPC - main.js', () => {
-  it.skip('main.js 包含 load-pressure-state IPC handler', () => {
+  it('main.js 包含 load-pressure-state IPC handler', () => {
     const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
     expect(src).toContain('load-pressure-state');
   });
 
-  it.skip('main.js 包含 save-pressure-state IPC handler', () => {
+  it('main.js 包含 save-pressure-state IPC handler', () => {
     const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
     expect(src).toContain('save-pressure-state');
   });
 
-  it.skip('load-pressure-state 读取 ai/pressure-state.json', () => {
+  it('load-pressure-state 读取 ai/pressure-state.json', () => {
     const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
     expect(src).toContain('pressure-state.json');
   });
 
-  it.skip('save-pressure-state 使用原子写入（先 .tmp 再 rename）', () => {
+  it('save-pressure-state 使用原子写入（先 .tmp 再 rename）', () => {
     const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
     // 类似 preferences.json 的写入方式
     expect(src).toMatch(/\.tmp|rename/);
   });
 
-  it.skip('load-pressure-state 文件不存在时返回 null', () => {
+  it('load-pressure-state 文件不存在时返回 null', () => {
     const src = readFileSync(resolve(ROOT, 'main.js'), 'utf8');
     expect(src).toMatch(/load-pressure-state/);
     // handler 应处理文件不存在的情况
@@ -424,22 +424,22 @@ describe('施压状态持久化 IPC - main.js', () => {
 // ============================================================
 
 describe('施压状态持久化 IPC - preload.js', () => {
-  it.skip('preload.js 暴露 loadPressureState 方法', () => {
+  it('preload.js 暴露 loadPressureState 方法', () => {
     const src = readFileSync(resolve(ROOT, 'preload.js'), 'utf8');
     expect(src).toContain('loadPressureState');
   });
 
-  it.skip('preload.js 暴露 savePressureState 方法', () => {
+  it('preload.js 暴露 savePressureState 方法', () => {
     const src = readFileSync(resolve(ROOT, 'preload.js'), 'utf8');
     expect(src).toContain('savePressureState');
   });
 
-  it.skip('loadPressureState 调用 invoke("load-pressure-state")', () => {
+  it('loadPressureState 调用 invoke("load-pressure-state")', () => {
     const src = readFileSync(resolve(ROOT, 'preload.js'), 'utf8');
     expect(src).toContain('load-pressure-state');
   });
 
-  it.skip('savePressureState 调用 invoke("save-pressure-state")', () => {
+  it('savePressureState 调用 invoke("save-pressure-state")', () => {
     const src = readFileSync(resolve(ROOT, 'preload.js'), 'utf8');
     expect(src).toContain('save-pressure-state');
   });
@@ -450,31 +450,31 @@ describe('施压状态持久化 IPC - preload.js', () => {
 // ============================================================
 
 describe('施压状态持久化策略', () => {
-  it.skip('战役状态变更时触发保存（started/escalated/cooling/resolved）', () => {
+  it('战役状态变更时触发保存（started/escalated/cooling/resolved）', () => {
     // 验证 renderer.js 在状态变更事件后调用 savePressureState
     const src = readFileSync(resolve(ROOT, 'renderer.js'), 'utf8');
     expect(src).toContain('savePressureState');
   });
 
-  it.skip('window beforeunload 时保存施压状态', () => {
+  it('window beforeunload 时保存施压状态', () => {
     const src = readFileSync(resolve(ROOT, 'renderer.js'), 'utf8');
     expect(src).toMatch(/beforeunload/);
     expect(src).toContain('savePressureState');
   });
 
-  it.skip('退出时有活跃战役 → restartDuringPressure=true', () => {
+  it('退出时有活跃战役 → restartDuringPressure=true', () => {
     // 通过检查 serialize 逻辑确认
     const src = readFileSync(resolve(ROOT, 'renderer.js'), 'utf8');
     expect(src).toContain('restartDuringPressure');
   });
 
-  it.skip('启动时加载施压状态并 hydrate', () => {
+  it('启动时加载施压状态并 hydrate', () => {
     const src = readFileSync(resolve(ROOT, 'renderer.js'), 'utf8');
     expect(src).toContain('loadPressureState');
     expect(src).toMatch(/hydrate/);
   });
 
-  it.skip('restartDuringPressure=true 时恢复战役并增加 ignoreCount', () => {
+  it('restartDuringPressure=true 时恢复战役并增加 ignoreCount', () => {
     const src = readFileSync(resolve(ROOT, 'renderer.js'), 'utf8');
     expect(src).toContain('restartDuringPressure');
     expect(src).toContain('ignoreCount');

@@ -141,9 +141,43 @@ function createWindow() {
     aiManager.evolve().catch(e => console.error('[进化] 失败:', e.message));
   }, EVOLVE_INTERVAL);
 
-  // 30秒定时器：osascript 获取前台应用信息
+  // 施压状态持久化
+  ipcMain.handle('load-pressure-state', async () => {
+    try {
+      const data = fs.readFileSync(path.join(__dirname, 'ai', 'pressure-state.json'), 'utf8');
+      return JSON.parse(data);
+    } catch (_) {
+      return null;
+    }
+  });
+
+  ipcMain.handle('save-pressure-state', async (_, data) => {
+    const filePath = path.join(__dirname, 'ai', 'pressure-state.json');
+    const tmpPath = filePath + '.tmp';
+    try {
+      fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf8');
+      fs.renameSync(tmpPath, filePath);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  // 30秒定时器：osascript 获取前台应用信息 + 窗口几何
   setInterval(() => {
-    const script = 'tell application "System Events" to set frontApp to name of first application process whose frontmost is true\ntell application "System Events" to tell process frontApp to set winTitle to name of front window\nreturn frontApp & "|" & winTitle';
+    const script = `tell application "System Events"
+  set frontApp to first application process whose frontmost is true
+  set appName to name of frontApp
+  try
+    set win to window 1 of frontApp
+    set winTitle to name of win
+    set winPos to position of win
+    set winSize to size of win
+    return appName & "|" & winTitle & "|" & (item 1 of winPos) & "|" & (item 2 of winPos) & "|" & (item 1 of winSize) & "|" & (item 2 of winSize)
+  on error
+    return appName & "|" & "" & "||||"
+  end try
+end tell`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
     try {
@@ -152,7 +186,21 @@ function createWindow() {
         if (err) return; // 静默跳过
         const parts = stdout.trim().split('|');
         if (parts.length >= 2 && win && !win.isDestroyed()) {
-          win.webContents.send('screen-info', { app: parts[0], title: parts.slice(1).join('|') });
+          let windowBounds = null;
+          if (parts.length >= 6 && parts[2] && parts[3] && parts[4] && parts[5]) {
+            const x = parseInt(parts[2], 10);
+            const y = parseInt(parts[3], 10);
+            const width = parseInt(parts[4], 10);
+            const height = parseInt(parts[5], 10);
+            if (!isNaN(x) && !isNaN(y) && !isNaN(width) && !isNaN(height)) {
+              windowBounds = { x, y, width, height };
+            }
+          }
+          win.webContents.send('screen-info', {
+            app: parts[0],
+            title: parts[1] || '',
+            windowBounds,
+          });
         }
       });
     } catch (e) {
