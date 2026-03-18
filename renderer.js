@@ -593,6 +593,324 @@ const HESITATE_THOUGHTS = {
   'rest+social': '想找你说话……但好累……',
 };
 
+// ==================== 偏好涌现系统 ====================
+
+// 涌现常量
+const EMERGENCE_CONSTANTS = {
+  CYCLE_INTERVAL: 600_000,     // 涌现检查周期：10 分钟
+  MIN_INTERACTIONS: 3,          // 最少交互次数才考虑涌现
+  MIN_EXPOSURE: 180,            // 最少曝光秒数（3 分钟）
+  CONFIDENCE_DENOMINATOR: 10,   // 10 次交互 = 满置信度
+  EMERGENCE_THRESHOLD: 0.2,     // 有效信号强度阈值
+  INITIAL_STRENGTH: 0.2,        // 新偏好初始强度
+  REINFORCE_RATE: 0.05,         // 强化增长率（受递减控制）
+  ERODE_RATE: 0.03,             // 矛盾信号侵蚀率
+  DECAY_GRACE_DAYS: 3,          // 衰减宽限天数
+  DECAY_RATE_PER_DAY: 0.01,    // 宽限期后每日衰减
+  DISSOLVE_THRESHOLD: 0.05,    // 低于此强度移除偏好
+  MAX_PREFERENCES: 20,          // 最大偏好数
+  MAX_ASSOCIATIONS: 50,         // 最大关联记忆数
+};
+
+// 思绪模板
+const PREFERENCE_THOUGHTS = {
+  positive_medium:  ['嗯，还不错~', '有点意思', '挺好的嘛'],
+  positive_strong:  ['我就喜欢这个！', '来了来了！', '太好了~'],
+  negative_medium:  ['嗯......', '又来了', '总觉得哪里不对'],
+  negative_strong:  ['能换点别的吗...', '不太想看这个...', '又是这个啊...'],
+};
+
+// 时间段归一化
+function getTimePeriod(hour) {
+  if (hour === undefined || hour === null) hour = new Date().getHours();
+  if (hour >= 6 && hour <= 11) return 'morning';
+  if (hour >= 12 && hour <= 17) return 'afternoon';
+  if (hour >= 18 && hour <= 21) return 'evening';
+  return 'night';
+}
+
+// M1: 交互观察器
+class InteractionObserver {
+  constructor(sensitivityVector) {
+    this.sensitivity = sensitivityVector;
+    this._currentAppKey = null;
+    this._currentTimeKey = null;
+  }
+
+  onScreenEvent(app, title, associations) {
+    const appKey = 'app:' + app.toLowerCase().trim();
+    const timeKey = 'time:' + getTimePeriod();
+    this._currentAppKey = appKey;
+    this._currentTimeKey = timeKey;
+
+    const now = Date.now();
+    // 初始化或更新 app 关联条目
+    if (!associations[appKey]) {
+      associations[appKey] = { key: appKey, axis: 'app', target: app.toLowerCase().trim(), positive: 0, negative: 0, exposure: 0, firstSeen: now, lastSeen: now };
+    }
+    associations[appKey].exposure += 30;
+    associations[appKey].lastSeen = now;
+
+    // 初始化或更新 time 关联条目
+    if (!associations[timeKey]) {
+      associations[timeKey] = { key: timeKey, axis: 'time', target: getTimePeriod(), positive: 0, negative: 0, exposure: 0, firstSeen: now, lastSeen: now };
+    }
+    associations[timeKey].exposure += 30;
+    associations[timeKey].lastSeen = now;
+
+    return { appKey, timeKey };
+  }
+
+  onUserInteraction(type, associations) {
+    if (!this._currentAppKey || !this._currentTimeKey) return;
+    const amount = Math.ceil(1 * this.sensitivity.interaction);
+    const keys = [this._currentAppKey, this._currentTimeKey];
+    for (const key of keys) {
+      if (!associations[key]) continue;
+      if (type === 'click' || type === 'chat') {
+        associations[key].positive += amount;
+      } else if (type === 'drag') {
+        associations[key].negative += amount;
+      }
+    }
+  }
+
+  getCurrentContext() {
+    if (!this._currentAppKey) return null;
+    return { appKey: this._currentAppKey, timeKey: this._currentTimeKey };
+  }
+}
+
+// M2: 涌现引擎
+class EmergenceEngine {
+  constructor(sensitivity) {
+    this.sensitivity = sensitivity;
+  }
+
+  emergenceCycle(associations, table) {
+    const C = EMERGENCE_CONSTANTS;
+
+    // 1. 涌现判定
+    for (const entry of Object.values(associations)) {
+      const total = entry.positive + entry.negative;
+      if (total < C.MIN_INTERACTIONS) continue;
+      if (entry.exposure < C.MIN_EXPOSURE) continue;
+
+      const valence = (entry.positive - entry.negative) / total;
+      const confidence = Math.min(1, total / C.CONFIDENCE_DENOMINATOR);
+      const axisSensitivity = this.sensitivity[entry.axis] || 1.0;
+      const effectiveSignal = valence * confidence * axisSensitivity;
+
+      if (Math.abs(effectiveSignal) > C.EMERGENCE_THRESHOLD) {
+        const existing = table.findByTarget(entry.axis, entry.target);
+        if (existing) {
+          this.reinforce(existing, effectiveSignal);
+        } else {
+          const memory = `在${entry.target}的环境中积累了${entry.positive}次正面和${entry.negative}次负面互动`;
+          table.create(entry.axis, entry.target, effectiveSignal, memory);
+        }
+      }
+    }
+
+    // 2. 衰减
+    const now = Date.now();
+    for (const pref of table.preferences) {
+      this.decay(pref, now);
+    }
+
+    // 3. 清理溶解的偏好
+    for (let i = table.preferences.length - 1; i >= 0; i--) {
+      if (table.preferences[i].strength < C.DISSOLVE_THRESHOLD) {
+        table.preferences.splice(i, 1);
+      }
+    }
+
+    // 4. 裁剪关联记忆
+    const keys = Object.keys(associations);
+    if (keys.length > C.MAX_ASSOCIATIONS) {
+      // 找出有偏好对应的 target
+      const prefTargets = new Set(table.preferences.map(p => p.axis === 'app' ? `app:${p.target}` : `time:${p.target}`));
+      // 按 exposure 排序，淘汰无偏好对应且 exposure 最低的
+      const removable = keys
+        .filter(k => !prefTargets.has(k))
+        .sort((a, b) => associations[a].exposure - associations[b].exposure);
+      const toRemove = keys.length - C.MAX_ASSOCIATIONS;
+      for (let i = 0; i < Math.min(toRemove, removable.length); i++) {
+        delete associations[removable[i]];
+      }
+    }
+  }
+
+  reinforce(preference, signal) {
+    const sameDirection = (signal > 0 && preference.polarity > 0) || (signal < 0 && preference.polarity < 0);
+    if (sameDirection) {
+      preference.strength += EMERGENCE_CONSTANTS.REINFORCE_RATE * (1 - preference.strength);
+      preference.reinforceCount += 1;
+    } else {
+      preference.strength -= EMERGENCE_CONSTANTS.ERODE_RATE;
+      if (preference.strength < 0) preference.strength = 0;
+    }
+  }
+
+  decay(preference, now) {
+    const daysSince = (now - preference.lastActivated) / 86400000;
+    if (daysSince > EMERGENCE_CONSTANTS.DECAY_GRACE_DAYS) {
+      const excessDays = daysSince - EMERGENCE_CONSTANTS.DECAY_GRACE_DAYS;
+      preference.strength -= EMERGENCE_CONSTANTS.DECAY_RATE_PER_DAY * excessDays;
+      if (preference.strength < 0) preference.strength = 0;
+    }
+  }
+}
+
+// M3: 社会契约表
+class SocialContractTable {
+  constructor() {
+    this.preferences = [];
+  }
+
+  create(axis, target, effectiveSignal, formativeMemory) {
+    const C = EMERGENCE_CONSTANTS;
+    // 偏好满额时淘汰 strength 最低的
+    if (this.preferences.length >= C.MAX_PREFERENCES) {
+      let minIdx = 0;
+      for (let i = 1; i < this.preferences.length; i++) {
+        if (this.preferences[i].strength < this.preferences[minIdx].strength) minIdx = i;
+      }
+      this.preferences.splice(minIdx, 1);
+    }
+    const now = Date.now();
+    this.preferences.push({
+      id: `pref_${target}_${now}`,
+      axis,
+      target,
+      titleHints: [],
+      polarity: clamp(effectiveSignal, -1, 1),
+      strength: C.INITIAL_STRENGTH,
+      formedAt: now,
+      lastActivated: now,
+      reinforceCount: 0,
+      formativeMemory: formativeMemory || '',
+    });
+  }
+
+  findByTarget(axis, target) {
+    return this.preferences.find(p => p.axis === axis && p.target === target) || null;
+  }
+
+  query(appKey, timeKey) {
+    const results = [];
+    const appValue = appKey.replace(/^app:/, '');
+    const timeValue = timeKey.replace(/^time:/, '');
+    for (const pref of this.preferences) {
+      if (pref.axis === 'app' && appValue.includes(pref.target)) {
+        results.push(pref);
+      } else if (pref.axis === 'time' && pref.target === timeValue) {
+        results.push(pref);
+      }
+    }
+    return results;
+  }
+
+  remove(id) {
+    this.preferences = this.preferences.filter(p => p.id !== id);
+  }
+
+  serialize() {
+    return this.preferences.map(p => ({ ...p }));
+  }
+
+  hydrate(entries) {
+    this.preferences = entries.map(e => ({ ...e }));
+  }
+}
+
+// M4: 偏好-情绪桥接
+class PreferenceBridge {
+  constructor(driveSystem, table) {
+    this.driveSystem = driveSystem;
+    this.table = table;
+    this.activePreferences = [];
+  }
+
+  activate(appKey, timeKey, windowTitle) {
+    const matches = this.table.query(appKey, timeKey);
+    const now = Date.now();
+    for (const pref of matches) {
+      pref.lastActivated = now;
+    }
+    this.activePreferences = matches;
+    this.applyDriveEffects(matches);
+    const thought = this.generateThought(matches);
+    return { matches, thought };
+  }
+
+  applyDriveEffects(matches) {
+    for (const pref of matches) {
+      const effect = pref.polarity * pref.strength;
+      if (effect > 0) {
+        this.driveSystem.drives.social.tension -= effect * 0.08;
+        this.driveSystem.drives.novelty.tension -= effect * 0.05;
+      } else {
+        this.driveSystem.drives.expression.tension += Math.abs(effect) * 0.08;
+        this.driveSystem.drives.rest.tension += Math.abs(effect) * 0.05;
+      }
+      // 勇气调制
+      for (const drive of Object.values(this.driveSystem.drives)) {
+        drive.courage += effect * 0.03;
+      }
+    }
+    // clamp all values
+    for (const drive of Object.values(this.driveSystem.drives)) {
+      drive.tension = clamp(drive.tension, 0, 1);
+      drive.courage = clamp(drive.courage, 0, 1);
+    }
+  }
+
+  getActionBonus(action, activePreferences) {
+    let bonus = 0;
+    const approachActions = ['wave', 'peek', 'dance', 'celebrate', 'guitar'];
+    const withdrawalActionsLike = ['yawn', 'sleep', 'idle', 'rage'];
+    const withdrawalActionsDislike = ['yawn', 'lookAround', 'idle', 'walk'];
+    const approachActionsDislike = ['dance', 'celebrate', 'wave'];
+
+    for (const pref of activePreferences) {
+      const effect = pref.polarity * pref.strength;
+      if (effect > 0) {
+        if (approachActions.includes(action)) bonus += effect * 3;
+        if (withdrawalActionsLike.includes(action)) bonus -= effect * 2;
+      } else {
+        if (withdrawalActionsDislike.includes(action)) bonus += Math.abs(effect) * 3;
+        if (approachActionsDislike.includes(action)) bonus -= Math.abs(effect) * 2;
+      }
+    }
+    return bonus;
+  }
+
+  generateThought(matches) {
+    if (matches.length === 0) return null;
+    // 取 |polarity * strength| 最大的偏好
+    let best = matches[0];
+    let bestScore = Math.abs(best.polarity * best.strength);
+    for (let i = 1; i < matches.length; i++) {
+      const score = Math.abs(matches[i].polarity * matches[i].strength);
+      if (score > bestScore) {
+        best = matches[i];
+        bestScore = score;
+      }
+    }
+    const strength = best.strength;
+    const positive = best.polarity > 0;
+
+    if (strength < 0.4) return null; // 弱偏好不生成思绪
+    if (strength < 0.7) {
+      const templates = positive ? PREFERENCE_THOUGHTS.positive_medium : PREFERENCE_THOUGHTS.negative_medium;
+      return templates[Math.floor(Math.random() * templates.length)];
+    }
+    const templates = positive ? PREFERENCE_THOUGHTS.positive_strong : PREFERENCE_THOUGHTS.negative_strong;
+    return templates[Math.floor(Math.random() * templates.length)];
+  }
+}
+
 // ==================== 驱力系统 ====================
 class DriveSystem {
   constructor() {
@@ -823,6 +1141,37 @@ class Stickman {
     this.batchDecisionPending = false;
     this._behaviors = null;
     this._lastIdleSeconds = 0;
+
+    // 偏好涌现系统（延迟初始化，需要异步加载持久化数据）
+    this._prefSensitivity = null;
+    this._prefAssociations = {};
+    this._prefObserver = null;
+    this._prefEngine = null;
+    this._prefTable = new SocialContractTable();
+    this._prefBridge = null;
+  }
+
+  // 初始化偏好涌现系统
+  initPreferenceSystem(data) {
+    if (data && data.sensitivity) {
+      this._prefSensitivity = data.sensitivity;
+    } else {
+      this._prefSensitivity = {
+        app: 0.5 + Math.random(),
+        time: 0.5 + Math.random(),
+        duration: 0.5 + Math.random(),
+        interaction: 0.5 + Math.random(),
+      };
+    }
+    if (data && data.associations) {
+      this._prefAssociations = data.associations;
+    }
+    if (data && data.preferences) {
+      this._prefTable.hydrate(data.preferences);
+    }
+    this._prefObserver = new InteractionObserver(this._prefSensitivity);
+    this._prefEngine = new EmergenceEngine(this._prefSensitivity);
+    this._prefBridge = new PreferenceBridge(this.driveSystem, this._prefTable);
   }
 
   // 屏幕活动记录
@@ -832,12 +1181,28 @@ class Stickman {
       this.driveSystem.drives.novelty.tension = clamp(this.driveSystem.drives.novelty.tension - 0.15, 0, 1);
       this._lastScreenApp = app;
     }
+    // 偏好涌现：观察屏幕事件 + 桥接激活
+    if (this._prefObserver) {
+      const ctx = this._prefObserver.onScreenEvent(app, title, this._prefAssociations);
+      if (this._prefBridge) {
+        const result = this._prefBridge.activate(ctx.appKey, ctx.timeKey, title);
+        if (result.thought) {
+          this.thought = result.thought;
+          this.thoughtTimer = 5;
+          this.thoughtDuration = 5;
+        }
+      }
+    }
   }
 
   // 用户交互事件记录（同时上报到主进程供进化使用）
   addInteractionEvent(type) {
     this.userInteractionsLog.push({ type, time: new Date().toISOString() });
     window.electronAPI?.reportInteraction?.(type);
+    // 偏好涌现：记录交互信号
+    if (this._prefObserver) {
+      this._prefObserver.onUserInteraction(type, this._prefAssociations);
+    }
   }
 
   // 构建决策上下文
@@ -2100,6 +2465,48 @@ setInterval(loadBehaviors, 5 * 60 * 1000);
 setInterval(loadCombos, 5 * 60 * 1000);
 setInterval(loadPersonality, 5 * 60 * 1000);
 
+// 偏好涌现系统：加载 + 涌现周期 + 持久化
+async function loadPreferences() {
+  if (!window.electronAPI?.loadPreferences) {
+    man.initPreferenceSystem(null);
+    return;
+  }
+  try {
+    const data = await window.electronAPI.loadPreferences();
+    man.initPreferenceSystem(data);
+  } catch (e) {
+    man.initPreferenceSystem(null);
+  }
+}
+
+async function savePreferences() {
+  if (!window.electronAPI?.savePreferences || !man._prefSensitivity) return;
+  try {
+    await window.electronAPI.savePreferences({
+      sensitivity: man._prefSensitivity,
+      associations: man._prefAssociations,
+      preferences: man._prefTable.serialize(),
+    });
+  } catch (e) {
+    // 写入失败，下次重试
+  }
+}
+
+loadPreferences();
+
+// 涌现周期：每 10 分钟
+setInterval(() => {
+  if (man._prefEngine && man._prefTable) {
+    man._prefEngine.emergenceCycle(man._prefAssociations, man._prefTable);
+    savePreferences();
+  }
+}, EMERGENCE_CONSTANTS.CYCLE_INTERVAL);
+
+// 退出时保存
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('beforeunload', () => { savePreferences(); });
+}
+
 // 定期清理过长的交互日志（保留最近 30 秒的）
 setInterval(() => {
   const cutoff = Date.now() - 30000;
@@ -2282,4 +2689,10 @@ if (typeof globalThis !== 'undefined') {
   globalThis.W = W;
   globalThis.GROUND = GROUND;
   globalThis.BONE = BONE;
+  globalThis.EMERGENCE_CONSTANTS = EMERGENCE_CONSTANTS;
+  globalThis.PREFERENCE_THOUGHTS = PREFERENCE_THOUGHTS;
+  globalThis.InteractionObserver = InteractionObserver;
+  globalThis.EmergenceEngine = EmergenceEngine;
+  globalThis.SocialContractTable = SocialContractTable;
+  globalThis.PreferenceBridge = PreferenceBridge;
 }

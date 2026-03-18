@@ -1751,7 +1751,7 @@ describe('犹豫状态 - 冲突独白气泡', () => {
 // ============================================================
 
 describe('InteractionObserver - 上下文键归一化', () => {
-  it.skip('应用名归一化为小写: "Google Chrome" → "app:google chrome"', () => {
+  it('应用名归一化为小写: "Google Chrome" → "app:google chrome"', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1759,7 +1759,7 @@ describe('InteractionObserver - 上下文键归一化', () => {
     expect(result.appKey).toBe('app:google chrome');
   });
 
-  it.skip('应用名归一化去除首尾空格', () => {
+  it('应用名归一化去除首尾空格', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1767,7 +1767,7 @@ describe('InteractionObserver - 上下文键归一化', () => {
     expect(result.appKey).toBe('app:safari');
   });
 
-  it.skip('时间键按小时段归一化: 6-11→morning, 12-17→afternoon, 18-21→evening, 22-5→night', () => {
+  it('时间键按小时段归一化: 6-11→morning, 12-17→afternoon, 18-21→evening, 22-5→night', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1778,7 +1778,7 @@ describe('InteractionObserver - 上下文键归一化', () => {
 });
 
 describe('InteractionObserver - 屏幕事件更新曝光', () => {
-  it.skip('onScreenEvent 为 appKey 累加 30 秒曝光', () => {
+  it('onScreenEvent 为 appKey 累加 30 秒曝光', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1786,7 +1786,7 @@ describe('InteractionObserver - 屏幕事件更新曝光', () => {
     expect(associations['app:chrome'].exposure).toBe(30);
   });
 
-  it.skip('onScreenEvent 为 timeKey 累加 30 秒曝光', () => {
+  it('onScreenEvent 为 timeKey 累加 30 秒曝光', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1794,7 +1794,7 @@ describe('InteractionObserver - 屏幕事件更新曝光', () => {
     expect(associations[timeKey].exposure).toBe(30);
   });
 
-  it.skip('多次 onScreenEvent 曝光累加', () => {
+  it('多次 onScreenEvent 曝光累加', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1804,7 +1804,7 @@ describe('InteractionObserver - 屏幕事件更新曝光', () => {
     expect(associations['app:chrome'].exposure).toBe(90);
   });
 
-  it.skip('首次观测设置 firstSeen 和 lastSeen', () => {
+  it('首次观测设置 firstSeen 和 lastSeen', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1814,7 +1814,7 @@ describe('InteractionObserver - 屏幕事件更新曝光', () => {
     expect(entry.lastSeen).toBeGreaterThanOrEqual(entry.firstSeen);
   });
 
-  it.skip('后续观测更新 lastSeen 但不改 firstSeen', () => {
+  it('后续观测更新 lastSeen 但不改 firstSeen', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1827,7 +1827,7 @@ describe('InteractionObserver - 屏幕事件更新曝光', () => {
 });
 
 describe('InteractionObserver - 用户交互信号', () => {
-  it.skip('click 事件增加当前上下文 positive 计数', () => {
+  it('click 事件增加当前上下文 positive 计数', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1836,7 +1836,7 @@ describe('InteractionObserver - 用户交互信号', () => {
     expect(associations['app:chrome'].positive).toBe(1);
   });
 
-  it.skip('chat 事件增加当前上下文 positive 计数', () => {
+  it('chat 事件增加当前上下文 positive 计数', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1845,7 +1845,7 @@ describe('InteractionObserver - 用户交互信号', () => {
     expect(associations['app:chrome'].positive).toBe(1);
   });
 
-  it.skip('drag 事件增加当前上下文 negative 计数', () => {
+  it('drag 事件增加当前上下文 negative 计数', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1854,7 +1854,7 @@ describe('InteractionObserver - 用户交互信号', () => {
     expect(associations['app:chrome'].negative).toBe(1);
   });
 
-  it.skip('sensitivity.interaction 放大反馈信号', () => {
+  it('sensitivity.interaction 放大反馈信号', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.5 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1864,7 +1864,7 @@ describe('InteractionObserver - 用户交互信号', () => {
     expect(associations['app:chrome'].positive).toBe(2);
   });
 
-  it.skip('无当前上下文时交互事件不抛错', () => {
+  it('无当前上下文时交互事件不抛错', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1873,13 +1873,13 @@ describe('InteractionObserver - 用户交互信号', () => {
 });
 
 describe('InteractionObserver - getCurrentContext', () => {
-  it.skip('未接收屏幕事件前返回 null', () => {
+  it('未接收屏幕事件前返回 null', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     expect(observer.getCurrentContext()).toBeNull();
   });
 
-  it.skip('接收屏幕事件后返回 { appKey, timeKey }', () => {
+  it('接收屏幕事件后返回 { appKey, timeKey }', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const observer = new InteractionObserver(sensitivity);
     const associations = {};
@@ -1895,7 +1895,7 @@ describe('InteractionObserver - getCurrentContext', () => {
 // ============================================================
 
 describe('EmergenceEngine - 涌现常量', () => {
-  it.skip('EMERGENCE_CONSTANTS 包含所有必需常量', () => {
+  it('EMERGENCE_CONSTANTS 包含所有必需常量', () => {
     expect(EMERGENCE_CONSTANTS).toBeDefined();
     expect(EMERGENCE_CONSTANTS.CYCLE_INTERVAL).toBe(600_000);
     expect(EMERGENCE_CONSTANTS.MIN_INTERACTIONS).toBe(3);
@@ -1914,7 +1914,7 @@ describe('EmergenceEngine - 涌现常量', () => {
 });
 
 describe('EmergenceEngine - 涌现周期基本流程', () => {
-  it.skip('交互次数 < MIN_INTERACTIONS 时跳过涌现', () => {
+  it('交互次数 < MIN_INTERACTIONS 时跳过涌现', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const table = new SocialContractTable();
@@ -1925,7 +1925,7 @@ describe('EmergenceEngine - 涌现周期基本流程', () => {
     expect(table.preferences).toHaveLength(0);
   });
 
-  it.skip('曝光 < MIN_EXPOSURE 时跳过涌现', () => {
+  it('曝光 < MIN_EXPOSURE 时跳过涌现', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const table = new SocialContractTable();
@@ -1936,7 +1936,7 @@ describe('EmergenceEngine - 涌现周期基本流程', () => {
     expect(table.preferences).toHaveLength(0);
   });
 
-  it.skip('有效信号超过阈值时创建偏好', () => {
+  it('有效信号超过阈值时创建偏好', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const table = new SocialContractTable();
@@ -1950,7 +1950,7 @@ describe('EmergenceEngine - 涌现周期基本流程', () => {
     expect(table.preferences[0].polarity).toBeGreaterThan(0);
   });
 
-  it.skip('有效信号为负时创建负极性偏好', () => {
+  it('有效信号为负时创建负极性偏好', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const table = new SocialContractTable();
@@ -1963,7 +1963,7 @@ describe('EmergenceEngine - 涌现周期基本流程', () => {
     expect(table.preferences[0].polarity).toBeLessThan(0);
   });
 
-  it.skip('有效信号不足阈值时不创建偏好', () => {
+  it('有效信号不足阈值时不创建偏好', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const table = new SocialContractTable();
@@ -1975,7 +1975,7 @@ describe('EmergenceEngine - 涌现周期基本流程', () => {
     expect(table.preferences).toHaveLength(0);
   });
 
-  it.skip('sensitivity 放大有效信号', () => {
+  it('sensitivity 放大有效信号', () => {
     const sensitivity = { app: 1.5, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const table = new SocialContractTable();
@@ -1990,7 +1990,7 @@ describe('EmergenceEngine - 涌现周期基本流程', () => {
 });
 
 describe('EmergenceEngine - 偏好强化', () => {
-  it.skip('同向信号强化偏好: strength += REINFORCE_RATE * (1 - strength)', () => {
+  it('同向信号强化偏好: strength += REINFORCE_RATE * (1 - strength)', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const pref = { id: 'test', polarity: 0.5, strength: 0.2, reinforceCount: 0, lastActivated: Date.now() };
@@ -2000,7 +2000,7 @@ describe('EmergenceEngine - 偏好强化', () => {
     expect(pref.reinforceCount).toBe(1);
   });
 
-  it.skip('递减增长：强度越高增长越慢', () => {
+  it('递减增长：强度越高增长越慢', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const pref1 = { id: 'a', polarity: 0.5, strength: 0.2, reinforceCount: 0, lastActivated: Date.now() };
@@ -2012,7 +2012,7 @@ describe('EmergenceEngine - 偏好强化', () => {
     expect(delta1).toBeGreaterThan(delta2); // 低强度增长更快
   });
 
-  it.skip('反向信号侵蚀偏好: strength -= ERODE_RATE', () => {
+  it('反向信号侵蚀偏好: strength -= ERODE_RATE', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const pref = { id: 'test', polarity: 0.5, strength: 0.3, reinforceCount: 2, lastActivated: Date.now() };
@@ -2020,7 +2020,7 @@ describe('EmergenceEngine - 偏好强化', () => {
     expect(pref.strength).toBeCloseTo(0.27, 2);
   });
 
-  it.skip('侵蚀至低于 DISSOLVE_THRESHOLD 应标记为可移除', () => {
+  it('侵蚀至低于 DISSOLVE_THRESHOLD 应标记为可移除', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const pref = { id: 'test', polarity: 0.5, strength: 0.06, reinforceCount: 0, lastActivated: Date.now() };
@@ -2031,7 +2031,7 @@ describe('EmergenceEngine - 偏好强化', () => {
 });
 
 describe('EmergenceEngine - 偏好衰减', () => {
-  it.skip('3 天宽限期内不衰减', () => {
+  it('3 天宽限期内不衰减', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const twoDaysAgo = Date.now() - 2 * 86400000;
@@ -2040,7 +2040,7 @@ describe('EmergenceEngine - 偏好衰减', () => {
     expect(pref.strength).toBe(0.5);
   });
 
-  it.skip('超过 3 天宽限期后每天衰减 DECAY_RATE_PER_DAY', () => {
+  it('超过 3 天宽限期后每天衰减 DECAY_RATE_PER_DAY', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const fiveDaysAgo = Date.now() - 5 * 86400000;
@@ -2050,7 +2050,7 @@ describe('EmergenceEngine - 偏好衰减', () => {
     expect(pref.strength).toBeCloseTo(0.48, 2);
   });
 
-  it.skip('长期未激活偏好最终衰减至溶解阈值以下', () => {
+  it('长期未激活偏好最终衰减至溶解阈值以下', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const sixtyDaysAgo = Date.now() - 60 * 86400000;
@@ -2062,7 +2062,7 @@ describe('EmergenceEngine - 偏好衰减', () => {
 });
 
 describe('EmergenceEngine - 关联记忆裁剪', () => {
-  it.skip('associations 超过 MAX_ASSOCIATIONS 时淘汰 exposure 最低条目', () => {
+  it('associations 超过 MAX_ASSOCIATIONS 时淘汰 exposure 最低条目', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const table = new SocialContractTable();
@@ -2084,7 +2084,7 @@ describe('EmergenceEngine - 关联记忆裁剪', () => {
 // ============================================================
 
 describe('SocialContractTable - 创建偏好', () => {
-  it.skip('create 生成唯一 id 并设置初始强度', () => {
+  it('create 生成唯一 id 并设置初始强度', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.6, '用户常点击');
     expect(table.preferences).toHaveLength(1);
@@ -2094,7 +2094,7 @@ describe('SocialContractTable - 创建偏好', () => {
     expect(table.preferences[0].target).toBe('bilibili');
   });
 
-  it.skip('create 设置正确的 polarity（clamp 到 -1~1）', () => {
+  it('create 设置正确的 polarity（clamp 到 -1~1）', () => {
     const table = new SocialContractTable();
     table.create('app', 'test', 1.5, '超强信号');
     expect(table.preferences[0].polarity).toBe(1.0);
@@ -2102,19 +2102,19 @@ describe('SocialContractTable - 创建偏好', () => {
     expect(table.preferences[1].polarity).toBe(-1.0);
   });
 
-  it.skip('create 设置 formativeMemory', () => {
+  it('create 设置 formativeMemory', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.5, '用户在B站时经常点我');
     expect(table.preferences[0].formativeMemory).toBe('用户在B站时经常点我');
   });
 
-  it.skip('create 初始 reinforceCount 为 0', () => {
+  it('create 初始 reinforceCount 为 0', () => {
     const table = new SocialContractTable();
     table.create('app', 'test', 0.5, 'memo');
     expect(table.preferences[0].reinforceCount).toBe(0);
   });
 
-  it.skip('偏好满额时淘汰 strength 最低的', () => {
+  it('偏好满额时淘汰 strength 最低的', () => {
     const table = new SocialContractTable();
     for (let i = 0; i < EMERGENCE_CONSTANTS.MAX_PREFERENCES; i++) {
       table.create('app', `app${i}`, 0.3, 'test');
@@ -2130,7 +2130,7 @@ describe('SocialContractTable - 创建偏好', () => {
 });
 
 describe('SocialContractTable - 查找与查询', () => {
-  it.skip('findByTarget 精确查找已有偏好', () => {
+  it('findByTarget 精确查找已有偏好', () => {
     const table = new SocialContractTable();
     table.create('app', 'chrome', 0.5, 'test');
     const found = table.findByTarget('app', 'chrome');
@@ -2138,12 +2138,12 @@ describe('SocialContractTable - 查找与查询', () => {
     expect(found.target).toBe('chrome');
   });
 
-  it.skip('findByTarget 未找到返回 null', () => {
+  it('findByTarget 未找到返回 null', () => {
     const table = new SocialContractTable();
     expect(table.findByTarget('app', 'nonexist')).toBeNull();
   });
 
-  it.skip('query 按 app 子串匹配', () => {
+  it('query 按 app 子串匹配', () => {
     const table = new SocialContractTable();
     table.create('app', 'chrome', 0.5, 'test');
     // "app:google chrome" 包含 "chrome"
@@ -2152,7 +2152,7 @@ describe('SocialContractTable - 查找与查询', () => {
     expect(results[0].target).toBe('chrome');
   });
 
-  it.skip('query 按 time 轴精确匹配', () => {
+  it('query 按 time 轴精确匹配', () => {
     const table = new SocialContractTable();
     table.create('time', 'night', 0.5, '深夜活跃');
     const results = table.query('app:whatever', 'time:night');
@@ -2160,14 +2160,14 @@ describe('SocialContractTable - 查找与查询', () => {
     expect(results[0].target).toBe('night');
   });
 
-  it.skip('query 无匹配返回空数组', () => {
+  it('query 无匹配返回空数组', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.5, 'test');
     const results = table.query('app:vscode', 'time:morning');
     expect(results).toHaveLength(0);
   });
 
-  it.skip('query 同时返回 app 和 time 匹配的偏好', () => {
+  it('query 同时返回 app 和 time 匹配的偏好', () => {
     const table = new SocialContractTable();
     table.create('app', 'chrome', 0.5, 'test1');
     table.create('time', 'night', 0.3, 'test2');
@@ -2177,7 +2177,7 @@ describe('SocialContractTable - 查找与查询', () => {
 });
 
 describe('SocialContractTable - 移除与序列化', () => {
-  it.skip('remove 按 id 移除偏好', () => {
+  it('remove 按 id 移除偏好', () => {
     const table = new SocialContractTable();
     table.create('app', 'test', 0.5, 'memo');
     const id = table.preferences[0].id;
@@ -2185,12 +2185,12 @@ describe('SocialContractTable - 移除与序列化', () => {
     expect(table.preferences).toHaveLength(0);
   });
 
-  it.skip('remove 不存在的 id 不抛错', () => {
+  it('remove 不存在的 id 不抛错', () => {
     const table = new SocialContractTable();
     expect(() => table.remove('nonexist')).not.toThrow();
   });
 
-  it.skip('serialize 返回 preferences 数组的副本', () => {
+  it('serialize 返回 preferences 数组的副本', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.5, 'test');
     const serialized = table.serialize();
@@ -2199,7 +2199,7 @@ describe('SocialContractTable - 移除与序列化', () => {
     expect(serialized[0].target).toBe('bilibili');
   });
 
-  it.skip('hydrate 从数据恢复偏好列表', () => {
+  it('hydrate 从数据恢复偏好列表', () => {
     const table = new SocialContractTable();
     const entries = [
       { id: 'pref_test_1', axis: 'app', target: 'test', titleHints: [], polarity: 0.6, strength: 0.35, formedAt: 1, lastActivated: 2, reinforceCount: 4, formativeMemory: 'memo' },
@@ -2216,7 +2216,7 @@ describe('SocialContractTable - 移除与序列化', () => {
 // ============================================================
 
 describe('PreferenceBridge - 激活与匹配', () => {
-  it.skip('activate 返回匹配的偏好列表', () => {
+  it('activate 返回匹配的偏好列表', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'chrome', 0.6, 'test');
@@ -2227,7 +2227,7 @@ describe('PreferenceBridge - 激活与匹配', () => {
     expect(result.matches[0].target).toBe('chrome');
   });
 
-  it.skip('activate 更新匹配偏好的 lastActivated', () => {
+  it('activate 更新匹配偏好的 lastActivated', () => {
     const table = new SocialContractTable();
     table.create('app', 'chrome', 0.6, 'test');
     const oldTime = table.preferences[0].lastActivated;
@@ -2237,7 +2237,7 @@ describe('PreferenceBridge - 激活与匹配', () => {
     expect(table.preferences[0].lastActivated).toBeGreaterThanOrEqual(oldTime);
   });
 
-  it.skip('无匹配偏好时返回空 matches 和 null thought', () => {
+  it('无匹配偏好时返回空 matches 和 null thought', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     const bridge = new PreferenceBridge(man.driveSystem, table);
@@ -2248,7 +2248,7 @@ describe('PreferenceBridge - 激活与匹配', () => {
 });
 
 describe('PreferenceBridge - 驱力效果（喜欢的上下文）', () => {
-  it.skip('正效果降低 social.tension', () => {
+  it('正效果降低 social.tension', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, 'test');
@@ -2260,7 +2260,7 @@ describe('PreferenceBridge - 驱力效果（喜欢的上下文）', () => {
     expect(man.driveSystem.drives.social.tension).toBeLessThan(0.5);
   });
 
-  it.skip('正效果降低 novelty.tension', () => {
+  it('正效果降低 novelty.tension', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, 'test');
@@ -2273,7 +2273,7 @@ describe('PreferenceBridge - 驱力效果（喜欢的上下文）', () => {
 });
 
 describe('PreferenceBridge - 驱力效果（讨厌的上下文）', () => {
-  it.skip('负效果升高 expression.tension', () => {
+  it('负效果升高 expression.tension', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'work', -0.7, 'test');
@@ -2284,7 +2284,7 @@ describe('PreferenceBridge - 驱力效果（讨厌的上下文）', () => {
     expect(man.driveSystem.drives.expression.tension).toBeGreaterThan(0.3);
   });
 
-  it.skip('负效果升高 rest.tension', () => {
+  it('负效果升高 rest.tension', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'work', -0.7, 'test');
@@ -2297,7 +2297,7 @@ describe('PreferenceBridge - 驱力效果（讨厌的上下文）', () => {
 });
 
 describe('PreferenceBridge - 勇气调制', () => {
-  it.skip('喜欢的上下文增加各驱力 courage', () => {
+  it('喜欢的上下文增加各驱力 courage', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, 'test');
@@ -2309,7 +2309,7 @@ describe('PreferenceBridge - 勇气调制', () => {
     expect(man.driveSystem.drives.social.courage).toBeGreaterThan(beforeCourage);
   });
 
-  it.skip('讨厌的上下文降低各驱力 courage', () => {
+  it('讨厌的上下文降低各驱力 courage', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'work', -0.8, 'test');
@@ -2322,7 +2322,7 @@ describe('PreferenceBridge - 勇气调制', () => {
 });
 
 describe('PreferenceBridge - 动作权重偏置', () => {
-  it.skip('喜欢时 approach 类动作获得正 bonus', () => {
+  it('喜欢时 approach 类动作获得正 bonus', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, 'test');
@@ -2332,7 +2332,7 @@ describe('PreferenceBridge - 动作权重偏置', () => {
     expect(bonus).toBeGreaterThan(0);
   });
 
-  it.skip('喜欢时 withdrawal 类动作获得负 bonus', () => {
+  it('喜欢时 withdrawal 类动作获得负 bonus', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, 'test');
@@ -2342,7 +2342,7 @@ describe('PreferenceBridge - 动作权重偏置', () => {
     expect(bonus).toBeLessThan(0);
   });
 
-  it.skip('讨厌时 withdrawal 类动作获得正 bonus', () => {
+  it('讨厌时 withdrawal 类动作获得正 bonus', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'work', -0.8, 'test');
@@ -2352,7 +2352,7 @@ describe('PreferenceBridge - 动作权重偏置', () => {
     expect(bonus).toBeGreaterThan(0);
   });
 
-  it.skip('讨厌时 approach 类动作获得负 bonus', () => {
+  it('讨厌时 approach 类动作获得负 bonus', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'work', -0.8, 'test');
@@ -2362,7 +2362,7 @@ describe('PreferenceBridge - 动作权重偏置', () => {
     expect(bonus).toBeLessThan(0);
   });
 
-  it.skip('无偏好时 bonus 为 0', () => {
+  it('无偏好时 bonus 为 0', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     const bridge = new PreferenceBridge(man.driveSystem, table);
@@ -2372,7 +2372,7 @@ describe('PreferenceBridge - 动作权重偏置', () => {
 });
 
 describe('PreferenceBridge - 思绪气泡', () => {
-  it.skip('弱偏好 (strength 0.2-0.4) 不生成思绪', () => {
+  it('弱偏好 (strength 0.2-0.4) 不生成思绪', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'test', 0.5, 'memo');
@@ -2382,7 +2382,7 @@ describe('PreferenceBridge - 思绪气泡', () => {
     expect(thought).toBeNull();
   });
 
-  it.skip('中等偏好 (strength 0.4-0.7) 正极性生成模糊正面思绪', () => {
+  it('中等偏好 (strength 0.4-0.7) 正极性生成模糊正面思绪', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'test', 0.8, 'memo');
@@ -2394,7 +2394,7 @@ describe('PreferenceBridge - 思绪气泡', () => {
     expect(['嗯，还不错~', '有点意思', '挺好的嘛']).toContain(thought);
   });
 
-  it.skip('中等偏好 (strength 0.4-0.7) 负极性生成模糊负面思绪', () => {
+  it('中等偏好 (strength 0.4-0.7) 负极性生成模糊负面思绪', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'test', -0.8, 'memo');
@@ -2405,7 +2405,7 @@ describe('PreferenceBridge - 思绪气泡', () => {
     expect(['嗯......', '又来了', '总觉得哪里不对']).toContain(thought);
   });
 
-  it.skip('强偏好 (strength 0.7-1.0) 正极性生成明确正面思绪', () => {
+  it('强偏好 (strength 0.7-1.0) 正极性生成明确正面思绪', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'test', 0.9, 'memo');
@@ -2416,7 +2416,7 @@ describe('PreferenceBridge - 思绪气泡', () => {
     expect(['我就喜欢这个！', '来了来了！', '太好了~']).toContain(thought);
   });
 
-  it.skip('强偏好 (strength 0.7-1.0) 负极性生成明确负面思绪', () => {
+  it('强偏好 (strength 0.7-1.0) 负极性生成明确负面思绪', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'test', -0.9, 'memo');
@@ -2427,7 +2427,7 @@ describe('PreferenceBridge - 思绪气泡', () => {
     expect(['能换点别的吗...', '不太想看这个...', '又是这个啊...']).toContain(thought);
   });
 
-  it.skip('多偏好时取 |polarity * strength| 最大的偏好生成思绪', () => {
+  it('多偏好时取 |polarity * strength| 最大的偏好生成思绪', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'weak', 0.3, 'test');
@@ -2441,7 +2441,7 @@ describe('PreferenceBridge - 思绪气泡', () => {
     expect(['我就喜欢这个！', '来了来了！', '太好了~']).toContain(thought);
   });
 
-  it.skip('思绪不直接包含应用名', () => {
+  it('思绪不直接包含应用名', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.9, 'test');
@@ -2454,7 +2454,7 @@ describe('PreferenceBridge - 思绪气泡', () => {
 });
 
 describe('PreferenceBridge - 多偏好叠加与矛盾态', () => {
-  it.skip('多个偏好效果直接叠加到驱力系统', () => {
+  it('多个偏好效果直接叠加到驱力系统', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'a', 0.8, 'test');
@@ -2468,7 +2468,7 @@ describe('PreferenceBridge - 多偏好叠加与矛盾态', () => {
     expect(man.driveSystem.drives.social.tension).toBeLessThan(0.5);
   });
 
-  it.skip('正负偏好同时激活产生矛盾态（是特性不是 bug）', () => {
+  it('正负偏好同时激活产生矛盾态（是特性不是 bug）', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     table.create('app', 'liked', 0.8, 'positive');
@@ -2488,7 +2488,7 @@ describe('PreferenceBridge - 多偏好叠加与矛盾态', () => {
 // ============================================================
 
 describe('Sensitivity 向量生成', () => {
-  it.skip('每维度在 0.5-1.5 范围内', () => {
+  it('每维度在 0.5-1.5 范围内', () => {
     // 多次生成验证范围
     for (let i = 0; i < 100; i++) {
       const s = { app: 0.5 + Math.random(), time: 0.5 + Math.random(), duration: 0.5 + Math.random(), interaction: 0.5 + Math.random() };
@@ -2503,7 +2503,7 @@ describe('Sensitivity 向量生成', () => {
     }
   });
 
-  it.skip('sensitivity 包含 app, time, duration, interaction 四个维度', () => {
+  it('sensitivity 包含 app, time, duration, interaction 四个维度', () => {
     const s = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     expect(s).toHaveProperty('app');
     expect(s).toHaveProperty('time');
@@ -2513,7 +2513,7 @@ describe('Sensitivity 向量生成', () => {
 });
 
 describe('preferences.json 结构', () => {
-  it.skip('完整数据结构包含 sensitivity, associations, preferences', () => {
+  it('完整数据结构包含 sensitivity, associations, preferences', () => {
     const data = {
       sensitivity: { app: 1.12, time: 0.78, duration: 0.95, interaction: 1.30 },
       associations: {},
@@ -2524,7 +2524,7 @@ describe('preferences.json 结构', () => {
     expect(data).toHaveProperty('preferences');
   });
 
-  it.skip('PreferenceEntry 包含所有必需字段', () => {
+  it('PreferenceEntry 包含所有必需字段', () => {
     const entry = {
       id: 'pref_bilibili_1710005000',
       axis: 'app',
@@ -2555,7 +2555,7 @@ describe('preferences.json 结构', () => {
 // ============================================================
 
 describe('偏好涌现 - 冷启动（零历史）', () => {
-  it.skip('偏好列表为空时行为完全由现有驱力系统驱动', () => {
+  it('偏好列表为空时行为完全由现有驱力系统驱动', () => {
     const man = new Stickman(200);
     const table = new SocialContractTable();
     const bridge = new PreferenceBridge(man.driveSystem, table);
@@ -2570,14 +2570,14 @@ describe('偏好涌现 - 冷启动（零历史）', () => {
 });
 
 describe('偏好涌现 - 应用名变体归一化', () => {
-  it.skip('"Google Chrome" 归一化后可匹配偏好 target "chrome"', () => {
+  it('"Google Chrome" 归一化后可匹配偏好 target "chrome"', () => {
     const table = new SocialContractTable();
     table.create('app', 'chrome', 0.5, 'test');
     const results = table.query('app:google chrome', 'time:afternoon');
     expect(results.length).toBeGreaterThanOrEqual(1);
   });
 
-  it.skip('大小写不敏感匹配: "VS Code" vs "vs code"', () => {
+  it('大小写不敏感匹配: "VS Code" vs "vs code"', () => {
     const table = new SocialContractTable();
     table.create('app', 'vs code', 0.5, 'test');
     const results = table.query('app:vs code', 'time:morning');
@@ -2586,7 +2586,7 @@ describe('偏好涌现 - 应用名变体归一化', () => {
 });
 
 describe('偏好涌现 - 偏好生长曲线时间尺度', () => {
-  it.skip('从 0.2 → 0.4 约需 4 次强化', () => {
+  it('从 0.2 → 0.4 约需 4 次强化', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const pref = { id: 'test', polarity: 0.5, strength: 0.2, reinforceCount: 0, lastActivated: Date.now() };
@@ -2599,7 +2599,7 @@ describe('偏好涌现 - 偏好生长曲线时间尺度', () => {
     expect(count).toBeLessThanOrEqual(6);
   });
 
-  it.skip('从 0.4 → 0.7 需要更多次强化（约 10 次）', () => {
+  it('从 0.4 → 0.7 需要更多次强化（约 10 次）', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const pref = { id: 'test', polarity: 0.5, strength: 0.4, reinforceCount: 0, lastActivated: Date.now() };
@@ -2612,7 +2612,7 @@ describe('偏好涌现 - 偏好生长曲线时间尺度', () => {
     expect(count).toBeLessThanOrEqual(15);
   });
 
-  it.skip('从 0.7 → 0.9 需要 20+ 次强化', () => {
+  it('从 0.7 → 0.9 需要 20+ 次强化', () => {
     const sensitivity = { app: 1.0, time: 1.0, duration: 1.0, interaction: 1.0 };
     const engine = new EmergenceEngine(sensitivity);
     const pref = { id: 'test', polarity: 0.5, strength: 0.7, reinforceCount: 0, lastActivated: Date.now() };
@@ -2626,7 +2626,7 @@ describe('偏好涌现 - 偏好生长曲线时间尺度', () => {
 });
 
 describe('偏好涌现 - 可解释性思绪模板', () => {
-  it.skip('PREFERENCE_THOUGHTS 包含 4 类模板', () => {
+  it('PREFERENCE_THOUGHTS 包含 4 类模板', () => {
     expect(PREFERENCE_THOUGHTS).toBeDefined();
     expect(PREFERENCE_THOUGHTS.positive_medium).toBeDefined();
     expect(PREFERENCE_THOUGHTS.positive_strong).toBeDefined();
@@ -2634,14 +2634,14 @@ describe('偏好涌现 - 可解释性思绪模板', () => {
     expect(PREFERENCE_THOUGHTS.negative_strong).toBeDefined();
   });
 
-  it.skip('每类模板至少有 2 条可选项', () => {
+  it('每类模板至少有 2 条可选项', () => {
     expect(PREFERENCE_THOUGHTS.positive_medium.length).toBeGreaterThanOrEqual(2);
     expect(PREFERENCE_THOUGHTS.positive_strong.length).toBeGreaterThanOrEqual(2);
     expect(PREFERENCE_THOUGHTS.negative_medium.length).toBeGreaterThanOrEqual(2);
     expect(PREFERENCE_THOUGHTS.negative_strong.length).toBeGreaterThanOrEqual(2);
   });
 
-  it.skip('所有模板不包含具体应用名', () => {
+  it('所有模板不包含具体应用名', () => {
     const allThoughts = [
       ...PREFERENCE_THOUGHTS.positive_medium,
       ...PREFERENCE_THOUGHTS.positive_strong,

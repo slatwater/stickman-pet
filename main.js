@@ -82,6 +82,29 @@ function createWindow() {
     }
   });
 
+  // 加载偏好数据
+  ipcMain.handle('load-preferences', async () => {
+    try {
+      const data = fs.readFileSync(path.join(__dirname, 'ai', 'preferences.json'), 'utf8');
+      return JSON.parse(data);
+    } catch (_) {
+      return null;
+    }
+  });
+
+  // 保存偏好数据（原子写入）
+  ipcMain.handle('save-preferences', async (_, data) => {
+    const filePath = path.join(__dirname, 'ai', 'preferences.json');
+    const tmpPath = filePath + '.tmp';
+    try {
+      fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf8');
+      fs.renameSync(tmpPath, filePath);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  });
+
   // 加载性格参数
   ipcMain.handle('load-personality', async () => {
     try {

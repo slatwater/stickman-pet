@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadBehaviors: () => ipcRenderer.invoke('load-behaviors'),
   loadCombos: () => ipcRenderer.invoke('load-combos'),
   loadPersonality: () => ipcRenderer.invoke('load-personality'),
+  loadPreferences: () => ipcRenderer.invoke('load-preferences'),
+  savePreferences: (data) => ipcRenderer.invoke('save-preferences', data),
   onScreenInfo: (callback) => ipcRenderer.on('screen-info', (_, data) => callback(data)),
   reportInteraction: (type) => ipcRenderer.send('report-interaction', type),
   sendChat: (message) => ipcRenderer.invoke('send-chat', message),
