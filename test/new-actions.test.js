@@ -3015,29 +3015,29 @@ describe('ContractEnforcer - 构造与初始化', () => {
 });
 
 describe('ContractEnforcer - scanViolations 违约扫描', () => {
-  it('无偏好时返回 null', () => {
+  it('无偏好时返回空数组', () => {
     const table = { query: () => [] };
     const enforcer = new ContractEnforcer(table);
-    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)).toBeNull();
+    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)).toEqual([]);
   });
 
   it('strength < 0.5 的偏好不触发违约', () => {
     const table = { query: () => [{ id: 'p1', strength: 0.3, polarity: -0.8 }] };
     const enforcer = new ContractEnforcer(table);
-    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)).toBeNull();
+    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)).toEqual([]);
   });
 
   it('polarity > -0.4 的偏好不触发违约', () => {
     const table = { query: () => [{ id: 'p1', strength: 0.8, polarity: -0.2 }] };
     const enforcer = new ContractEnforcer(table);
-    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)).toBeNull();
+    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)).toEqual([]);
   });
 
   it('strength >= 0.5 且 polarity <= -0.4 触发违约', () => {
     const pref = { id: 'p1', strength: 0.6, polarity: -0.5 };
     const table = { query: () => [pref] };
     const enforcer = new ContractEnforcer(table);
-    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)).toEqual(pref);
+    expect(enforcer.scanViolations('app:bilibili', 'time:night', table)[0]).toEqual(pref);
   });
 
   it('多个违约偏好按 |polarity| * strength 降序取第一个', () => {
@@ -3045,7 +3045,7 @@ describe('ContractEnforcer - scanViolations 违约扫描', () => {
     const pref2 = { id: 'p2', strength: 0.8, polarity: -0.7 }; // score 0.56
     const table = { query: () => [pref1, pref2] };
     const enforcer = new ContractEnforcer(table);
-    expect(enforcer.scanViolations('app:x', 'time:y', table).id).toBe('p2');
+    expect(enforcer.scanViolations('app:x', 'time:y', table)[0].id).toBe('p2');
   });
 
   it('最近 CAMPAIGN_COOLDOWN 秒内解决过的同一偏好被排除', () => {
@@ -3053,7 +3053,7 @@ describe('ContractEnforcer - scanViolations 违约扫描', () => {
     const table = { query: () => [pref] };
     const enforcer = new ContractEnforcer(table);
     enforcer.resolvedCampaigns = [{ preferenceId: 'p1', resolvedAt: Date.now() }];
-    expect(enforcer.scanViolations('app:x', 'time:y', table)).toBeNull();
+    expect(enforcer.scanViolations('app:x', 'time:y', table)).toEqual([]);
   });
 });
 
@@ -3913,11 +3913,11 @@ describe('施压边界条件 - 情绪影响', () => {
 // ============================================================
 
 describe('ConcessionEngine - 构造与初始化', () => {
-  it.skip('ConcessionEngine 类已定义', () => {
+  it('ConcessionEngine 类已定义', () => {
     expect(typeof ConcessionEngine).toBe('function');
   });
 
-  it.skip('构造时接收 SocialContractTable 和 EscalationGradient 引用', () => {
+  it('构造时接收 SocialContractTable 和 EscalationGradient 引用', () => {
     const table = new SocialContractTable();
     const gradient = new EscalationGradient();
     const engine = new ConcessionEngine(table, gradient);
@@ -3925,12 +3925,12 @@ describe('ConcessionEngine - 构造与初始化', () => {
     expect(engine._gradient).toBe(gradient);
   });
 
-  it.skip('初始 activeConcessions 为空数组', () => {
+  it('初始 activeConcessions 为空数组', () => {
     const engine = new ConcessionEngine(new SocialContractTable(), new EscalationGradient());
     expect(engine.activeConcessions).toEqual([]);
   });
 
-  it.skip('初始 negotiationHistory 为空数组', () => {
+  it('初始 negotiationHistory 为空数组', () => {
     const engine = new ConcessionEngine(new SocialContractTable(), new EscalationGradient());
     expect(engine.negotiationHistory).toEqual([]);
   });
@@ -3941,7 +3941,7 @@ describe('ConcessionEngine - 构造与初始化', () => {
 // ============================================================
 
 describe('ConcessionEngine - 火柴人让步（suppressPreference）', () => {
-  it.skip('suppressPreference 在偏好上设置 suppressedSince 时间戳', () => {
+  it('suppressPreference 在偏好上设置 suppressedSince 时间戳', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     const engine = new ConcessionEngine(table, new EscalationGradient());
@@ -3949,7 +3949,7 @@ describe('ConcessionEngine - 火柴人让步（suppressPreference）', () => {
     expect(table.preferences[0].suppressedSince).toBeGreaterThan(0);
   });
 
-  it.skip('suppressPreference 将偏好加入 activeConcessions', () => {
+  it('suppressPreference 将偏好加入 activeConcessions', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     const engine = new ConcessionEngine(table, new EscalationGradient());
@@ -3958,7 +3958,7 @@ describe('ConcessionEngine - 火柴人让步（suppressPreference）', () => {
     expect(engine.activeConcessions[0].prefId).toBe(table.preferences[0].id);
   });
 
-  it.skip('已压制的偏好不可重复压制', () => {
+  it('已压制的偏好不可重复压制', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     const engine = new ConcessionEngine(table, new EscalationGradient());
@@ -3968,7 +3968,7 @@ describe('ConcessionEngine - 火柴人让步（suppressPreference）', () => {
     expect(engine.activeConcessions).toHaveLength(1);
   });
 
-  it.skip('不存在的偏好 id 调用 suppressPreference 不抛错', () => {
+  it('不存在的偏好 id 调用 suppressPreference 不抛错', () => {
     const engine = new ConcessionEngine(new SocialContractTable(), new EscalationGradient());
     expect(() => engine.suppressPreference('nonexist_id')).not.toThrow();
   });
@@ -3979,7 +3979,7 @@ describe('ConcessionEngine - 火柴人让步（suppressPreference）', () => {
 // ============================================================
 
 describe('ConcessionEngine - 压制后情绪低落', () => {
-  it.skip('压制后 48h 内 getEmotionalPenalty 返回非零惩罚', () => {
+  it('压制后 48h 内 getEmotionalPenalty 返回非零惩罚', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     const engine = new ConcessionEngine(table, new EscalationGradient());
@@ -3989,7 +3989,7 @@ describe('ConcessionEngine - 压制后情绪低落', () => {
     expect(penalty.restTension).toBeGreaterThan(0);
   });
 
-  it.skip('压制后 social courage 下降', () => {
+  it('压制后 social courage 下降', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     const engine = new ConcessionEngine(table, new EscalationGradient());
@@ -3998,7 +3998,7 @@ describe('ConcessionEngine - 压制后情绪低落', () => {
     expect(penalty.socialCourageModifier).toBeLessThan(0);
   });
 
-  it.skip('超过 48h 后情绪惩罚归零', () => {
+  it('超过 48h 后情绪惩罚归零', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     const engine = new ConcessionEngine(table, new EscalationGradient());
@@ -4009,7 +4009,7 @@ describe('ConcessionEngine - 压制后情绪低落', () => {
     expect(penalty.expressionTension).toBe(0);
   });
 
-  it.skip('多个偏好同时压制时情绪惩罚叠加', () => {
+  it('多个偏好同时压制时情绪惩罚叠加', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.create('app', 'youtube', 0.7, '喜欢油管');
@@ -4027,7 +4027,7 @@ describe('ConcessionEngine - 压制后情绪低落', () => {
 // ============================================================
 
 describe('ConcessionEngine - strength 缓慢衰减', () => {
-  it.skip('每周期被压制偏好 strength -= 0.02', () => {
+  it('每周期被压制偏好 strength -= 0.02', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.preferences[0].strength = 0.5;
@@ -4037,7 +4037,7 @@ describe('ConcessionEngine - strength 缓慢衰减', () => {
     expect(table.preferences[0].strength).toBeCloseTo(0.48);
   });
 
-  it.skip('未压制的偏好 strength 不受 tick 影响', () => {
+  it('未压制的偏好 strength 不受 tick 影响', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.preferences[0].strength = 0.5;
@@ -4046,7 +4046,7 @@ describe('ConcessionEngine - strength 缓慢衰减', () => {
     expect(table.preferences[0].strength).toBe(0.5);
   });
 
-  it.skip('strength 衰减到 0 时偏好解体（从 table 移除）', () => {
+  it('strength 衰减到 0 时偏好解体（从 table 移除）', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.preferences[0].strength = 0.01;
@@ -4056,7 +4056,7 @@ describe('ConcessionEngine - strength 缓慢衰减', () => {
     expect(table.preferences).toHaveLength(0);
   });
 
-  it.skip('解体后从 activeConcessions 中也移除', () => {
+  it('解体后从 activeConcessions 中也移除', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.preferences[0].strength = 0.01;
@@ -4066,7 +4066,7 @@ describe('ConcessionEngine - strength 缓慢衰减', () => {
     expect(engine.activeConcessions).toHaveLength(0);
   });
 
-  it.skip('多次 tick 累积衰减', () => {
+  it('多次 tick 累积衰减', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.preferences[0].strength = 0.5;
@@ -4084,7 +4084,7 @@ describe('ConcessionEngine - strength 缓慢衰减', () => {
 // ============================================================
 
 describe('ConcessionEngine - 用户让步（createNegotiatedConstraint）', () => {
-  it.skip('createNegotiatedConstraint 在 table 中新建 origin:"negotiated" 偏好', () => {
+  it('createNegotiatedConstraint 在 table 中新建 origin:"negotiated" 偏好', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     engine.createNegotiatedConstraint('app', 'work', -0.5, '用户同意减少加班');
@@ -4092,14 +4092,14 @@ describe('ConcessionEngine - 用户让步（createNegotiatedConstraint）', () =
     expect(table.preferences[0].origin).toBe('negotiated');
   });
 
-  it.skip('协商偏好初始 strength 为 0.6', () => {
+  it('协商偏好初始 strength 为 0.6', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     engine.createNegotiatedConstraint('app', 'work', -0.5, '用户同意');
     expect(table.preferences[0].strength).toBe(0.6);
   });
 
-  it.skip('协商偏好记录 negotiatedAt 时间戳', () => {
+  it('协商偏好记录 negotiatedAt 时间戳', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     const before = Date.now();
@@ -4107,7 +4107,7 @@ describe('ConcessionEngine - 用户让步（createNegotiatedConstraint）', () =
     expect(table.preferences[0].negotiatedAt).toBeGreaterThanOrEqual(before);
   });
 
-  it.skip('协商偏好复用 Phase 2 施压管线执行（可被 ContractEnforcer 扫描）', () => {
+  it('协商偏好复用 Phase 2 施压管线执行（可被 ContractEnforcer 扫描）', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     engine.createNegotiatedConstraint('app', 'work', -0.5, '用户同意');
@@ -4119,7 +4119,7 @@ describe('ConcessionEngine - 用户让步（createNegotiatedConstraint）', () =
     expect(pref).toHaveProperty('strength');
   });
 
-  it.skip('协商偏好违约时信任损伤 ×2.0', () => {
+  it('协商偏好违约时信任损伤 ×2.0', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     engine.createNegotiatedConstraint('app', 'work', -0.5, '用户同意');
@@ -4128,7 +4128,7 @@ describe('ConcessionEngine - 用户让步（createNegotiatedConstraint）', () =
     expect(damageWeight).toBe(2.0);
   });
 
-  it.skip('普通偏好违约信任损伤权重为 1.0', () => {
+  it('普通偏好违约信任损伤权重为 1.0', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     const engine = new ConcessionEngine(table, new EscalationGradient());
@@ -4136,7 +4136,7 @@ describe('ConcessionEngine - 用户让步（createNegotiatedConstraint）', () =
     expect(damageWeight).toBe(1.0);
   });
 
-  it.skip('协商历史记录本次协商', () => {
+  it('协商历史记录本次协商', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     engine.createNegotiatedConstraint('app', 'work', -0.5, '用户同意减少加班');
@@ -4150,7 +4150,7 @@ describe('ConcessionEngine - 用户让步（createNegotiatedConstraint）', () =
 // ============================================================
 
 describe('ConcessionEngine - ContractEnforcer 已压制偏好跳过', () => {
-  it.skip('scanViolations 跳过 suppressedSince 非空的偏好', () => {
+  it('scanViolations 跳过 suppressedSince 非空的偏好', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.preferences[0].suppressedSince = Date.now();
@@ -4159,7 +4159,7 @@ describe('ConcessionEngine - ContractEnforcer 已压制偏好跳过', () => {
     expect(violations).toHaveLength(0);
   });
 
-  it.skip('未压制偏好正常参与违约扫描', () => {
+  it('未压制偏好正常参与违约扫描', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.preferences[0].strength = 0.5;
@@ -4170,7 +4170,7 @@ describe('ConcessionEngine - ContractEnforcer 已压制偏好跳过', () => {
     expect(Array.isArray(violations)).toBe(true);
   });
 
-  it.skip('信任损伤乘以 origin 权重（negotiated = ×2.0）', () => {
+  it('信任损伤乘以 origin 权重（negotiated = ×2.0）', () => {
     const table = new SocialContractTable();
     table.create('app', 'work', -0.5, '协商偏好');
     table.preferences[0].origin = 'negotiated';
@@ -4188,7 +4188,7 @@ describe('ConcessionEngine - ContractEnforcer 已压制偏好跳过', () => {
 // ============================================================
 
 describe('ConcessionEngine - 行为塑形检测', () => {
-  it.skip('evaluateBehavioralShaping 检测用户行为是否软化', () => {
+  it('evaluateBehavioralShaping 检测用户行为是否软化', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     const result = engine.evaluateBehavioralShaping({
@@ -4198,7 +4198,7 @@ describe('ConcessionEngine - 行为塑形检测', () => {
     expect(result.shapingDetected).toBe(true);
   });
 
-  it.skip('合规率无明显变化时 shapingDetected 为 false', () => {
+  it('合规率无明显变化时 shapingDetected 为 false', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     const result = engine.evaluateBehavioralShaping({
@@ -4208,14 +4208,14 @@ describe('ConcessionEngine - 行为塑形检测', () => {
     expect(result.shapingDetected).toBe(false);
   });
 
-  it.skip('EmergenceEngine 周期末调用 evaluateBehavioralShaping', () => {
+  it('EmergenceEngine 周期末调用 evaluateBehavioralShaping', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     // 验证 EmergenceEngine 的 tick 流程调用了此方法
     expect(typeof engine.evaluateBehavioralShaping).toBe('function');
   });
 
-  it.skip('行为软化检测阈值为合规率提升 ≥ 0.2', () => {
+  it('行为软化检测阈值为合规率提升 ≥ 0.2', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     const borderline = engine.evaluateBehavioralShaping({
@@ -4236,7 +4236,7 @@ describe('ConcessionEngine - 行为塑形检测', () => {
 // ============================================================
 
 describe('ConcessionEngine - 协商冻结', () => {
-  it.skip('enterNegotiation 调用 EscalationGradient.freeze()', () => {
+  it('enterNegotiation 调用 EscalationGradient.freeze()', () => {
     const gradient = new EscalationGradient();
     gradient.init(1, 200);
     const engine = new ConcessionEngine(new SocialContractTable(), gradient);
@@ -4244,7 +4244,7 @@ describe('ConcessionEngine - 协商冻结', () => {
     expect(gradient.frozen).toBe(true);
   });
 
-  it.skip('exitNegotiation 调用 EscalationGradient.unfreeze()', () => {
+  it('exitNegotiation 调用 EscalationGradient.unfreeze()', () => {
     const gradient = new EscalationGradient();
     gradient.init(1, 200);
     const engine = new ConcessionEngine(new SocialContractTable(), gradient);
@@ -4253,7 +4253,7 @@ describe('ConcessionEngine - 协商冻结', () => {
     expect(gradient.frozen).toBe(false);
   });
 
-  it.skip('协商冻结期间 escalationTimer 不递减', () => {
+  it('协商冻结期间 escalationTimer 不递减', () => {
     const gradient = new EscalationGradient();
     gradient.init(1, 200);
     const engine = new ConcessionEngine(new SocialContractTable(), gradient);
@@ -4262,7 +4262,7 @@ describe('ConcessionEngine - 协商冻结', () => {
     expect(gradient.escalationTimer).toBe(200);
   });
 
-  it.skip('API 不可用时冻结不解除（不本地兜底）', () => {
+  it('API 不可用时冻结不解除（不本地兜底）', () => {
     const gradient = new EscalationGradient();
     gradient.init(1, 200);
     const engine = new ConcessionEngine(new SocialContractTable(), gradient);
@@ -4272,7 +4272,7 @@ describe('ConcessionEngine - 协商冻结', () => {
     expect(gradient.frozen).toBe(true);
   });
 
-  it.skip('API 恢复后可正常退出协商', () => {
+  it('API 恢复后可正常退出协商', () => {
     const gradient = new EscalationGradient();
     const engine = new ConcessionEngine(new SocialContractTable(), gradient);
     engine.enterNegotiation();
@@ -4288,19 +4288,19 @@ describe('ConcessionEngine - 协商冻结', () => {
 // ============================================================
 
 describe('ConcessionEngine - SocialContractTable 新字段', () => {
-  it.skip('偏好条目包含 suppressedSince 字段（默认 null）', () => {
+  it('偏好条目包含 suppressedSince 字段（默认 null）', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     expect(table.preferences[0].suppressedSince).toBeNull();
   });
 
-  it.skip('偏好条目包含 origin 字段（默认 "emergent"）', () => {
+  it('偏好条目包含 origin 字段（默认 "emergent"）', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     expect(table.preferences[0].origin).toBe('emergent');
   });
 
-  it.skip('serialize 包含 suppressedSince 和 origin', () => {
+  it('serialize 包含 suppressedSince 和 origin', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.preferences[0].suppressedSince = 1000;
@@ -4310,7 +4310,7 @@ describe('ConcessionEngine - SocialContractTable 新字段', () => {
     expect(serialized[0].origin).toBe('negotiated');
   });
 
-  it.skip('hydrate 恢复 suppressedSince 和 origin', () => {
+  it('hydrate 恢复 suppressedSince 和 origin', () => {
     const table = new SocialContractTable();
     table.hydrate([{
       id: 'pref_test_1', axis: 'app', target: 'test', titleHints: [],
@@ -4328,7 +4328,7 @@ describe('ConcessionEngine - SocialContractTable 新字段', () => {
 // ============================================================
 
 describe('ConcessionEngine - serialize/hydrate', () => {
-  it.skip('serialize 返回 activeConcessions 和 negotiationHistory', () => {
+  it('serialize 返回 activeConcessions 和 negotiationHistory', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     const engine = new ConcessionEngine(table, new EscalationGradient());
@@ -4339,7 +4339,7 @@ describe('ConcessionEngine - serialize/hydrate', () => {
     expect(data.activeConcessions).toHaveLength(1);
   });
 
-  it.skip('hydrate 从数据恢复 activeConcessions', () => {
+  it('hydrate 从数据恢复 activeConcessions', () => {
     const engine = new ConcessionEngine(new SocialContractTable(), new EscalationGradient());
     engine.hydrate({
       activeConcessions: [{ prefId: 'pref_test_1', suppressedAt: 1000 }],
@@ -4348,7 +4348,7 @@ describe('ConcessionEngine - serialize/hydrate', () => {
     expect(engine.activeConcessions).toHaveLength(1);
   });
 
-  it.skip('hydrate 从数据恢复 negotiationHistory', () => {
+  it('hydrate 从数据恢复 negotiationHistory', () => {
     const engine = new ConcessionEngine(new SocialContractTable(), new EscalationGradient());
     engine.hydrate({
       activeConcessions: [],
@@ -4363,11 +4363,11 @@ describe('ConcessionEngine - serialize/hydrate', () => {
 // ============================================================
 
 describe('RelationshipQuality - 构造与初始化', () => {
-  it.skip('RelationshipQuality 类已定义', () => {
+  it('RelationshipQuality 类已定义', () => {
     expect(typeof RelationshipQuality).toBe('function');
   });
 
-  it.skip('构造时接收 SocialContractTable 和 ConcessionEngine 引用', () => {
+  it('构造时接收 SocialContractTable 和 ConcessionEngine 引用', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4375,22 +4375,22 @@ describe('RelationshipQuality - 构造与初始化', () => {
     expect(rq._concessionEngine).toBe(concession);
   });
 
-  it.skip('初始阶段为 "stranger"', () => {
+  it('初始阶段为 "stranger"', () => {
     const rq = new RelationshipQuality(new SocialContractTable(), new ConcessionEngine(new SocialContractTable(), new EscalationGradient()));
     expect(rq.stage).toBe('stranger');
   });
 
-  it.skip('初始 contractMatchRate 为 0', () => {
+  it('初始 contractMatchRate 为 0', () => {
     const rq = new RelationshipQuality(new SocialContractTable(), new ConcessionEngine(new SocialContractTable(), new EscalationGradient()));
     expect(rq.contractMatchRate).toBe(0);
   });
 
-  it.skip('初始 tolerance 为 0', () => {
+  it('初始 tolerance 为 0', () => {
     const rq = new RelationshipQuality(new SocialContractTable(), new ConcessionEngine(new SocialContractTable(), new EscalationGradient()));
     expect(rq.tolerance).toBe(0);
   });
 
-  it.skip('初始 predictability 为 0', () => {
+  it('初始 predictability 为 0', () => {
     const rq = new RelationshipQuality(new SocialContractTable(), new ConcessionEngine(new SocialContractTable(), new EscalationGradient()));
     expect(rq.predictability).toBe(0);
   });
@@ -4401,7 +4401,7 @@ describe('RelationshipQuality - 构造与初始化', () => {
 // ============================================================
 
 describe('RelationshipQuality - 契约匹配度（contractMatchRate）', () => {
-  it.skip('contractMatchRate = 加权合规率', () => {
+  it('contractMatchRate = 加权合规率', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.preferences[0].strength = 0.6;
@@ -4411,7 +4411,7 @@ describe('RelationshipQuality - 契约匹配度（contractMatchRate）', () => {
     expect(rq.contractMatchRate).toBeGreaterThan(0);
   });
 
-  it.skip('全部合规时 contractMatchRate 为 1.0', () => {
+  it('全部合规时 contractMatchRate 为 1.0', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.create('app', 'youtube', 0.6, '喜欢油管');
@@ -4424,7 +4424,7 @@ describe('RelationshipQuality - 契约匹配度（contractMatchRate）', () => {
     expect(rq.contractMatchRate).toBeCloseTo(1.0);
   });
 
-  it.skip('全部违约时 contractMatchRate 为 0', () => {
+  it('全部违约时 contractMatchRate 为 0', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     const concession = new ConcessionEngine(table, new EscalationGradient());
@@ -4433,7 +4433,7 @@ describe('RelationshipQuality - 契约匹配度（contractMatchRate）', () => {
     expect(rq.contractMatchRate).toBe(0);
   });
 
-  it.skip('强 strength 偏好的合规权重更高', () => {
+  it('强 strength 偏好的合规权重更高', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.preferences[0].strength = 0.9;
@@ -4456,7 +4456,7 @@ describe('RelationshipQuality - 契约匹配度（contractMatchRate）', () => {
     expect(rateStrongOnly).toBeGreaterThan(rateWeakOnly);
   });
 
-  it.skip('无偏好时 contractMatchRate 保持 0', () => {
+  it('无偏好时 contractMatchRate 保持 0', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4470,7 +4470,7 @@ describe('RelationshipQuality - 契约匹配度（contractMatchRate）', () => {
 // ============================================================
 
 describe('RelationshipQuality - 容忍度（tolerance）', () => {
-  it.skip('tolerance = 协商成功次数 × 交互时长因子', () => {
+  it('tolerance = 协商成功次数 × 交互时长因子', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4478,7 +4478,7 @@ describe('RelationshipQuality - 容忍度（tolerance）', () => {
     expect(rq.tolerance).toBeGreaterThan(0);
   });
 
-  it.skip('零协商成功次数 → tolerance 为 0', () => {
+  it('零协商成功次数 → tolerance 为 0', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4486,7 +4486,7 @@ describe('RelationshipQuality - 容忍度（tolerance）', () => {
     expect(rq.tolerance).toBe(0);
   });
 
-  it.skip('交互时长越长 tolerance 越高（同等协商次数）', () => {
+  it('交互时长越长 tolerance 越高（同等协商次数）', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4497,7 +4497,7 @@ describe('RelationshipQuality - 容忍度（tolerance）', () => {
     expect(tol2).toBeGreaterThan(tol1);
   });
 
-  it.skip('协商成功次数越多 tolerance 越高（同等时长）', () => {
+  it('协商成功次数越多 tolerance 越高（同等时长）', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4508,7 +4508,7 @@ describe('RelationshipQuality - 容忍度（tolerance）', () => {
     expect(tol2).toBeGreaterThan(tol1);
   });
 
-  it.skip('tolerance 有上限（clamp 到 1.0）', () => {
+  it('tolerance 有上限（clamp 到 1.0）', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4522,7 +4522,7 @@ describe('RelationshipQuality - 容忍度（tolerance）', () => {
 // ============================================================
 
 describe('RelationshipQuality - 可预测性（predictability）', () => {
-  it.skip('predictability 基于行为一致性方差计算', () => {
+  it('predictability 基于行为一致性方差计算', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4530,7 +4530,7 @@ describe('RelationshipQuality - 可预测性（predictability）', () => {
     expect(rq.predictability).toBeGreaterThan(0.8);
   });
 
-  it.skip('行为完全一致时 predictability 接近 1.0', () => {
+  it('行为完全一致时 predictability 接近 1.0', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4538,7 +4538,7 @@ describe('RelationshipQuality - 可预测性（predictability）', () => {
     expect(rq.predictability).toBeCloseTo(1.0);
   });
 
-  it.skip('行为高度不一致时 predictability 接近 0', () => {
+  it('行为高度不一致时 predictability 接近 0', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4546,7 +4546,7 @@ describe('RelationshipQuality - 可预测性（predictability）', () => {
     expect(rq.predictability).toBeLessThan(0.3);
   });
 
-  it.skip('空数组时 predictability 保持不变', () => {
+  it('空数组时 predictability 保持不变', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4555,7 +4555,7 @@ describe('RelationshipQuality - 可预测性（predictability）', () => {
     expect(rq.predictability).toBe(initial);
   });
 
-  it.skip('单个数据点时 predictability 不更新', () => {
+  it('单个数据点时 predictability 不更新', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4570,17 +4570,17 @@ describe('RelationshipQuality - 可预测性（predictability）', () => {
 // ============================================================
 
 describe('RelationshipQuality - 关系阶段', () => {
-  it.skip('5 个阶段为 stranger → acquaintance → companion → bonded → deep', () => {
+  it('5 个阶段为 stranger → acquaintance → companion → bonded → deep', () => {
     const rq = new RelationshipQuality(new SocialContractTable(), new ConcessionEngine(new SocialContractTable(), new EscalationGradient()));
     expect(RelationshipQuality.STAGES).toEqual(['stranger', 'acquaintance', 'companion', 'bonded', 'deep']);
   });
 
-  it.skip('初始阶段为 stranger', () => {
+  it('初始阶段为 stranger', () => {
     const rq = new RelationshipQuality(new SocialContractTable(), new ConcessionEngine(new SocialContractTable(), new EscalationGradient()));
     expect(rq.stage).toBe('stranger');
   });
 
-  it.skip('contractMatchRate + tolerance + predictability 综合评分决定阶段', () => {
+  it('contractMatchRate + tolerance + predictability 综合评分决定阶段', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4591,18 +4591,19 @@ describe('RelationshipQuality - 关系阶段', () => {
     expect(rq.stage).toBe('acquaintance');
   });
 
-  it.skip('高综合评分进入 bonded 或 deep 阶段', () => {
+  it('高综合评分进入 bonded 或 deep 阶段', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
     rq.contractMatchRate = 0.9;
     rq.tolerance = 0.8;
     rq.predictability = 0.9;
-    rq.evaluateStage();
+    // 逐级步进到目标阶段
+    for (let i = 0; i < 4; i++) rq.evaluateStage();
     expect(['bonded', 'deep']).toContain(rq.stage);
   });
 
-  it.skip('阶段只能逐级升降（不跳级）', () => {
+  it('阶段只能逐级升降（不跳级）', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4615,7 +4616,7 @@ describe('RelationshipQuality - 关系阶段', () => {
     expect(rq.stage).toBe('acquaintance');
   });
 
-  it.skip('综合评分大幅下降时阶段降级', () => {
+  it('综合评分大幅下降时阶段降级', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4634,7 +4635,7 @@ describe('RelationshipQuality - 关系阶段', () => {
 // ============================================================
 
 describe('RelationshipQuality - serialize/hydrate', () => {
-  it.skip('serialize 返回 stage/contractMatchRate/tolerance/predictability', () => {
+  it('serialize 返回 stage/contractMatchRate/tolerance/predictability', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4651,7 +4652,7 @@ describe('RelationshipQuality - serialize/hydrate', () => {
     });
   });
 
-  it.skip('hydrate 从数据恢复所有指标', () => {
+  it('hydrate 从数据恢复所有指标', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4667,7 +4668,7 @@ describe('RelationshipQuality - serialize/hydrate', () => {
     expect(rq.predictability).toBe(0.8);
   });
 
-  it.skip('hydrate 无效 stage 时回退到 stranger', () => {
+  it('hydrate 无效 stage 时回退到 stranger', () => {
     const table = new SocialContractTable();
     const concession = new ConcessionEngine(table, new EscalationGradient());
     const rq = new RelationshipQuality(table, concession);
@@ -4681,7 +4682,7 @@ describe('RelationshipQuality - serialize/hydrate', () => {
 // ============================================================
 
 describe('ConcessionEngine - 协商 prompt 注入', () => {
-  it.skip('getNegotiationContext 返回契约上下文字符串', () => {
+  it('getNegotiationContext 返回契约上下文字符串', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.preferences[0].strength = 0.5;
@@ -4691,14 +4692,14 @@ describe('ConcessionEngine - 协商 prompt 注入', () => {
     expect(ctx).toContain('bilibili');
   });
 
-  it.skip('getNegotiationContext 包含协商动作空间', () => {
+  it('getNegotiationContext 包含协商动作空间', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     const ctx = engine.getNegotiationContext();
     expect(ctx).toMatch(/suppress|concede|negotiate/i);
   });
 
-  it.skip('getNegotiationContext 包含当前偏好列表摘要', () => {
+  it('getNegotiationContext 包含当前偏好列表摘要', () => {
     const table = new SocialContractTable();
     table.create('app', 'bilibili', 0.8, '喜欢B站');
     table.create('time', 'night', 0.5, '夜间活跃');
@@ -4708,7 +4709,7 @@ describe('ConcessionEngine - 协商 prompt 注入', () => {
     expect(ctx).toContain('night');
   });
 
-  it.skip('零偏好时 getNegotiationContext 返回空上下文', () => {
+  it('零偏好时 getNegotiationContext 返回空上下文', () => {
     const table = new SocialContractTable();
     const engine = new ConcessionEngine(table, new EscalationGradient());
     const ctx = engine.getNegotiationContext();
@@ -4721,46 +4722,46 @@ describe('ConcessionEngine - 协商 prompt 注入', () => {
 // ============================================================
 
 describe('Stickman 集成 - ConcessionEngine 初始化', () => {
-  it.skip('Stickman 实例包含 _concessionEngine 属性', () => {
+  it('Stickman 实例包含 _concessionEngine 属性', () => {
     const man = new Stickman(200);
     expect(man._concessionEngine).toBeDefined();
   });
 
-  it.skip('_concessionEngine 为 ConcessionEngine 实例', () => {
+  it('_concessionEngine 为 ConcessionEngine 实例', () => {
     const man = new Stickman(200);
     expect(man._concessionEngine).toBeInstanceOf(ConcessionEngine);
   });
 
-  it.skip('_concessionEngine 引用同一个 SocialContractTable', () => {
+  it('_concessionEngine 引用同一个 SocialContractTable', () => {
     const man = new Stickman(200);
     expect(man._concessionEngine._table).toBe(man._socialContractTable);
   });
 
-  it.skip('_concessionEngine 引用同一个 EscalationGradient', () => {
+  it('_concessionEngine 引用同一个 EscalationGradient', () => {
     const man = new Stickman(200);
     expect(man._concessionEngine._gradient).toBe(man._escalationGradient);
   });
 });
 
 describe('Stickman 集成 - RelationshipQuality 初始化', () => {
-  it.skip('Stickman 实例包含 _relationshipQuality 属性', () => {
+  it('Stickman 实例包含 _relationshipQuality 属性', () => {
     const man = new Stickman(200);
     expect(man._relationshipQuality).toBeDefined();
   });
 
-  it.skip('_relationshipQuality 为 RelationshipQuality 实例', () => {
+  it('_relationshipQuality 为 RelationshipQuality 实例', () => {
     const man = new Stickman(200);
     expect(man._relationshipQuality).toBeInstanceOf(RelationshipQuality);
   });
 
-  it.skip('初始关系阶段为 stranger', () => {
+  it('初始关系阶段为 stranger', () => {
     const man = new Stickman(200);
     expect(man._relationshipQuality.stage).toBe('stranger');
   });
 });
 
 describe('Stickman 集成 - ConcessionEngine 情绪影响', () => {
-  it.skip('update 中应用 ConcessionEngine 的情绪惩罚', () => {
+  it('update 中应用 ConcessionEngine 的情绪惩罚', () => {
     const man = new Stickman(200);
     man._concessionEngine.suppressPreference = () => {};
     man._concessionEngine.getEmotionalPenalty = () => ({
@@ -4772,19 +4773,19 @@ describe('Stickman 集成 - ConcessionEngine 情绪影响', () => {
     expect(exprAfter).toBeGreaterThan(exprBefore);
   });
 
-  it.skip('ConcessionEngine tick 在 EmergenceEngine 周期末调用', () => {
+  it('ConcessionEngine tick 在 EmergenceEngine 周期末调用', () => {
     const man = new Stickman(200);
     expect(typeof man._concessionEngine.tick).toBe('function');
   });
 });
 
 describe('Stickman 集成 - RelationshipQuality 阶段变化', () => {
-  it.skip('RelationshipQuality.evaluateStage 在涌现周期末调用', () => {
+  it('RelationshipQuality.evaluateStage 在涌现周期末调用', () => {
     const man = new Stickman(200);
     expect(typeof man._relationshipQuality.evaluateStage).toBe('function');
   });
 
-  it.skip('关系阶段影响施压策略选择', () => {
+  it('关系阶段影响施压策略选择', () => {
     const man = new Stickman(200);
     man._relationshipQuality.stage = 'bonded';
     // bonded 阶段可能使用更温和的策略

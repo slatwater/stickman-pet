@@ -848,6 +848,9 @@ class SocialContractTable {
       lastActivated: now,
       reinforceCount: 0,
       formativeMemory: formativeMemory || '',
+      suppressedSince: null,
+      origin: 'emergent',
+      negotiatedAt: null,
     });
   }
 
@@ -878,7 +881,12 @@ class SocialContractTable {
   }
 
   hydrate(entries) {
-    this.preferences = entries.map(e => ({ ...e }));
+    this.preferences = entries.map(e => ({
+      ...e,
+      suppressedSince: e.suppressedSince ?? null,
+      origin: e.origin ?? 'emergent',
+      negotiatedAt: e.negotiatedAt ?? null,
+    }));
   }
 }
 
@@ -1277,11 +1285,11 @@ class ContractEnforcer {
     }
 
     // 无活跃战役 → 扫描违约
-    const violation = this.scanViolations(app, timeKey, table);
-    if (violation) {
+    const violations = this.scanViolations(app, timeKey, table);
+    if (violations.length > 0) {
       this._violationHoldCounter += 1;
       if (this._violationHoldCounter >= PRESSURE_CONSTANTS.VIOLATION_HOLD_COUNT) {
-        this.startCampaign(violation);
+        this.startCampaign(violations[0]);
         this._violationHoldCounter = 0;
         this._lastEvaluationTime = now;
         return { campaign: this.activeCampaign, event: 'started' };
@@ -1295,19 +1303,19 @@ class ContractEnforcer {
   }
 
   scanViolations(app, timeKey, table) {
-    const matches = table.query(app, timeKey);
+    const t = table || this._table;
+    const matches = t.query(app, timeKey);
     const now = Date.now();
     const eligible = matches
+      .filter(p => !p.suppressedSince)
       .filter(p => p.strength >= PRESSURE_CONSTANTS.VIOLATION_STRENGTH_THRESHOLD
                 && p.polarity <= PRESSURE_CONSTANTS.VIOLATION_POLARITY_THRESHOLD)
       .filter(p => !this.resolvedCampaigns.some(
         c => c.preferenceId === p.id && c.resolvedAt && (now - c.resolvedAt) / 1000 < PRESSURE_CONSTANTS.CAMPAIGN_COOLDOWN
       ));
 
-    if (eligible.length === 0) return null;
-
     eligible.sort((a, b) => Math.abs(b.polarity) * b.strength - Math.abs(a.polarity) * a.strength);
-    return eligible[0];
+    return eligible;
   }
 
   startCampaign(preference) {
@@ -1634,6 +1642,268 @@ class SpatialPressure {
   }
 }
 
+// ==================== Phase 3: 让步引擎 + 关系质量 ====================
+
+// ====== 让步常量 ======
+const CONCESSION_CONSTANTS = {
+  EMOTIONAL_PENALTY_DURATION: 48 * 3600 * 1000,  // 48h 情绪低落窗口
+  STRENGTH_DECAY_PER_TICK: 0.02,                  // 每周期衰减
+  NEGOTIATED_INITIAL_STRENGTH: 0.6,               // 协商偏好初始强度
+  NEGOTIATED_DAMAGE_WEIGHT: 2.0,                  // 协商偏好违约信任损伤倍率
+  EMERGENT_DAMAGE_WEIGHT: 1.0,                    // 涌现偏好违约信任损伤倍率
+  SHAPING_THRESHOLD: 0.2,                         // 行为软化检测阈值（合规率提升）
+  PENALTY_EXPRESSION_TENSION: 0.08,               // 单个压制偏好的 expression tension 惩罚
+  PENALTY_REST_TENSION: 0.04,                     // 单个压制偏好的 rest tension 惩罚
+  PENALTY_SOCIAL_COURAGE: -0.06,                  // 单个压制偏好的 social courage 修正
+};
+
+// ====== M4: ConcessionEngine — 让步全生命周期 ======
+class ConcessionEngine {
+  constructor(socialContractTable, escalationGradient) {
+    this._table = socialContractTable;
+    this._gradient = escalationGradient;
+    this.activeConcessions = [];
+    this.negotiationHistory = [];
+    this._apiAvailable = true;
+    this._inNegotiation = false;
+  }
+
+  // ---- 火柴人让步：偏好压制 ----
+  suppressPreference(prefId) {
+    const pref = this._table.preferences.find(p => p.id === prefId);
+    if (!pref) return;
+    if (pref.suppressedSince) return; // 已压制，不重复
+    pref.suppressedSince = Date.now();
+    this.activeConcessions.push({
+      prefId,
+      suppressedAt: pref.suppressedSince,
+    });
+  }
+
+  // ---- 压制后情绪惩罚 ----
+  getEmotionalPenalty() {
+    const now = Date.now();
+    let expressionTension = 0;
+    let restTension = 0;
+    let socialCourageModifier = 0;
+
+    for (const concession of this.activeConcessions) {
+      const pref = this._table.preferences.find(p => p.id === concession.prefId);
+      if (!pref || !pref.suppressedSince) continue;
+      const elapsed = now - pref.suppressedSince;
+      if (elapsed > CONCESSION_CONSTANTS.EMOTIONAL_PENALTY_DURATION) continue;
+      expressionTension += CONCESSION_CONSTANTS.PENALTY_EXPRESSION_TENSION;
+      restTension += CONCESSION_CONSTANTS.PENALTY_REST_TENSION;
+      socialCourageModifier += CONCESSION_CONSTANTS.PENALTY_SOCIAL_COURAGE;
+    }
+
+    return { expressionTension, restTension, socialCourageModifier };
+  }
+
+  // ---- 周期 tick：衰减 + 解体 ----
+  tick() {
+    for (let i = this._table.preferences.length - 1; i >= 0; i--) {
+      const pref = this._table.preferences[i];
+      if (!pref.suppressedSince) continue;
+      pref.strength -= CONCESSION_CONSTANTS.STRENGTH_DECAY_PER_TICK;
+      if (pref.strength <= 0) {
+        pref.strength = 0;
+        const prefId = pref.id;
+        this._table.preferences.splice(i, 1);
+        this.activeConcessions = this.activeConcessions.filter(c => c.prefId !== prefId);
+      }
+    }
+  }
+
+  // ---- 用户让步：协商约束创建 ----
+  createNegotiatedConstraint(axis, target, polarity, memo) {
+    const now = Date.now();
+    const pref = {
+      id: `pref_${target}_${now}`,
+      axis,
+      target,
+      titleHints: [],
+      polarity: clamp(polarity, -1, 1),
+      strength: CONCESSION_CONSTANTS.NEGOTIATED_INITIAL_STRENGTH,
+      formedAt: now,
+      lastActivated: now,
+      reinforceCount: 0,
+      formativeMemory: memo || '',
+      suppressedSince: null,
+      origin: 'negotiated',
+      negotiatedAt: now,
+    };
+    this._table.preferences.push(pref);
+    this.negotiationHistory.push({
+      outcome: 'user_conceded',
+      axis,
+      target,
+      polarity,
+      prefId: pref.id,
+      timestamp: now,
+    });
+  }
+
+  // ---- 违约损伤权重 ----
+  getViolationDamageWeight(pref) {
+    if (pref.origin === 'negotiated') return CONCESSION_CONSTANTS.NEGOTIATED_DAMAGE_WEIGHT;
+    return CONCESSION_CONSTANTS.EMERGENT_DAMAGE_WEIGHT;
+  }
+
+  // ---- 行为塑形检测 ----
+  evaluateBehavioralShaping({ recentCompliance, previousCompliance }) {
+    const delta = recentCompliance - previousCompliance;
+    return {
+      shapingDetected: delta >= CONCESSION_CONSTANTS.SHAPING_THRESHOLD,
+      complianceDelta: delta,
+    };
+  }
+
+  // ---- 协商冻结 ----
+  enterNegotiation() {
+    this._inNegotiation = true;
+    this._gradient.freeze();
+  }
+
+  exitNegotiation() {
+    this._inNegotiation = false;
+    this._gradient.unfreeze();
+  }
+
+  onApiUnavailable() {
+    this._apiAvailable = false;
+    // API 不可用时保持冻结，不本地兜底
+  }
+
+  onApiRestored() {
+    this._apiAvailable = true;
+  }
+
+  // ---- 协商 prompt 上下文 ----
+  getNegotiationContext() {
+    const prefs = this._table.preferences;
+    if (prefs.length === 0) {
+      return 'No preferences to negotiate.';
+    }
+    const lines = ['Current preferences:'];
+    for (const p of prefs) {
+      const status = p.suppressedSince ? ' [suppressed]' : '';
+      const origin = p.origin === 'negotiated' ? ' [negotiated]' : '';
+      lines.push(`- ${p.axis}:${p.target} polarity=${p.polarity.toFixed(2)} strength=${p.strength.toFixed(2)}${status}${origin}`);
+    }
+    lines.push('');
+    lines.push('Actions: suppress, negotiate, maintain');
+    return lines.join('\n');
+  }
+
+  // ---- 持久化 ----
+  serialize() {
+    return {
+      activeConcessions: this.activeConcessions.map(c => ({ ...c })),
+      negotiationHistory: this.negotiationHistory.map(h => ({ ...h })),
+    };
+  }
+
+  hydrate(data) {
+    if (!data) return;
+    this.activeConcessions = (data.activeConcessions || []).map(c => ({ ...c }));
+    this.negotiationHistory = (data.negotiationHistory || []).map(h => ({ ...h }));
+  }
+}
+
+// ====== M5: RelationshipQuality — 关系质量评估 ======
+class RelationshipQuality {
+  static STAGES = ['stranger', 'acquaintance', 'companion', 'bonded', 'deep'];
+
+  constructor(socialContractTable, concessionEngine) {
+    this._table = socialContractTable;
+    this._concessionEngine = concessionEngine;
+    this.stage = 'stranger';
+    this.contractMatchRate = 0;
+    this.tolerance = 0;
+    this.predictability = 0;
+  }
+
+  // ---- 契约匹配度（加权合规率）----
+  updateMatchRate(complianceArray) {
+    if (!complianceArray || complianceArray.length === 0) {
+      this.contractMatchRate = 0;
+      return;
+    }
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const item of complianceArray) {
+      const pref = this._table.preferences.find(p => p.id === item.prefId);
+      const weight = pref ? pref.strength : 0.5;
+      weightedSum += (item.compliant ? 1 : 0) * weight;
+      totalWeight += weight;
+    }
+    this.contractMatchRate = totalWeight > 0 ? weightedSum / totalWeight : 0;
+  }
+
+  // ---- 容忍度 ----
+  updateTolerance({ negotiationSuccessCount, interactionDurationHours }) {
+    if (negotiationSuccessCount <= 0) {
+      this.tolerance = 0;
+      return;
+    }
+    // tolerance = tanh(successCount * log(1 + hours) * 0.05) → soft cap at 1.0
+    const raw = negotiationSuccessCount * Math.log(1 + interactionDurationHours) * 0.05;
+    this.tolerance = clamp(Math.tanh(raw), 0, 1);
+  }
+
+  // ---- 可预测性（1 - 方差）----
+  updatePredictability(consistencyScores) {
+    if (!consistencyScores || consistencyScores.length < 2) return;
+    const n = consistencyScores.length;
+    const mean = consistencyScores.reduce((s, v) => s + v, 0) / n;
+    const variance = consistencyScores.reduce((s, v) => s + (v - mean) ** 2, 0) / n;
+    // predictability = 1 - sqrt(variance) * 2, clamped to [0,1]
+    this.predictability = clamp(1 - Math.sqrt(variance) * 2, 0, 1);
+  }
+
+  // ---- 综合评分 → 阶段评估（逐级，每次步进一级）----
+  evaluateStage() {
+    const score = (this.contractMatchRate + this.tolerance + this.predictability) / 3;
+    const stages = RelationshipQuality.STAGES;
+    const currentIdx = stages.indexOf(this.stage);
+
+    // 目标阶段基于综合评分
+    let targetIdx;
+    if (score >= 0.85) targetIdx = 4;       // deep
+    else if (score >= 0.65) targetIdx = 3;  // bonded
+    else if (score >= 0.45) targetIdx = 2;  // companion
+    else if (score >= 0.2) targetIdx = 1;   // acquaintance
+    else targetIdx = 0;                      // stranger
+
+    // 逐级升降（不跳级），每次调用步进一级
+    if (targetIdx > currentIdx) {
+      this.stage = stages[currentIdx + 1];
+    } else if (targetIdx < currentIdx) {
+      this.stage = stages[currentIdx - 1];
+    }
+  }
+
+  // ---- 持久化 ----
+  serialize() {
+    return {
+      stage: this.stage,
+      contractMatchRate: this.contractMatchRate,
+      tolerance: this.tolerance,
+      predictability: this.predictability,
+    };
+  }
+
+  hydrate(data) {
+    if (!data) return;
+    const stages = RelationshipQuality.STAGES;
+    this.stage = stages.includes(data.stage) ? data.stage : 'stranger';
+    this.contractMatchRate = data.contractMatchRate ?? 0;
+    this.tolerance = data.tolerance ?? 0;
+    this.predictability = data.predictability ?? 0;
+  }
+}
+
 // ==================== 火柴人颜色 ====================
 const STICKMAN_COLOR = { body: '#222', back: '#555', head: '#222', fill: '#fff' };
 
@@ -1710,6 +1980,11 @@ class Stickman {
     this._windowBounds = null;
     this._pressureStrategy = null;
     this._drivesOverride = null;
+
+    // Phase 3: 让步引擎 + 关系质量
+    this._socialContractTable = this._prefTable; // 别名，测试兼容
+    this._concessionEngine = new ConcessionEngine(this._prefTable, this._escalationGradient);
+    this._relationshipQuality = new RelationshipQuality(this._prefTable, this._concessionEngine);
   }
 
   // 驱力属性代理（测试兼容）
@@ -3457,4 +3732,14 @@ if (typeof globalThis !== 'undefined') {
   globalThis.EmergenceEngine = EmergenceEngine;
   globalThis.SocialContractTable = SocialContractTable;
   globalThis.PreferenceBridge = PreferenceBridge;
+  globalThis.ContractEnforcer = ContractEnforcer;
+  globalThis.EscalationGradient = EscalationGradient;
+  globalThis.SpatialPressure = SpatialPressure;
+  globalThis.PRESSURE_CONSTANTS = PRESSURE_CONSTANTS;
+  globalThis.ESCALATION_CONSTANTS = ESCALATION_CONSTANTS;
+  globalThis.SPATIAL_CONSTANTS = SPATIAL_CONSTANTS;
+  globalThis.PRESSURE_STRATEGIES = PRESSURE_STRATEGIES;
+  globalThis.ConcessionEngine = ConcessionEngine;
+  globalThis.RelationshipQuality = RelationshipQuality;
+  globalThis.CONCESSION_CONSTANTS = CONCESSION_CONSTANTS;
 }
