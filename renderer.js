@@ -558,6 +558,64 @@ const ACTIONS = {
     };
   },
 
+  // ====== Phase 2: 施压动作 ======
+
+  climb: (t) => {
+    const s = Math.sin(t * 5);
+    const c = Math.cos(t * 5);
+    return {
+      body: 15 + s * 3, head: -5 + s * 3,
+      lArmUp: -70 + s * 30, lArmLow: -30 + s * 10,
+      rArmUp: -70 - s * 30, rArmLow: -30 - s * 10,
+      lLegUp: -20 + c * 25, lLegLow: 30 + s * 15,
+      rLegUp: -20 - c * 25, rLegLow: 30 - s * 15,
+    };
+  },
+
+  sitProtest: (t) => {
+    const headShake = Math.sin(t * 1.5) * 8;
+    return {
+      body: -15 + Math.sin(t * 0.8) * 2, head: headShake,
+      lArmUp: -30 + Math.sin(t * 0.6) * 3, lArmLow: -40,
+      rArmUp: -30 - Math.sin(t * 0.6) * 3, rArmLow: -40,
+      lLegUp: 60, lLegLow: 50,
+      rLegUp: 60, rLegLow: 50,
+    };
+  },
+
+  lieBlock: (t) => {
+    const roll = Math.sin(t * 0.5) * 5;
+    return {
+      body: 88 + roll, head: 5 + Math.sin(t * 0.8) * 3,
+      lArmUp: -20 + Math.sin(t * 0.7) * 10, lArmLow: 10,
+      rArmUp: 30 + Math.sin(t * 0.9) * 10, rArmLow: 15,
+      lLegUp: -10 + Math.sin(t * 0.6) * 5, lLegLow: 5,
+      rLegUp: 10 + Math.sin(t * 0.4) * 5, rLegLow: 8,
+    };
+  },
+
+  cling: (t) => {
+    const swing = Math.sin(t * 2);
+    return {
+      body: swing * 5, head: 5 + swing * 3,
+      lArmUp: -85 + Math.sin(t * 3) * 5, lArmLow: -10,
+      rArmUp: -85 - Math.sin(t * 3) * 5, rArmLow: -10,
+      lLegUp: 10 + swing * 12, lLegLow: 5 + Math.sin(t * 1.5) * 8,
+      rLegUp: -10 + swing * 12, rLegLow: 5 - Math.sin(t * 1.5) * 8,
+    };
+  },
+
+  coldShoulder: (t) => {
+    const breath = Math.sin(t * 1.2);
+    return {
+      body: breath * 2, head: 15 + breath * 2,
+      lArmUp: 5 + breath * 3, lArmLow: 8,
+      rArmUp: -5 - breath * 3, rArmLow: -8,
+      lLegUp: -3, lLegLow: 0,
+      rLegUp: 3, rLegLow: 0,
+    };
+  },
+
 };
 
 // ==================== 驱力常量 ====================
@@ -1081,6 +1139,501 @@ class ResponseTracker {
   }
 }
 
+// ==================== Phase 2: 主动施压系统 ====================
+
+// ====== 施压常量 ======
+const PRESSURE_CONSTANTS = {
+  VIOLATION_STRENGTH_THRESHOLD: 0.5,
+  VIOLATION_POLARITY_THRESHOLD: -0.4,
+  VIOLATION_HOLD_TIME: 180,
+  VIOLATION_HOLD_COUNT: 6,
+  IGNORE_TIMEOUT: 120,
+  ACK_ESCALATION_DELAY_FACTOR: 1.5,
+  MAX_RESOLVED_HISTORY: 5,
+  CAMPAIGN_COOLDOWN: 600,
+};
+
+const ESCALATION_CONSTANTS = {
+  LEVEL_0_TO_1_BASE: 300,
+  LEVEL_1_TO_2_BASE: 600,
+  IGNORE_ACCELERATION: 0.8,
+  COOLING_LEVEL_0: 120,
+  COOLING_LEVEL_1: 480,
+  COOLING_LEVEL_2: 1200,
+  COOLING_DEESCALATE_INTERVAL: 300,
+};
+
+const SPATIAL_CONSTANTS = {
+  CLIMB_SPEED: 80,
+  RETURN_DELAY: 5,
+  POSITION_TOLERANCE: 20,
+  DESCENT_SPEED: 120,
+};
+
+// ====== 施压策略模板 ======
+const PRESSURE_STRATEGIES = {
+  attention_protest: {
+    actions: {
+      0: {
+        poses: ['lookAround', 'yawn', 'idle', 'sitDown'],
+        thoughts: ['嗯......', '又来了啊', '总觉得哪里不对'],
+        expression: 'nervous',
+      },
+      1: {
+        poses: ['rage', 'wave', 'kick', 'stomp'],
+        thoughts: ['我不喜欢这个！', '能不能换一个...', '又是这个...'],
+        expression: 'angry',
+      },
+      2: {
+        poses: ['sitProtest', 'lieBlock', 'cling'],
+        thoughts: ['我就坐这了', '不关掉我不走', '你看着办吧'],
+        expression: 'angry',
+      },
+    },
+  },
+  rest_demand: {
+    actions: {
+      0: {
+        poses: ['yawn', 'sleep', 'sitDown', 'idle'],
+        thoughts: ['好累啊...', '该休息了吧', '困了...'],
+        expression: 'sleepy',
+      },
+      1: {
+        poses: ['cry', 'meditate', 'sitDown'],
+        thoughts: ['真的该休息了', '不要再熬了...', '眼睛都花了'],
+        expression: 'sad',
+      },
+      2: {
+        poses: ['lieBlock', 'sleep', 'coldShoulder'],
+        thoughts: ['我替你休息了', '不想理你了', '随便吧...'],
+        expression: 'sad',
+      },
+    },
+  },
+};
+
+// ====== M1: ContractEnforcer — 社会契约执行器 ======
+class ContractEnforcer {
+  constructor(socialContractTable) {
+    this._table = socialContractTable;
+    this.activeCampaign = null;
+    this.resolvedCampaigns = [];
+    this._violationHoldCounter = 0;
+    this._lastCampaignResolvedAt = null;
+    this._lastEvaluationTime = Date.now();
+  }
+
+  onScreenInfo(app, timeKey, table, interactions) {
+    const now = Date.now();
+
+    // 有活跃战役时
+    if (this.activeCampaign && this.activeCampaign.status === 'active') {
+      // 检查关联偏好是否已被侵蚀
+      const prefs = table.query(app, timeKey);
+      const linkedPref = prefs.find(p => p.id === this.activeCampaign.preferenceId);
+      if (linkedPref && linkedPref.strength < PRESSURE_CONSTANTS.VIOLATION_STRENGTH_THRESHOLD) {
+        this.beginCooling();
+        this._lastEvaluationTime = now;
+        return { campaign: this.activeCampaign, event: 'cooling' };
+      }
+
+      // 解压检测
+      if (this.evaluateResolution(app, timeKey)) {
+        this.beginCooling();
+        this._lastEvaluationTime = now;
+        return { campaign: this.activeCampaign, event: 'cooling' };
+      }
+
+      // 签收检测
+      if (interactions && interactions.length > 0) {
+        const hasClick = interactions.some(i => i.type === 'click');
+        const hasChat = interactions.some(i => i.type === 'chat');
+        const hasDrag = interactions.some(i => i.type === 'drag');
+        if (hasClick || hasChat) {
+          this.activeCampaign.ackCount += 1;
+          this.activeCampaign.lastAckAt = now;
+        }
+        if (hasDrag) {
+          this.activeCampaign.ackCount += 1;
+          this.activeCampaign.lastAckAt = now;
+        }
+      }
+
+      // 无视检测
+      const lastActivity = this.activeCampaign.lastAckAt || this.activeCampaign.levelEnteredAt;
+      if ((now - lastActivity) / 1000 > PRESSURE_CONSTANTS.IGNORE_TIMEOUT) {
+        this.activeCampaign.ignoreCount += 1;
+      }
+
+      this._lastEvaluationTime = now;
+      return { campaign: this.activeCampaign, event: null };
+    }
+
+    // 冷却中的战役由 tick 处理，这里检查复发
+    if (this.activeCampaign && this.activeCampaign.status === 'cooling') {
+      this.checkCoolingRelapse(app, timeKey);
+      this._lastEvaluationTime = now;
+      return { campaign: this.activeCampaign, event: this.activeCampaign.status === 'active' ? 'relapse' : null };
+    }
+
+    // 无活跃战役 → 扫描违约
+    const violation = this.scanViolations(app, timeKey, table);
+    if (violation) {
+      this._violationHoldCounter += 1;
+      if (this._violationHoldCounter >= PRESSURE_CONSTANTS.VIOLATION_HOLD_COUNT) {
+        this.startCampaign(violation);
+        this._violationHoldCounter = 0;
+        this._lastEvaluationTime = now;
+        return { campaign: this.activeCampaign, event: 'started' };
+      }
+    } else {
+      this._violationHoldCounter = 0;
+    }
+
+    this._lastEvaluationTime = now;
+    return { campaign: null, event: null };
+  }
+
+  scanViolations(app, timeKey, table) {
+    const matches = table.query(app, timeKey);
+    const now = Date.now();
+    const eligible = matches
+      .filter(p => p.strength >= PRESSURE_CONSTANTS.VIOLATION_STRENGTH_THRESHOLD
+                && p.polarity <= PRESSURE_CONSTANTS.VIOLATION_POLARITY_THRESHOLD)
+      .filter(p => !this.resolvedCampaigns.some(
+        c => c.preferenceId === p.id && c.resolvedAt && (now - c.resolvedAt) / 1000 < PRESSURE_CONSTANTS.CAMPAIGN_COOLDOWN
+      ));
+
+    if (eligible.length === 0) return null;
+
+    eligible.sort((a, b) => Math.abs(b.polarity) * b.strength - Math.abs(a.polarity) * a.strength);
+    return eligible[0];
+  }
+
+  startCampaign(preference) {
+    const now = Date.now();
+    this.activeCampaign = {
+      id: `campaign_${preference.id}_${now}`,
+      preferenceId: preference.id,
+      trigger: {
+        axis: preference.axis,
+        target: preference.id,
+        detectedAt: now,
+        sustainedSince: now,
+      },
+      level: 0,
+      levelEnteredAt: now,
+      ignoreCount: 0,
+      ackCount: 0,
+      lastAckAt: null,
+      status: 'active',
+      coolingStartedAt: null,
+      resolvedAt: null,
+    };
+  }
+
+  evaluateResolution(currentApp, currentTimeKey) {
+    if (!this.activeCampaign) return false;
+    const { axis, target } = this.activeCampaign.trigger;
+    if (axis === 'app') {
+      return !currentApp.includes(target);
+    }
+    if (axis === 'time') {
+      return !currentTimeKey.includes(target);
+    }
+    return false;
+  }
+
+  beginCooling() {
+    if (!this.activeCampaign) return;
+    this.activeCampaign.status = 'cooling';
+    this.activeCampaign.coolingStartedAt = Date.now();
+  }
+
+  checkCoolingRelapse(currentApp, currentTimeKey) {
+    if (!this.activeCampaign || this.activeCampaign.status !== 'cooling') return;
+    const { axis, target } = this.activeCampaign.trigger;
+    let relapsed = false;
+    if (axis === 'app') {
+      relapsed = currentApp.includes(target);
+    } else if (axis === 'time') {
+      relapsed = currentTimeKey.includes(target);
+    }
+    if (relapsed) {
+      this.activeCampaign.status = 'active';
+    }
+  }
+
+  resolveCampaign() {
+    if (!this.activeCampaign) return;
+    this.activeCampaign.status = 'resolved';
+    this.activeCampaign.resolvedAt = Date.now();
+    this._lastCampaignResolvedAt = Date.now();
+    this.resolvedCampaigns.push(this.activeCampaign);
+    if (this.resolvedCampaigns.length > PRESSURE_CONSTANTS.MAX_RESOLVED_HISTORY) {
+      this.resolvedCampaigns = this.resolvedCampaigns.slice(-PRESSURE_CONSTANTS.MAX_RESOLVED_HISTORY);
+    }
+    this.activeCampaign = null;
+  }
+
+  hydrate(data) {
+    if (!data || !data.campaigns) return;
+    const campaigns = data.campaigns;
+    const active = campaigns.find(c => c.status === 'active' || c.status === 'cooling');
+    const resolved = campaigns.filter(c => c.status === 'resolved');
+
+    if (active) {
+      this.activeCampaign = active;
+      if (data.restartDuringPressure) {
+        this.activeCampaign.ignoreCount += 1;
+      }
+    }
+    this.resolvedCampaigns = resolved.slice(-PRESSURE_CONSTANTS.MAX_RESOLVED_HISTORY);
+  }
+
+  serialize() {
+    const campaigns = [...this.resolvedCampaigns];
+    if (this.activeCampaign) campaigns.push(this.activeCampaign);
+    return {
+      campaigns,
+      restartDuringPressure: this.activeCampaign !== null && this.activeCampaign.status !== 'resolved',
+    };
+  }
+}
+
+// ====== M2: EscalationGradient — 升级梯度状态机 ======
+class EscalationGradient {
+  constructor() {
+    this.level = 0;
+    this.escalationTimer = ESCALATION_CONSTANTS.LEVEL_0_TO_1_BASE;
+    this.coolingTimer = 0;
+    this.frozen = false;
+    this._coolingDeescalateAccum = 0;
+  }
+
+  init(level, escalationTimer, personality) {
+    this.level = level;
+    this.escalationTimer = escalationTimer;
+    this._coolingDeescalateAccum = 0;
+    // 性格调制
+    if (personality) {
+      if (personality.rebellion > 0.7) {
+        this.escalationTimer *= 0.8;
+      } else if (personality.rebellion < 0.3) {
+        this.escalationTimer *= 1.3;
+      }
+    }
+  }
+
+  tick(dt, campaignStatus) {
+    if (campaignStatus === 'active') {
+      if (!this.frozen) {
+        this.escalationTimer -= dt;
+        if (this.escalationTimer <= 0 && this.level < 2) {
+          this.level += 1;
+          if (this.level === 1) {
+            this.escalationTimer = ESCALATION_CONSTANTS.LEVEL_1_TO_2_BASE;
+          } else {
+            this.escalationTimer = 0;
+          }
+          return { event: 'escalated', level: this.level };
+        }
+      }
+      return { event: null, level: this.level };
+    }
+
+    if (campaignStatus === 'cooling') {
+      this.coolingTimer -= dt;
+      this._coolingDeescalateAccum += dt;
+      if (this._coolingDeescalateAccum >= ESCALATION_CONSTANTS.COOLING_DEESCALATE_INTERVAL) {
+        this._coolingDeescalateAccum -= ESCALATION_CONSTANTS.COOLING_DEESCALATE_INTERVAL;
+        this.level -= 1;
+        if (this.level < 0) {
+          return { event: 'resolved', level: this.level };
+        }
+      }
+      return { event: null, level: this.level };
+    }
+
+    return { event: null, level: this.level };
+  }
+
+  onAcknowledge() {
+    this.escalationTimer *= PRESSURE_CONSTANTS.ACK_ESCALATION_DELAY_FACTOR;
+  }
+
+  onIgnore() {
+    this.escalationTimer *= ESCALATION_CONSTANTS.IGNORE_ACCELERATION;
+  }
+
+  freeze() {
+    this.frozen = true;
+  }
+
+  unfreeze() {
+    this.frozen = false;
+  }
+
+  startCooling(personality) {
+    const coolingTimes = [
+      ESCALATION_CONSTANTS.COOLING_LEVEL_0,
+      ESCALATION_CONSTANTS.COOLING_LEVEL_1,
+      ESCALATION_CONSTANTS.COOLING_LEVEL_2,
+    ];
+    this.coolingTimer = coolingTimes[this.level] || ESCALATION_CONSTANTS.COOLING_LEVEL_0;
+    this._coolingDeescalateAccum = 0;
+    // 性格调制
+    if (personality) {
+      if (personality.attachment > 0.7) {
+        this.coolingTimer *= 0.7;
+      } else if (personality.attachment < 0.3) {
+        this.coolingTimer *= 1.5;
+      }
+    }
+  }
+
+  getBehaviorDirective(strategy) {
+    const config = strategy.actions[this.level];
+    return {
+      action: config.poses[Math.floor(Math.random() * config.poses.length)],
+      thought: config.thoughts[Math.floor(Math.random() * config.thoughts.length)],
+      expression: config.expression,
+    };
+  }
+
+  serialize() {
+    return {
+      level: this.level,
+      escalationTimer: this.escalationTimer,
+      coolingTimer: this.coolingTimer,
+      frozen: this.frozen,
+    };
+  }
+
+  hydrate(data) {
+    if (!data) return;
+    this.level = data.level ?? 0;
+    this.escalationTimer = data.escalationTimer ?? ESCALATION_CONSTANTS.LEVEL_0_TO_1_BASE;
+    this.coolingTimer = data.coolingTimer ?? 0;
+    this.frozen = data.frozen ?? false;
+  }
+}
+
+// ====== M3: SpatialPressure — 空间施压系统 ======
+class SpatialPressure {
+  constructor() {
+    this.active = false;
+    this.targetX = 0;
+    this.targetY = 0;
+    this.atTarget = false;
+    this.returning = false;
+    this.returnTimer = 0;
+    this.descending = false;
+  }
+
+  activate(targetX, targetY) {
+    this.active = true;
+    this.targetX = targetX;
+    this.targetY = targetY;
+    this.atTarget = false;
+    this.returning = false;
+    this.descending = false;
+  }
+
+  update(dt, stickman) {
+    if (!this.active) return false;
+
+    // 下降模式
+    if (this.descending) {
+      stickman.y += SPATIAL_CONSTANTS.DESCENT_SPEED * dt;
+      if (stickman.y >= HIP_GROUND) {
+        stickman.y = HIP_GROUND;
+        this.active = false;
+        this.descending = false;
+      }
+      return true;
+    }
+
+    // 被拖走后的返回延迟
+    if (this.returning) {
+      this.returnTimer -= dt;
+      if (this.returnTimer <= 0) {
+        this.returning = false;
+      }
+      return false;
+    }
+
+    // 已到达目标位置
+    if (this.atTarget) {
+      return true;
+    }
+
+    // 向目标移动
+    const dx = this.targetX - stickman.x;
+    const dy = this.targetY - stickman.y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+
+    if (d < SPATIAL_CONSTANTS.POSITION_TOLERANCE) {
+      this.atTarget = true;
+      stickman.x = this.targetX;
+      stickman.y = this.targetY;
+      return true;
+    }
+
+    const speed = SPATIAL_CONSTANTS.CLIMB_SPEED * dt;
+    stickman.x += (dx / d) * speed;
+    stickman.y += (dy / d) * speed;
+    return true;
+  }
+
+  onDraggedAway(currentLevel) {
+    this.atTarget = false;
+    if (currentLevel >= 2) {
+      this.returning = true;
+      this.returnTimer = SPATIAL_CONSTANTS.RETURN_DELAY;
+    } else if (currentLevel === 1) {
+      if (Math.random() < 0.5) {
+        this.returning = true;
+        this.returnTimer = SPATIAL_CONSTANTS.RETURN_DELAY;
+      }
+    }
+    // level 0: 不返回
+  }
+
+  deactivate() {
+    if (this.targetY < HIP_GROUND - SPATIAL_CONSTANTS.POSITION_TOLERANCE) {
+      this.descending = true;
+    } else {
+      this.active = false;
+      this.descending = false;
+    }
+    this.atTarget = false;
+    this.returning = false;
+  }
+
+  static calcTargetPosition(strategy, windowBounds, screenW, screenH) {
+    if (strategy === 'attention_protest') {
+      if (windowBounds) {
+        return {
+          x: windowBounds.x + windowBounds.width / 2,
+          y: windowBounds.y + 30,
+        };
+      }
+      return { x: screenW / 2, y: screenH * 0.3 };
+    }
+    if (strategy === 'rest_demand') {
+      if (windowBounds) {
+        return {
+          x: windowBounds.x + windowBounds.width / 2,
+          y: windowBounds.y + windowBounds.height / 2,
+        };
+      }
+      return { x: screenW / 2, y: screenH / 2 };
+    }
+    return { x: screenW / 2, y: screenH / 2 };
+  }
+}
+
 // ==================== 火柴人颜色 ====================
 const STICKMAN_COLOR = { body: '#222', back: '#555', head: '#222', fill: '#fff' };
 
@@ -1149,6 +1702,23 @@ class Stickman {
     this._prefEngine = null;
     this._prefTable = new SocialContractTable();
     this._prefBridge = null;
+
+    // Phase 2: 主动施压系统
+    this._contractEnforcer = new ContractEnforcer(this._prefTable);
+    this._escalationGradient = new EscalationGradient();
+    this._spatialPressure = new SpatialPressure();
+    this._windowBounds = null;
+    this._pressureStrategy = null;
+    this._drivesOverride = null;
+  }
+
+  // 驱力属性代理（测试兼容）
+  get drives() {
+    return this._drivesOverride || (this.driveSystem && this.driveSystem.drives);
+  }
+
+  set drives(v) {
+    this._drivesOverride = v;
   }
 
   // 初始化偏好涌现系统
@@ -1175,15 +1745,22 @@ class Stickman {
   }
 
   // 屏幕活动记录
-  onScreenInfo({ app, title }) {
+  onScreenInfo({ app, title, windowBounds }) {
     this.screenActivityLog.push({ app, title, time: new Date().toISOString() });
+    // Phase 2: 缓存窗口几何
+    this._windowBounds = windowBounds || null;
+
     if (app && app !== this._lastScreenApp) {
       this.driveSystem.drives.novelty.tension = clamp(this.driveSystem.drives.novelty.tension - 0.15, 0, 1);
       this._lastScreenApp = app;
     }
     // 偏好涌现：观察屏幕事件 + 桥接激活
+    let appKey = '';
+    let timeKey = '';
     if (this._prefObserver) {
       const ctx = this._prefObserver.onScreenEvent(app, title, this._prefAssociations);
+      appKey = ctx.appKey;
+      timeKey = ctx.timeKey;
       if (this._prefBridge) {
         const result = this._prefBridge.activate(ctx.appKey, ctx.timeKey, title);
         if (result.thought) {
@@ -1191,6 +1768,21 @@ class Stickman {
           this.thoughtTimer = 5;
           this.thoughtDuration = 5;
         }
+      }
+    }
+
+    // Phase 2: 施压系统 — 违约扫描 + 战役管理
+    if (this._contractEnforcer) {
+      const recentInteractions = this.userInteractionsLog.slice(-10);
+      const result = this._contractEnforcer.onScreenInfo(
+        appKey || `app:${(app || '').toLowerCase()}`,
+        timeKey || 'time:unknown',
+        this._prefTable,
+        recentInteractions
+      );
+      if (result && result.event) {
+        this._handlePressureEvent(result.event, result.campaign);
+        if (typeof savePressureState === 'function') savePressureState();
       }
     }
   }
@@ -1202,6 +1794,19 @@ class Stickman {
     // 偏好涌现：记录交互信号
     if (this._prefObserver) {
       this._prefObserver.onUserInteraction(type, this._prefAssociations);
+    }
+    // Phase 2: 施压签收信号
+    if (this._contractEnforcer && this._contractEnforcer.activeCampaign) {
+      const camp = this._contractEnforcer.activeCampaign;
+      if (!camp.status || camp.status === 'active') {
+        if (type === 'click' || type === 'chat') {
+          camp.ackCount += 1;
+          camp.lastAckAt = Date.now();
+          if (this._escalationGradient && typeof this._escalationGradient.onAcknowledge === 'function') {
+            this._escalationGradient.onAcknowledge();
+          }
+        }
+      }
     }
   }
 
@@ -1531,6 +2136,77 @@ class Stickman {
       // 碰天花板
       if (this.y < 60) { this.y = 60; this.vy = Math.abs(this.vy) * 0.5; spawnStars(this.x, 30, 3); }
       return;
+    }
+
+    // ====== Phase 2: 施压系统 tick ======
+    const _pressureCampaign = this._contractEnforcer && this._contractEnforcer.activeCampaign;
+    const _pressureActive = _pressureCampaign || (this._spatialPressure && this._spatialPressure.active);
+    if (_pressureActive) {
+      const campStatus = _pressureCampaign ? _pressureCampaign.status : 'active';
+      // 升级梯度 tick
+      if (this._escalationGradient && typeof this._escalationGradient.tick === 'function') {
+        const gradResult = this._escalationGradient.tick(dt, campStatus);
+        if (gradResult.event === 'escalated' && _pressureCampaign) {
+          _pressureCampaign.level = this._escalationGradient.level;
+          _pressureCampaign.levelEnteredAt = Date.now();
+          if (typeof savePressureState === 'function') savePressureState();
+        }
+        if (gradResult.event === 'resolved' && this._contractEnforcer && this._contractEnforcer.resolveCampaign) {
+          this._contractEnforcer.resolveCampaign();
+          this.onCampaignResolved();
+          if (typeof savePressureState === 'function') savePressureState();
+        }
+      }
+      // 活跃施压期间：情绪持续消耗
+      if (campStatus === 'active') {
+        const d = this.drives;
+        if (d) {
+          if (d.expression) {
+            d.expression.tension = clamp(d.expression.tension + 0.02 * dt, 0, 1);
+          }
+          if (d.social) {
+            d.social.tension = clamp(d.social.tension + 0.01 * dt, 0, 1);
+          }
+        }
+      }
+    }
+
+    // ====== Phase 2: 空间施压优先级分支 ======
+    if (this._spatialPressure && this._spatialPressure.active && !this.chatVisible) {
+      const controlled = this._spatialPressure.update(dt, this);
+      if (controlled) {
+        if (this._spatialPressure.atTarget) {
+          // 到达目标：执行施压动作
+          const strategy = PRESSURE_STRATEGIES[this._pressureStrategy || 'attention_protest'];
+          if (this._escalationGradient && strategy) {
+            const directive = this._escalationGradient.getBehaviorDirective(strategy);
+            if (ACTIONS[directive.action]) {
+              this.pose = this.lerpPose(this.pose, ACTIONS[directive.action](this.stateTime), 0.12);
+            }
+            this.expression = directive.expression;
+            if (!this.thought || this.thoughtTimer <= 0) {
+              this.thought = directive.thought;
+              this.thoughtTimer = 8;
+              this.thoughtDuration = 8;
+            }
+          }
+        } else {
+          // 移动中：爬行动画
+          this.state = 'climb';
+          this.pose = this.lerpPose(this.pose, ACTIONS.climb(this.stateTime), 0.15);
+          this.facing = this._spatialPressure.targetX > this.x ? 1 : -1;
+        }
+        return;
+      }
+    }
+    // 空间施压激活判断（level >= 1 且未激活时）
+    if (this._contractEnforcer && this._contractEnforcer.activeCampaign &&
+        this._contractEnforcer.activeCampaign.status === 'active' &&
+        this._escalationGradient && this._escalationGradient.level >= 1 &&
+        this._spatialPressure && !this._spatialPressure.active) {
+      const stratType = this._pressureStrategy || 'attention_protest';
+      const pos = SpatialPressure.calcTargetPosition(stratType, this._windowBounds, W, H);
+      this._spatialPressure.activate(pos.x, pos.y);
     }
 
     // ====== 鼠标靠近反应 ======
@@ -2000,6 +2676,26 @@ class Stickman {
 
   // 开始拖拽
   startDrag(mx, my) {
+    // Phase 2: 施压中被拖拽 → 通知空间施压 + 签收 + 情绪恶化
+    if (this._spatialPressure && this._spatialPressure.active && this._spatialPressure.atTarget) {
+      const level = this._escalationGradient ? this._escalationGradient.level : 0;
+      this._spatialPressure.onDraggedAway(level);
+      if (this._contractEnforcer && this._contractEnforcer.activeCampaign) {
+        this._contractEnforcer.activeCampaign.ackCount += 1;
+        this._contractEnforcer.activeCampaign.lastAckAt = Date.now();
+      }
+      // 情绪恶化
+      const d = this.drives;
+      if (d) {
+        if (d.expression) {
+          d.expression.tension = clamp((d.expression.tension || 0) + 0.15, 0, 1);
+        }
+        if (d.social) {
+          d.social.tension = clamp((d.social.tension || 0) + 0.1, 0, 1);
+        }
+      }
+    }
+
     this.addEvent('被抓起来了');
     this.dragging = true;
     this.grounded = false;
@@ -2073,6 +2769,39 @@ class Stickman {
       result[key] = lerp(current[key] || 0, target[key], t);
     }
     return result;
+  }
+
+  // Phase 2: 处理施压事件
+  _handlePressureEvent(event, campaign) {
+    if (event === 'started') {
+      const axis = campaign.trigger.axis;
+      this._pressureStrategy = axis === 'time' ? 'rest_demand' : 'attention_protest';
+      this._escalationGradient.init(0, ESCALATION_CONSTANTS.LEVEL_0_TO_1_BASE);
+    } else if (event === 'cooling') {
+      this._escalationGradient.startCooling();
+      if (this._spatialPressure.active) {
+        this._spatialPressure.deactivate();
+      }
+      // 释然情绪
+      const d = this.drives;
+      if (d) {
+        if (d.social) d.social.tension = clamp(d.social.tension - 0.1, 0, 1);
+        if (d.rest) d.rest.tension = clamp(d.rest.tension - 0.05, 0, 1);
+      }
+    }
+  }
+
+  // Phase 2: 战役解决回调
+  onCampaignResolved() {
+    const d = this.drives;
+    if (d) {
+      for (const key of ['expression', 'social', 'rest']) {
+        if (d[key]) {
+          d[key].tension = clamp(d[key].tension - 0.1, 0, 1);
+        }
+      }
+    }
+    this._pressureStrategy = null;
   }
 
   // 文字换行
@@ -2494,6 +3223,36 @@ async function savePreferences() {
 
 loadPreferences();
 
+// Phase 2: 施压状态加载 + 持久化
+async function loadPressureState() {
+  if (!window.electronAPI?.loadPressureState) return;
+  try {
+    const data = await window.electronAPI.loadPressureState();
+    if (data && man._contractEnforcer) {
+      man._contractEnforcer.hydrate(data);
+      // 恢复升级梯度状态
+      if (man._contractEnforcer.activeCampaign && data.escalation) {
+        man._escalationGradient.hydrate(data.escalation);
+      }
+    }
+  } catch (e) {
+    // 加载失败，使用空状态
+  }
+}
+
+async function savePressureState() {
+  if (!window.electronAPI?.savePressureState || !man._contractEnforcer) return;
+  try {
+    const data = man._contractEnforcer.serialize();
+    data.escalation = man._escalationGradient.serialize();
+    await window.electronAPI.savePressureState(data);
+  } catch (e) {
+    // 写入失败，下次重试
+  }
+}
+
+loadPressureState();
+
 // 涌现周期：每 10 分钟
 setInterval(() => {
   if (man._prefEngine && man._prefTable) {
@@ -2504,7 +3263,10 @@ setInterval(() => {
 
 // 退出时保存
 if (typeof window !== 'undefined' && window.addEventListener) {
-  window.addEventListener('beforeunload', () => { savePreferences(); });
+  window.addEventListener('beforeunload', () => {
+    savePreferences();
+    savePressureState();
+  });
 }
 
 // 定期清理过长的交互日志（保留最近 30 秒的）
