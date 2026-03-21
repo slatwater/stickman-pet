@@ -13,4 +13,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setIgnoreMouse: (ignore) => ipcRenderer.send('set-ignore-mouse', ignore),
   loadPressureState: () => ipcRenderer.invoke('load-pressure-state'),
   savePressureState: (data) => ipcRenderer.invoke('save-pressure-state', data),
+  loadBoneGraph: () => ipcRenderer.invoke('load-bone-graph'),
+  onFreezeEvent: (callback) => ipcRenderer.on('freeze-event', (_, data) => callback(data)),
 });

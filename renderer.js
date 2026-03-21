@@ -616,6 +616,38 @@ const ACTIONS = {
     };
   },
 
+  // ====== Phase 3: 冻结仪式动作 ======
+
+  freezeCeremony: (t) => {
+    if (t < 2) {
+      const p = t / 2;
+      return {
+        body: 0, head: -p * 15,
+        lArmUp: -15 + p * 5, lArmLow: -10 + p * 5,
+        rArmUp: 15 - p * 5, rArmLow: 10 - p * 5,
+        lLegUp: -4, lLegLow: 0, rLegUp: 4, rLegLow: 0,
+      };
+    } else if (t < 5) {
+      const p = (t - 2) / 3;
+      return {
+        body: -5 * p, head: -15 + p * 5,
+        lArmUp: -10 - p * 50, lArmLow: -5 - p * 70,
+        rArmUp: 10 + p * 50, rArmLow: 5 + p * 70,
+        lLegUp: -4, lLegLow: 0, rLegUp: 4, rLegLow: 0,
+      };
+    } else {
+      const p = Math.min((t - 5) / 2, 1);
+      const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      return {
+        body: -5 + e * 10, head: -10 + e * 15,
+        lArmUp: -60 + e * (-80), lArmLow: -75 + e * 50,
+        rArmUp: 60 + e * 80, rArmLow: 75 - e * 50,
+        lLegUp: -4 - e * 10, lLegLow: e * 15,
+        rLegUp: 4 + e * 10, rLegLow: e * 15,
+      };
+    }
+  },
+
 };
 
 // ==================== 驱力常量 ====================
@@ -1985,6 +2017,9 @@ class Stickman {
     this._socialContractTable = this._prefTable; // 别名，测试兼容
     this._concessionEngine = new ConcessionEngine(this._prefTable, this._escalationGradient);
     this._relationshipQuality = new RelationshipQuality(this._prefTable, this._concessionEngine);
+
+    // 骨层硬约束缓存
+    this._boneConstraints = { avoidActions: [], preferActions: [] };
   }
 
   // 驱力属性代理（测试兼容）
@@ -2197,22 +2232,46 @@ class Stickman {
   // 基于上下文的本地行为决策（规则来自 ai/behaviors.json，可被 AI 进化修改）
   nextAction() {
     const matched = this._matchBehaviorRule();
-    let pick;
+    let actions, weights;
     if (matched) {
       if (matched.thought) {
         this.thought = matched.thought;
         this.thoughtTimer = 5;
         this.thoughtDuration = 5;
       }
-      pick = this._driveWeightedPick(matched.actions, matched.weights);
+      actions = matched.actions;
+      weights = matched.weights;
     } else {
       // 默认随机
       const def = this._behaviors?.default || {
         actions: ['idle', 'lookAround', 'walk', 'dance', 'jump', 'wave', 'sitDown', 'yawn', 'sneak', 'peek', 'meditate', 'cry', 'rage', 'guitar', 'slip', 'swordFight', 'float'],
         weights: [3, 2, 4, 2, 2, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1],
       };
-      pick = this._driveWeightedPick(def.actions, def.weights);
+      actions = def.actions;
+      weights = def.weights;
     }
+
+    // 第一阶段：骨层硬约束过滤
+    const avoid = this._boneConstraints.avoidActions;
+    if (avoid && avoid.length > 0) {
+      const avoidSet = new Set(avoid);
+      const filtered = [];
+      const filteredWeights = [];
+      for (let i = 0; i < actions.length; i++) {
+        if (!avoidSet.has(actions[i])) {
+          filtered.push(actions[i]);
+          filteredWeights.push(weights[i] || 1);
+        }
+      }
+      // 安全阀：过滤后为空则跳过过滤
+      if (filtered.length > 0) {
+        actions = filtered;
+        weights = filteredWeights;
+      }
+    }
+
+    // 第二阶段：肉层软排序
+    let pick = this._driveWeightedPick(actions, weights);
     // 如果选中的是 combo，展开为基础动作队列
     if (!ACTIONS[pick] && _combos[pick]) {
       const steps = _combos[pick]
@@ -2238,7 +2297,12 @@ class Stickman {
 
   // 驱力加权选择：在原始权重基础上叠加驱力偏好
   _driveWeightedPick(actions, weights) {
-    const adjusted = actions.map((a, i) => Math.max(0.1, (weights[i] || 1) + this.driveSystem.getActionAffinity(a)));
+    const preferSet = this._boneConstraints.preferActions ? new Set(this._boneConstraints.preferActions) : new Set();
+    const adjusted = actions.map((a, i) => {
+      let w = (weights[i] || 1) + this.driveSystem.getActionAffinity(a);
+      if (preferSet.has(a)) w += 2;
+      return Math.max(0.1, w);
+    });
     return this._weightedPick(actions, adjusted);
   }
 
@@ -3714,6 +3778,75 @@ function gameLoop(time) {
 }
 
 requestAnimationFrame(gameLoop);
+
+// ==================== 骨架图谱面板 ====================
+let _boneGraphPanel = null;
+(function initBoneGraph() {
+  const panelEl = document.getElementById('bone-graph-panel');
+  const btn = document.getElementById('bone-graph-btn');
+  if (panelEl && typeof createBoneGraphPanel === 'function') {
+    _boneGraphPanel = createBoneGraphPanel(panelEl);
+    if (btn) {
+      btn.addEventListener('click', () => {
+        if (_boneGraphPanel.isVisible()) {
+          _boneGraphPanel.hide();
+          isClickThrough = true;
+        } else {
+          _boneGraphPanel.show();
+          isClickThrough = false;
+        }
+      });
+    }
+  }
+})();
+
+// ==================== 冻结事件监听（freeze-event）+ 骨层缓存 ====================
+(async function loadBoneConstraints() {
+  try {
+    if (window.electronAPI && window.electronAPI.loadBoneGraph) {
+      const data = await window.electronAPI.loadBoneGraph();
+      if (data && data.frozen) {
+        const avoid = [];
+        const prefer = [];
+        for (const entry of Object.values(data.frozen)) {
+          if (entry.avoidActions) avoid.push(...entry.avoidActions);
+          if (entry.preferActions) prefer.push(...entry.preferActions);
+        }
+        man._boneConstraints = { avoidActions: avoid, preferActions: prefer };
+      }
+    }
+  } catch (_) {}
+})();
+
+if (window.electronAPI && window.electronAPI.onFreezeEvent) {
+  window.electronAPI.onFreezeEvent((data) => {
+    // 清空当前动作队列，插入仪式
+    man.actionQueue = [];
+    man.setActionQueue(data.actions, data.monologue);
+
+    // 仪式第三段粒子特效
+    setTimeout(() => {
+      spawnParticles(man.x, man.y - BONE.body, 30, '#a0d4ff', 4);
+      spawnStars(man.x, man.y - BONE.body - 20, 15);
+    }, 5000);
+
+    // 刷新骨层缓存
+    (async () => {
+      try {
+        const freshData = await window.electronAPI.loadBoneGraph();
+        if (freshData && freshData.frozen) {
+          const avoid = [];
+          const prefer = [];
+          for (const entry of Object.values(freshData.frozen)) {
+            if (entry.avoidActions) avoid.push(...entry.avoidActions);
+            if (entry.preferActions) prefer.push(...entry.preferActions);
+          }
+          man._boneConstraints = { avoidActions: avoid, preferActions: prefer };
+        }
+      } catch (_) {}
+    })();
+  });
+}
 
 // Expose for testing
 if (typeof globalThis !== 'undefined') {

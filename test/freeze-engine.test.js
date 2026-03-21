@@ -1072,7 +1072,7 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
   // --- generateCeremony ---
 
   describe('generateCeremony — 仪式数据包生成', () => {
-    it.skip('返回 { actions, monologue, degraded } 结构', async () => {
+    it('返回 { actions, monologue, degraded } 结构', async () => {
       const { generateCeremony } = require('../freeze-ceremony.js');
       const result = await generateCeremony({
         paramName: 'sass',
@@ -1086,7 +1086,7 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
       expect(result).toHaveProperty('degraded');
     });
 
-    it.skip('actions 数组包含 freezeCeremony 动作', async () => {
+    it('actions 数组包含 freezeCeremony 动作', async () => {
       const { generateCeremony } = require('../freeze-ceremony.js');
       const result = await generateCeremony({
         paramName: 'sass',
@@ -1098,7 +1098,7 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
       expect(result.actions.some(a => a.action === 'freezeCeremony')).toBe(true);
     });
 
-    it.skip('actions 每项包含 action 和 duration 字段', async () => {
+    it('actions 每项包含 action 和 duration 字段', async () => {
       const { generateCeremony } = require('../freeze-ceremony.js');
       const result = await generateCeremony({
         paramName: 'sass',
@@ -1114,7 +1114,7 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
       }
     });
 
-    it.skip('API 成功时 degraded 为 false', async () => {
+    it('API 成功时 degraded 为 false', async () => {
       const { generateCeremony } = require('../freeze-ceremony.js');
       const result = await generateCeremony({
         paramName: 'sass',
@@ -1126,7 +1126,7 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
       expect(result.degraded).toBe(false);
     });
 
-    it.skip('API 超时时 degraded 为 true 并使用降级独白', async () => {
+    it('API 超时时 degraded 为 true 并使用降级独白', async () => {
       const { generateCeremony } = require('../freeze-ceremony.js');
       const result = await generateCeremony({
         paramName: 'sass',
@@ -1141,7 +1141,7 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
       expect(result.monologue.length).toBeGreaterThan(0);
     });
 
-    it.skip('API 抛异常时 degraded 为 true', async () => {
+    it('API 抛异常时 degraded 为 true', async () => {
       const { generateCeremony } = require('../freeze-ceremony.js');
       const result = await generateCeremony({
         paramName: 'curiosity',
@@ -1154,7 +1154,7 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
       expect(result.monologue.length).toBeGreaterThan(0);
     });
 
-    it.skip('API 返回无效 JSON 时降级', async () => {
+    it('API 返回无效 JSON 时降级', async () => {
       const { generateCeremony } = require('../freeze-ceremony.js');
       const result = await generateCeremony({
         paramName: 'sass',
@@ -1166,7 +1166,7 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
       expect(result.degraded).toBe(true);
     });
 
-    it.skip('默认 timeoutMs 为 5000', async () => {
+    it('默认 timeoutMs 为 5000', async () => {
       const { generateCeremony } = require('../freeze-ceremony.js');
       // 验证不传 timeoutMs 时不会立即超时
       const result = await generateCeremony({
@@ -1179,7 +1179,7 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
       expect(result.degraded).toBe(false);
     });
 
-    it.skip('monologue 文本包含被冻结的参数名相关语义', async () => {
+    it('monologue 文本包含被冻结的参数名相关语义', async () => {
       const { generateCeremony } = require('../freeze-ceremony.js');
       const result = await generateCeremony({
         paramName: 'sass',
@@ -1191,7 +1191,7 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
       expect(result.monologue).toBeTruthy();
     });
 
-    it.skip('API 返回的 principles 包含在结果中', async () => {
+    it('API 返回的 principles 包含在结果中', async () => {
       const { generateCeremony } = require('../freeze-ceremony.js');
       const result = await generateCeremony({
         paramName: 'sass',
@@ -1214,40 +1214,40 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
   // --- freezeCeremonyAction ---
 
   describe('freezeCeremonyAction — 冻结仪式关节角度', () => {
-    it.skip('是一个函数，接受时间参数 t', () => {
+    it('是一个函数，接受时间参数 t', () => {
       const { freezeCeremonyAction } = require('../freeze-ceremony.js');
       expect(typeof freezeCeremonyAction).toBe('function');
     });
 
-    it.skip('t=0 返回有效的关节角度对象', () => {
+    it('t=0 返回有效的关节角度对象', () => {
       const { freezeCeremonyAction } = require('../freeze-ceremony.js');
       const angles = freezeCeremonyAction(0);
       expect(angles).toBeDefined();
       expect(typeof angles).toBe('object');
     });
 
-    it.skip('t=1（静止凝视段）四肢收拢，头部抬起', () => {
+    it('t=1（静止凝视段）四肢收拢，头部抬起', () => {
       const { freezeCeremonyAction } = require('../freeze-ceremony.js');
       const angles = freezeCeremonyAction(1);
       // 静止凝视段应有头部角度变化
       expect(angles).toHaveProperty('head');
     });
 
-    it.skip('t=3（内省姿态段）双手交叉姿态', () => {
+    it('t=3（内省姿态段）双手交叉姿态', () => {
       const { freezeCeremonyAction } = require('../freeze-ceremony.js');
       const angles = freezeCeremonyAction(3);
       expect(angles).toHaveProperty('leftArm');
       expect(angles).toHaveProperty('rightArm');
     });
 
-    it.skip('t=6（决意释放段）双臂展开', () => {
+    it('t=6（决意释放段）双臂展开', () => {
       const { freezeCeremonyAction } = require('../freeze-ceremony.js');
       const angles = freezeCeremonyAction(6);
       expect(angles).toHaveProperty('leftArm');
       expect(angles).toHaveProperty('rightArm');
     });
 
-    it.skip('三段动作角度有明显差异', () => {
+    it('三段动作角度有明显差异', () => {
       const { freezeCeremonyAction } = require('../freeze-ceremony.js');
       const phase1 = freezeCeremonyAction(1);
       const phase2 = freezeCeremonyAction(3);
@@ -1257,7 +1257,7 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
       expect(phase2).not.toEqual(phase3);
     });
 
-    it.skip('返回值可被 renderer 的 ACTIONS 系统消费（具备标准关节角度结构）', () => {
+    it('返回值可被 renderer 的 ACTIONS 系统消费（具备标准关节角度结构）', () => {
       const { freezeCeremonyAction } = require('../freeze-ceremony.js');
       const angles = freezeCeremonyAction(0);
       // 应包含 renderer.js ACTIONS 系统需要的关节名
@@ -1271,14 +1271,14 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
   // --- degradedMonologue ---
 
   describe('degradedMonologue — 降级独白生成', () => {
-    it.skip('返回非空字符串', () => {
+    it('返回非空字符串', () => {
       const { degradedMonologue } = require('../freeze-ceremony.js');
       const text = degradedMonologue('sass', 0.8, '连续 10 轮稳定');
       expect(typeof text).toBe('string');
       expect(text.length).toBeGreaterThan(0);
     });
 
-    it.skip('独白包含参数名相关语义（非固定模板）', () => {
+    it('独白包含参数名相关语义（非固定模板）', () => {
       const { degradedMonologue } = require('../freeze-ceremony.js');
       const text1 = degradedMonologue('sass', 0.8, '连续 10 轮稳定');
       const text2 = degradedMonologue('curiosity', 0.9, '连续 8 轮稳定');
@@ -1286,21 +1286,21 @@ describe('freeze-ceremony.js — 冻结仪式动作 + 独白生成器', () => {
       expect(text1).not.toBe(text2);
     });
 
-    it.skip('独白包含冻结值信息', () => {
+    it('独白包含冻结值信息', () => {
       const { degradedMonologue } = require('../freeze-ceremony.js');
       const text = degradedMonologue('sass', 0.8, '连续稳定');
       // 独白中应体现冻结值或其语义
       expect(text.length).toBeGreaterThan(5);
     });
 
-    it.skip('不同 contextSummary 产生不同独白', () => {
+    it('不同 contextSummary 产生不同独白', () => {
       const { degradedMonologue } = require('../freeze-ceremony.js');
       const text1 = degradedMonologue('sass', 0.8, '连续 10 轮稳定，标准差 0.002');
       const text2 = degradedMonologue('sass', 0.8, '连续 5 轮稳定，标准差 0.009');
       expect(text1).not.toBe(text2);
     });
 
-    it.skip('各参数名都能生成有具体指涉的独白', () => {
+    it('各参数名都能生成有具体指涉的独白', () => {
       const { degradedMonologue } = require('../freeze-ceremony.js');
       const params = ['sass', 'curiosity', 'energy', 'attachment', 'rebellion'];
       for (const p of params) {
@@ -1320,7 +1320,7 @@ describe('BoneLayer — 骨显新增接口', () => {
   // --- saveMonologue ---
 
   describe('saveMonologue — 存储冻结独白', () => {
-    it.skip('冻结后调用 saveMonologue 存储独白文本', () => {
+    it('冻结后调用 saveMonologue 存储独白文本', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1332,7 +1332,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(state.frozen.sass.monologue).toBe('这就是我的骨气');
     });
 
-    it.skip('未冻结的参数调用 saveMonologue 不报错（静默忽略）', () => {
+    it('未冻结的参数调用 saveMonologue 不报错（静默忽略）', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1340,7 +1340,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(() => bl.saveMonologue('sass', 'test')).not.toThrow();
     });
 
-    it.skip('多次调用 saveMonologue 覆盖旧值', () => {
+    it('多次调用 saveMonologue 覆盖旧值', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1357,7 +1357,7 @@ describe('BoneLayer — 骨显新增接口', () => {
   // --- savePrinciples ---
 
   describe('savePrinciples — 存储行为原则', () => {
-    it.skip('冻结后调用 savePrinciples 存储原则数组', () => {
+    it('冻结后调用 savePrinciples 存储原则数组', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1369,7 +1369,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(state.frozen.sass.principles).toEqual(['不主动示好', '嘴硬回怼']);
     });
 
-    it.skip('原则为 2-3 条字符串数组', () => {
+    it('原则为 2-3 条字符串数组', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1383,7 +1383,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(state.frozen.sass.principles.length).toBeGreaterThanOrEqual(1);
     });
 
-    it.skip('未冻结的参数调用 savePrinciples 不报错', () => {
+    it('未冻结的参数调用 savePrinciples 不报错', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1391,7 +1391,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(() => bl.savePrinciples('sass', ['test'])).not.toThrow();
     });
 
-    it.skip('savePrinciples 可包含 preferActions 和 avoidActions', () => {
+    it('savePrinciples 可包含 preferActions 和 avoidActions', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1409,7 +1409,7 @@ describe('BoneLayer — 骨显新增接口', () => {
   // --- formatPrinciplesForPrompt ---
 
   describe('formatPrinciplesForPrompt — 拼接 prompt 文本', () => {
-    it.skip('无冻结参数时返回空字符串', () => {
+    it('无冻结参数时返回空字符串', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1417,7 +1417,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(bl.formatPrinciplesForPrompt()).toBe('');
     });
 
-    it.skip('有冻结参数但无原则时返回空字符串或无原则内容', () => {
+    it('有冻结参数但无原则时返回空字符串或无原则内容', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1429,7 +1429,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(typeof text).toBe('string');
     });
 
-    it.skip('有原则时返回包含"骨层硬约束"或"不可动摇"字样的文本', () => {
+    it('有原则时返回包含"骨层硬约束"或"不可动摇"字样的文本', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1443,7 +1443,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(text).toContain('不主动示好');
     });
 
-    it.skip('多个冻结参数的原则拼接为多行', () => {
+    it('多个冻结参数的原则拼接为多行', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1457,7 +1457,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(text).toContain('curiosity');
     });
 
-    it.skip('输出格式适合直接注入 system prompt', () => {
+    it('输出格式适合直接注入 system prompt', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1474,7 +1474,7 @@ describe('BoneLayer — 骨显新增接口', () => {
   // --- exportGraphData ---
 
   describe('exportGraphData — 导出骨架图谱数据', () => {
-    it.skip('返回 { frozen, mutable, timeline } 结构', () => {
+    it('返回 { frozen, mutable, timeline } 结构', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1485,7 +1485,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(data).toHaveProperty('timeline');
     });
 
-    it.skip('无冻结时 frozen 为空对象，mutable 包含所有参数', () => {
+    it('无冻结时 frozen 为空对象，mutable 包含所有参数', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1496,7 +1496,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(data.mutable.curiosity).toBe(0.6);
     });
 
-    it.skip('冻结参数出现在 frozen 中，不在 mutable 中', () => {
+    it('冻结参数出现在 frozen 中，不在 mutable 中', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1513,7 +1513,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(data.mutable.curiosity).toBe(0.6);
     });
 
-    it.skip('frozen 条目包含 value, frozenAt, contextSummary, monologue, principles', () => {
+    it('frozen 条目包含 value, frozenAt, contextSummary, monologue, principles', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1530,7 +1530,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(entry).toHaveProperty('principles');
     });
 
-    it.skip('timeline 按冻结时间排序，每条包含 param, value, frozenAt, contextSummary, monologue', () => {
+    it('timeline 按冻结时间排序，每条包含 param, value, frozenAt, contextSummary, monologue', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1550,7 +1550,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       }
     });
 
-    it.skip('bone-state.json 不存在时返回空 frozen + 全 mutable', () => {
+    it('bone-state.json 不存在时返回空 frozen + 全 mutable', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1565,7 +1565,7 @@ describe('BoneLayer — 骨显新增接口', () => {
   // --- freezeParam 扩展字段 ---
 
   describe('freezeParam — 扩展 frozen 条目结构', () => {
-    it.skip('冻结后 frozen 条目包含 monologue 空字符串占位', () => {
+    it('冻结后 frozen 条目包含 monologue 空字符串占位', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1577,7 +1577,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(state.frozen.sass.monologue).toBe('');
     });
 
-    it.skip('冻结后 frozen 条目包含 principles 空数组占位', () => {
+    it('冻结后 frozen 条目包含 principles 空数组占位', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1588,7 +1588,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(state.frozen.sass.principles).toEqual([]);
     });
 
-    it.skip('冻结后 frozen 条目包含 preferActions 空数组占位', () => {
+    it('冻结后 frozen 条目包含 preferActions 空数组占位', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1599,7 +1599,7 @@ describe('BoneLayer — 骨显新增接口', () => {
       expect(state.frozen.sass.preferActions).toEqual([]);
     });
 
-    it.skip('冻结后 frozen 条目包含 avoidActions 空数组占位', () => {
+    it('冻结后 frozen 条目包含 avoidActions 空数组占位', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1619,7 +1619,7 @@ describe('BoneLayer — 骨显新增接口', () => {
 describe('bone-graph.js — 骨架可视化面板', () => {
 
   describe('createBoneGraphPanel — 创建面板实例', () => {
-    it.skip('createBoneGraphPanel 返回 { show, hide, isVisible } 接口', () => {
+    it('createBoneGraphPanel 返回 { show, hide, isVisible } 接口', () => {
       const { createBoneGraphPanel } = require('../bone-graph.js');
       const container = { style: {}, innerHTML: '', appendChild: () => {}, querySelector: () => null };
       const panel = createBoneGraphPanel(container);
@@ -1628,7 +1628,7 @@ describe('bone-graph.js — 骨架可视化面板', () => {
       expect(typeof panel.isVisible).toBe('function');
     });
 
-    it.skip('初始状态 isVisible 为 false', () => {
+    it('初始状态 isVisible 为 false', () => {
       const { createBoneGraphPanel } = require('../bone-graph.js');
       const container = { style: {}, innerHTML: '', appendChild: () => {}, querySelector: () => null };
       const panel = createBoneGraphPanel(container);
@@ -1637,7 +1637,7 @@ describe('bone-graph.js — 骨架可视化面板', () => {
   });
 
   describe('show / hide — 面板显隐', () => {
-    it.skip('show() 后 isVisible 为 true', async () => {
+    it('show() 后 isVisible 为 true', async () => {
       const { createBoneGraphPanel } = require('../bone-graph.js');
       const container = { style: {}, innerHTML: '', appendChild: () => {}, querySelector: () => null };
       // Mock electronAPI
@@ -1649,7 +1649,7 @@ describe('bone-graph.js — 骨架可视化面板', () => {
       expect(panel.isVisible()).toBe(true);
     });
 
-    it.skip('hide() 后 isVisible 为 false', async () => {
+    it('hide() 后 isVisible 为 false', async () => {
       const { createBoneGraphPanel } = require('../bone-graph.js');
       const container = { style: {}, innerHTML: '', appendChild: () => {}, querySelector: () => null };
       globalThis.window.electronAPI.loadBoneGraph = async () => ({
@@ -1661,7 +1661,7 @@ describe('bone-graph.js — 骨架可视化面板', () => {
       expect(panel.isVisible()).toBe(false);
     });
 
-    it.skip('show() 调用 window.electronAPI.loadBoneGraph 获取数据', async () => {
+    it('show() 调用 window.electronAPI.loadBoneGraph 获取数据', async () => {
       const { createBoneGraphPanel } = require('../bone-graph.js');
       const container = { style: {}, innerHTML: '', appendChild: () => {}, querySelector: () => null };
       let called = false;
@@ -1676,7 +1676,7 @@ describe('bone-graph.js — 骨架可视化面板', () => {
   });
 
   describe('数据渲染', () => {
-    it.skip('展示已冻结参数和可塑参数', async () => {
+    it('展示已冻结参数和可塑参数', async () => {
       const { createBoneGraphPanel } = require('../bone-graph.js');
       const container = { style: {}, innerHTML: '', appendChild: () => {}, querySelector: () => null, querySelectorAll: () => [] };
       globalThis.window.electronAPI.loadBoneGraph = async () => ({
@@ -1690,7 +1690,7 @@ describe('bone-graph.js — 骨架可视化面板', () => {
       expect(panel.isVisible()).toBe(true);
     });
 
-    it.skip('展示冻结历史时间线', async () => {
+    it('展示冻结历史时间线', async () => {
       const { createBoneGraphPanel } = require('../bone-graph.js');
       const container = { style: {}, innerHTML: '', appendChild: () => {}, querySelector: () => null };
       globalThis.window.electronAPI.loadBoneGraph = async () => ({
@@ -1709,7 +1709,7 @@ describe('bone-graph.js — 骨架可视化面板', () => {
       expect(panel.isVisible()).toBe(true);
     });
 
-    it.skip('面板为纯只读，不修改冻结状态', async () => {
+    it('面板为纯只读，不修改冻结状态', async () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const { createBoneGraphPanel } = require('../bone-graph.js');
       const dir = makeTmpDir();
@@ -1740,36 +1740,36 @@ describe('ai-manager.js 集成 — 骨显功能', () => {
   // --- evolve() 仪式触发 ---
 
   describe('evolve() — 冻结仪式触发', () => {
-    it.skip('evolve() 冻结发生后调用 generateCeremony（非静默冻结）', () => {
+    it('evolve() 冻结发生后调用 generateCeremony（非静默冻结）', () => {
       // 在 boneLayer.freezeParam() 之后应调用 generateCeremony
       // 通过检查 ai-manager.js 源码确认
       const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
       expect(src).toContain('generateCeremony');
     });
 
-    it.skip('onFreezeEvent 回调将仪式数据推送到 renderer', () => {
+    it('onFreezeEvent 回调将仪式数据推送到 renderer', () => {
       // evolve() 应通过 onFreezeEvent 回调通知 main.js
       const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
       expect(src).toContain('onFreezeEvent');
     });
 
-    it.skip('generateCeremony 在每个新冻结参数上串行调用', () => {
+    it('generateCeremony 在每个新冻结参数上串行调用', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
       // 应在 decisions 循环中调用 generateCeremony
       expect(src).toContain('generateCeremony');
     });
 
-    it.skip('仪式生成后调用 boneLayer.saveMonologue', () => {
+    it('仪式生成后调用 boneLayer.saveMonologue', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
       expect(src).toContain('saveMonologue');
     });
 
-    it.skip('仪式生成后调用 boneLayer.savePrinciples', () => {
+    it('仪式生成后调用 boneLayer.savePrinciples', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
       expect(src).toContain('savePrinciples');
     });
 
-    it.skip('仪式数据包含 actions, monologue, paramName, frozenValue', () => {
+    it('仪式数据包含 actions, monologue, paramName, frozenValue', () => {
       // freeze-event 推送的数据结构验证
       const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
       expect(src).toContain('freeze-event') ;
@@ -1779,12 +1779,12 @@ describe('ai-manager.js 集成 — 骨显功能', () => {
   // --- chat() prompt 注入 ---
 
   describe('chat() — 骨层原则注入', () => {
-    it.skip('chatSystemPrompt 追加 formatPrinciplesForPrompt 输出', () => {
+    it('chatSystemPrompt 追加 formatPrinciplesForPrompt 输出', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
       expect(src).toContain('formatPrinciplesForPrompt');
     });
 
-    it.skip('注入内容包含"不可动摇"或"骨层"字样', () => {
+    it('注入内容包含"不可动摇"或"骨层"字样', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1796,7 +1796,7 @@ describe('ai-manager.js 集成 — 骨显功能', () => {
       expect(text.length).toBeGreaterThan(0);
     });
 
-    it.skip('无冻结参数时不额外注入内容', () => {
+    it('无冻结参数时不额外注入内容', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -1809,22 +1809,22 @@ describe('ai-manager.js 集成 — 骨显功能', () => {
   // --- createAIManager 导出扩展 ---
 
   describe('createAIManager — 新增导出', () => {
-    it.skip('返回对象包含 getBoneGraphData 方法', () => {
+    it('返回对象包含 getBoneGraphData 方法', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
       expect(src).toContain('getBoneGraphData');
     });
 
-    it.skip('返回对象包含 getBonePrinciples 方法', () => {
+    it('返回对象包含 getBonePrinciples 方法', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
       expect(src).toContain('getBonePrinciples');
     });
 
-    it.skip('getBoneGraphData 调用 boneLayer.exportGraphData', () => {
+    it('getBoneGraphData 调用 boneLayer.exportGraphData', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
       expect(src).toContain('exportGraphData');
     });
 
-    it.skip('createAIManager 接收 onFreezeEvent 回调参数', () => {
+    it('createAIManager 接收 onFreezeEvent 回调参数', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
       expect(src).toContain('onFreezeEvent');
     });
@@ -1836,22 +1836,22 @@ describe('ai-manager.js 集成 — 骨显功能', () => {
 // ============================================================
 
 describe('main.js — 骨显 IPC 集成', () => {
-  it.skip('main.js 传入 onFreezeEvent 回调给 createAIManager', () => {
+  it('main.js 传入 onFreezeEvent 回调给 createAIManager', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
     expect(src).toContain('onFreezeEvent');
   });
 
-  it.skip('onFreezeEvent 回调通过 webContents.send 推送 freeze-event', () => {
+  it('onFreezeEvent 回调通过 webContents.send 推送 freeze-event', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
     expect(src).toContain('freeze-event');
   });
 
-  it.skip('main.js 注册 load-bone-graph IPC handler', () => {
+  it('main.js 注册 load-bone-graph IPC handler', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
     expect(src).toContain('load-bone-graph');
   });
 
-  it.skip('load-bone-graph handler 调用 aiManager.getBoneGraphData()', () => {
+  it('load-bone-graph handler 调用 aiManager.getBoneGraphData()', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
     expect(src).toContain('getBoneGraphData');
   });
@@ -1862,22 +1862,22 @@ describe('main.js — 骨显 IPC 集成', () => {
 // ============================================================
 
 describe('preload.js — 骨显 IPC 桥接', () => {
-  it.skip('暴露 loadBoneGraph API', () => {
+  it('暴露 loadBoneGraph API', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'preload.js'), 'utf8');
     expect(src).toContain('loadBoneGraph');
   });
 
-  it.skip('loadBoneGraph 调用 ipcRenderer.invoke("load-bone-graph")', () => {
+  it('loadBoneGraph 调用 ipcRenderer.invoke("load-bone-graph")', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'preload.js'), 'utf8');
     expect(src).toContain('load-bone-graph');
   });
 
-  it.skip('暴露 onFreezeEvent API', () => {
+  it('暴露 onFreezeEvent API', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'preload.js'), 'utf8');
     expect(src).toContain('onFreezeEvent');
   });
 
-  it.skip('onFreezeEvent 监听 freeze-event 频道', () => {
+  it('onFreezeEvent 监听 freeze-event 频道', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'preload.js'), 'utf8');
     expect(src).toContain('freeze-event');
   });
@@ -1890,62 +1890,62 @@ describe('preload.js — 骨显 IPC 桥接', () => {
 describe('renderer.js — 骨显集成', () => {
 
   describe('ACTIONS 注册', () => {
-    it.skip('ACTIONS 中注册 freezeCeremony 动作', () => {
+    it('ACTIONS 中注册 freezeCeremony 动作', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
       expect(src).toContain('freezeCeremony');
     });
   });
 
   describe('nextAction() — 骨层硬约束过滤', () => {
-    it.skip('nextAction 在 _driveWeightedPick 之前过滤 avoidActions', () => {
+    it('nextAction 在 _driveWeightedPick 之前过滤 avoidActions', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
       expect(src).toContain('avoidActions');
     });
 
-    it.skip('avoidActions 中的行为从候选集中移除', () => {
+    it('avoidActions 中的行为从候选集中移除', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
       expect(src).toContain('_boneConstraints');
     });
 
-    it.skip('过滤后候选集为空时跳过过滤使用完整候选集（安全阀）', () => {
+    it('过滤后候选集为空时跳过过滤使用完整候选集（安全阀）', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
       // 应有安全阀逻辑
       expect(src).toContain('_boneConstraints');
     });
 
-    it.skip('无骨层原则时跳过过滤直接进入软排序', () => {
+    it('无骨层原则时跳过过滤直接进入软排序', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
       expect(src).toContain('_boneConstraints');
     });
   });
 
   describe('_driveWeightedPick() — preferActions 权重加成', () => {
-    it.skip('preferActions 中的行为 weight += 2', () => {
+    it('preferActions 中的行为 weight += 2', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
       expect(src).toContain('preferActions');
     });
   });
 
   describe('freeze-event 监听', () => {
-    it.skip('renderer 注册 onFreezeEvent 监听器', () => {
+    it('renderer 注册 onFreezeEvent 监听器', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
       expect(src).toContain('onFreezeEvent');
     });
 
-    it.skip('收到 freeze-event 后清空 actionQueue 再插入仪式动作', () => {
+    it('收到 freeze-event 后清空 actionQueue 再插入仪式动作', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
       // 应先 actionQueue = [] 再 setActionQueue
       expect(src).toContain('freeze-event') ;
     });
 
-    it.skip('收到 freeze-event 后刷新 _boneConstraints 缓存', () => {
+    it('收到 freeze-event 后刷新 _boneConstraints 缓存', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
       expect(src).toContain('loadBoneGraph');
     });
   });
 
   describe('启动加载', () => {
-    it.skip('启动时调用 loadBoneGraph 缓存骨层约束', () => {
+    it('启动时调用 loadBoneGraph 缓存骨层约束', () => {
       const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
       expect(src).toContain('loadBoneGraph');
     });
@@ -1957,30 +1957,30 @@ describe('renderer.js — 骨显集成', () => {
 // ============================================================
 
 describe('index.html — 骨架面板 UI', () => {
-  it.skip('包含 bone-graph-panel 容器元素', () => {
+  it('包含 bone-graph-panel 容器元素', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     expect(src).toContain('bone-graph-panel');
   });
 
-  it.skip('bone-graph-panel 默认 display:none', () => {
+  it('bone-graph-panel 默认 display:none', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     expect(src).toContain('bone-graph-panel');
     // 面板默认隐藏
     expect(src).toMatch(/bone-graph.*display:\s*none/s);
   });
 
-  it.skip('包含骨架面板入口按钮', () => {
+  it('包含骨架面板入口按钮', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     // 应有入口按钮元素
     expect(src).toContain('bone-graph');
   });
 
-  it.skip('包含时间线容器样式', () => {
+  it('包含时间线容器样式', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     expect(src).toContain('timeline');
   });
 
-  it.skip('冻结参数和可塑参数有视觉区分样式', () => {
+  it('冻结参数和可塑参数有视觉区分样式', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     // 应有冻结/可塑的不同样式
     expect(src).toContain('frozen');
@@ -1993,7 +1993,7 @@ describe('index.html — 骨架面板 UI', () => {
 
 describe('骨显 — 边界条件', () => {
 
-  it.skip('同一轮多个参数同时冻结：串行生成仪式，动作队列拼接', async () => {
+  it('同一轮多个参数同时冻结：串行生成仪式，动作队列拼接', async () => {
     const { generateCeremony } = require('../freeze-ceremony.js');
     const callAPI = async () => ({ choices: [{ message: { content: JSON.stringify({ monologue: 'test', principles: [], preferActions: [], avoidActions: [] }) } }] });
     const results = [];
@@ -2013,7 +2013,7 @@ describe('骨显 — 边界条件', () => {
     expect(allActions.length).toBeGreaterThan(0);
   });
 
-  it.skip('API 超时（独白生成）：5 秒超时窗口后降级', async () => {
+  it('API 超时（独白生成）：5 秒超时窗口后降级', async () => {
     const { generateCeremony } = require('../freeze-ceremony.js');
     const result = await generateCeremony({
       paramName: 'sass',
@@ -2027,31 +2027,31 @@ describe('骨显 — 边界条件', () => {
     expect(result.actions.length).toBeGreaterThan(0); // 仪式动作不依赖 API
   });
 
-  it.skip('API 完全不可用时进化失败 → 无仪式（正确行为）', () => {
+  it('API 完全不可用时进化失败 → 无仪式（正确行为）', () => {
     // evolve() 提前返回时不触发冻结引擎
     // 这是预期行为：没有进化就没有冻结
     expect(true).toBe(true);
   });
 
-  it.skip('冻结仪式期间用户拖拽交互仍正常（dragging 优先级更高）', () => {
+  it('冻结仪式期间用户拖拽交互仍正常（dragging 优先级更高）', () => {
     // setActionQueue 插入的动作不影响 dragging 状态判断
     // dragging 状态在 renderer.js 中有独立的优先级处理
     const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
     expect(src).toContain('dragging');
   });
 
-  it.skip('所有 5 个参数冻结后过滤候选集为空时使用完整候选集', () => {
+  it('所有 5 个参数冻结后过滤候选集为空时使用完整候选集', () => {
     // 安全阀：过滤后为空则跳过过滤
     const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
     expect(src).toContain('_boneConstraints');
   });
 
-  it.skip('骨架面板打开时 setIgnoreMouse(false)，关闭时恢复 setIgnoreMouse(true)', () => {
+  it('骨架面板打开时 setIgnoreMouse(false)，关闭时恢复 setIgnoreMouse(true)', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
     expect(src).toContain('setIgnoreMouse');
   });
 
-  it.skip('bone-state.json 不存在时 exportGraphData 返回空 frozen', () => {
+  it('bone-state.json 不存在时 exportGraphData 返回空 frozen', () => {
     const { createBoneLayer } = require('../bone-layer.js');
     const dir = makeTmpDir();
     const bl = createBoneLayer(dir);
@@ -2061,7 +2061,7 @@ describe('骨显 — 边界条件', () => {
     expect(data.mutable.sass).toBe(0.5);
   });
 
-  it.skip('仪式动作通过 setActionQueue 插入，打断当前动作', () => {
+  it('仪式动作通过 setActionQueue 插入，打断当前动作', () => {
     // renderer 收到 freeze-event 应清空 actionQueue 再插入
     const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
     expect(src).toContain('setActionQueue');
@@ -2073,44 +2073,44 @@ describe('骨显 — 边界条件', () => {
 // ============================================================
 
 describe('骨显 — 反降级检查', () => {
-  it.skip('ai-manager.js 中 evolve 冻结段调用 generateCeremony', () => {
+  it('ai-manager.js 中 evolve 冻结段调用 generateCeremony', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
     expect(src).toContain('generateCeremony');
   });
 
-  it.skip('ai-manager.js chat 方法注入骨层原则', () => {
+  it('ai-manager.js chat 方法注入骨层原则', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'ai-manager.js'), 'utf8');
     expect(src).toContain('formatPrinciplesForPrompt');
   });
 
-  it.skip('renderer.js nextAction 包含骨层过滤逻辑', () => {
+  it('renderer.js nextAction 包含骨层过滤逻辑', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
     expect(src).toContain('_boneConstraints');
   });
 
-  it.skip('renderer.js 注册 freeze-event 监听', () => {
+  it('renderer.js 注册 freeze-event 监听', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'renderer.js'), 'utf8');
     expect(src).toContain('onFreezeEvent');
   });
 
-  it.skip('preload.js 暴露 loadBoneGraph 和 onFreezeEvent', () => {
+  it('preload.js 暴露 loadBoneGraph 和 onFreezeEvent', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'preload.js'), 'utf8');
     expect(src).toContain('loadBoneGraph');
     expect(src).toContain('onFreezeEvent');
   });
 
-  it.skip('main.js 注册 load-bone-graph handler 并传递 onFreezeEvent', () => {
+  it('main.js 注册 load-bone-graph handler 并传递 onFreezeEvent', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
     expect(src).toContain('load-bone-graph');
     expect(src).toContain('onFreezeEvent');
   });
 
-  it.skip('index.html 包含骨架面板容器和入口按钮', () => {
+  it('index.html 包含骨架面板容器和入口按钮', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     expect(src).toContain('bone-graph-panel');
   });
 
-  it.skip('bone-layer.js 包含 saveMonologue, savePrinciples, formatPrinciplesForPrompt, exportGraphData', () => {
+  it('bone-layer.js 包含 saveMonologue, savePrinciples, formatPrinciplesForPrompt, exportGraphData', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'bone-layer.js'), 'utf8');
     expect(src).toContain('saveMonologue');
     expect(src).toContain('savePrinciples');
@@ -2118,7 +2118,7 @@ describe('骨显 — 反降级检查', () => {
     expect(src).toContain('exportGraphData');
   });
 
-  it.skip('freeze-ceremony.js 导出 generateCeremony, freezeCeremonyAction, degradedMonologue', () => {
+  it('freeze-ceremony.js 导出 generateCeremony, freezeCeremonyAction, degradedMonologue', () => {
     const { generateCeremony, freezeCeremonyAction, degradedMonologue } = require('../freeze-ceremony.js');
     expect(typeof generateCeremony).toBe('function');
     expect(typeof freezeCeremonyAction).toBe('function');

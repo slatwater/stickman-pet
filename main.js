@@ -65,6 +65,11 @@ function createWindow() {
     apiKey: AI_CONFIG.apiKey,
     apiBaseUrl: AI_CONFIG.apiBaseUrl,
     modelId: AI_CONFIG.modelId,
+    onFreezeEvent: (data) => {
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('freeze-event', data);
+      }
+    },
   });
 
   // 加载行为规则文件
@@ -121,6 +126,14 @@ function createWindow() {
     } catch (_) {
       return null;
     }
+  });
+
+  // 加载骨架图谱数据
+  ipcMain.handle('load-bone-graph', async () => {
+    if (aiManager && aiManager.getBoneGraphData) {
+      return aiManager.getBoneGraphData();
+    }
+    return { frozen: {}, mutable: {}, timeline: [] };
   });
 
   // 用户交互上报（点击、拖拽等）

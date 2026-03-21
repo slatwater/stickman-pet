@@ -5,6 +5,7 @@ const { promisify } = require('util');
 const execFileAsync = promisify(execFileCb);
 const { createBoneLayer } = require('./bone-layer');
 const { evaluate } = require('./meta-evaluator');
+const { generateCeremony } = require('./freeze-ceremony');
 
 const VALID_ACTIONS = [
   'idle', 'lookAround', 'walk', 'dance', 'crazyDance', 'jump', 'wave', 'kick',
@@ -495,6 +496,7 @@ function createAIManager(options = {}) {
     apiBaseUrl = 'https://api.deepseek.com',
     modelId = 'deepseek-chat',
     fetchFn = globalThis.fetch,
+    onFreezeEvent = null,
   } = options;
 
   const boneLayer = createBoneLayer(baseDir);
@@ -1248,7 +1250,7 @@ ${availableParamLines.join('\n')}
 
     refreshSystemPrompt();
 
-    // 冻结引擎：记录本轮快照 + 元决策评估 + 冻结
+    // 冻结引擎：记录本轮快照 + 元决策评估 + 冻结 + 仪式
     const personalityPath = path.join(baseDir, 'ai', 'personality.json');
     try {
       const currentP = JSON.parse(fs.readFileSync(personalityPath, 'utf8'));
@@ -1257,6 +1259,37 @@ ${availableParamLines.join('\n')}
       const decisions = evaluate(boneLayer.history, frozenSet);
       for (const d of decisions) {
         boneLayer.freezeParam(d.param, currentP[d.param], d.contextSummary);
+
+        // 生成冻结仪式
+        try {
+          const ceremony = await generateCeremony({
+            paramName: d.param,
+            frozenValue: currentP[d.param],
+            contextSummary: d.contextSummary,
+            personality: currentP,
+            callAPI,
+            timeoutMs: 5000,
+          });
+          boneLayer.saveMonologue(d.param, ceremony.monologue);
+          boneLayer.savePrinciples(d.param, {
+            principles: ceremony.principles,
+            preferActions: ceremony.preferActions,
+            avoidActions: ceremony.avoidActions,
+          });
+          boneLayer.save();
+
+          // 推送仪式事件到 renderer（main.js 通过 freeze-event 频道转发）
+          if (onFreezeEvent) {
+            onFreezeEvent({
+              actions: ceremony.actions,
+              monologue: ceremony.monologue,
+              paramName: d.param,
+              frozenValue: currentP[d.param],
+            });
+          }
+        } catch (ceremonyErr) {
+          console.warn('[冻结仪式] 生成失败:', ceremonyErr.message);
+        }
       }
       boneLayer.save();
     } catch (e) {
@@ -1276,6 +1309,10 @@ ${availableParamLines.join('\n')}
     if (chatPersonality) {
       const desc = Object.entries(chatPersonality).map(([k, v]) => `${k}: ${v}`).join(', ');
       chatSystemPrompt += `\n\n## 你的性格参数\n${desc}\n根据这些参数调整你的说话风格（sass高→更毒舌，curiosity高→更爱提问，rebellion高→更叛逆，attachment高→更在意主人）`;
+    }
+    const bonePrinciples = boneLayer.formatPrinciplesForPrompt();
+    if (bonePrinciples) {
+      chatSystemPrompt += '\n\n' + bonePrinciples;
     }
     chatSystemPrompt += '\n\n## 当前对话模式\n\n用户正在直接跟你对话。用你的性格回应，要有趣、简短。回复JSON格式。';
 
@@ -1332,6 +1369,8 @@ ${availableParamLines.join('\n')}
     getSystemPrompt: () => systemPrompt,
     getObservations: () => observations,
     getPersonality: () => loadPersonality(baseDir, boneLayer),
+    getBoneGraphData: () => boneLayer.exportGraphData(loadPersonality(baseDir, null)),
+    getBonePrinciples: () => boneLayer.formatPrinciplesForPrompt(),
   };
 }
 
