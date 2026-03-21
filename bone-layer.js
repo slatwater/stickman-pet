@@ -107,7 +107,7 @@ function createBoneLayer(baseDir) {
       if (state.frozen[paramName]) return;
 
       const frozenAt = localTimestamp();
-      state.frozen[paramName] = { value: currentValue, frozenAt, contextSummary };
+      state.frozen[paramName] = { value: currentValue, frozenAt, contextSummary, monologue: '', principles: [], preferActions: [], avoidActions: [] };
 
       // 构建 commitChain 条目
       const valueHash = sha256(currentValue.toString());
@@ -151,6 +151,69 @@ function createBoneLayer(baseDir) {
         }
       }
       return violated;
+    },
+
+    saveMonologue(paramName, monologue) {
+      if (state.frozen[paramName]) {
+        state.frozen[paramName].monologue = monologue;
+      }
+    },
+
+    savePrinciples(paramName, principles) {
+      if (state.frozen[paramName]) {
+        if (Array.isArray(principles)) {
+          state.frozen[paramName].principles = principles;
+        } else {
+          state.frozen[paramName].principles = principles.principles || [];
+          state.frozen[paramName].preferActions = principles.preferActions || [];
+          state.frozen[paramName].avoidActions = principles.avoidActions || [];
+        }
+      }
+    },
+
+    formatPrinciplesForPrompt() {
+      const entries = Object.entries(state.frozen).filter(([, e]) => e.principles && e.principles.length > 0);
+      if (entries.length === 0) return '';
+      let text = '【不可动摇的信念】\n';
+      for (const [param, e] of entries) {
+        text += `- ${param} = ${e.value}（已固化）：${e.principles.join('；')}\n`;
+      }
+      text += '这些是你骨子里的东西，谈到相关话题时语气要笃定，不可妥协。';
+      return text;
+    },
+
+    exportGraphData(mutablePersonality) {
+      const frozen = {};
+      for (const [param, e] of Object.entries(state.frozen)) {
+        frozen[param] = {
+          value: e.value,
+          frozenAt: e.frozenAt,
+          contextSummary: e.contextSummary,
+          monologue: e.monologue || '',
+          principles: e.principles || [],
+          preferActions: e.preferActions || [],
+          avoidActions: e.avoidActions || [],
+        };
+      }
+      const mutable = {};
+      if (mutablePersonality) {
+        for (const [param, value] of Object.entries(mutablePersonality)) {
+          if (!(param in state.frozen)) {
+            mutable[param] = value;
+          }
+        }
+      }
+      const timeline = state.commitChain.map(c => {
+        const f = state.frozen[c.param];
+        return {
+          param: c.param,
+          value: f ? f.value : null,
+          frozenAt: c.frozenAt,
+          contextSummary: f ? f.contextSummary : '',
+          monologue: f ? (f.monologue || '') : '',
+        };
+      });
+      return { frozen, mutable, timeline };
     },
   };
 }

@@ -24,6 +24,131 @@
       color: #333;
     }
     #chat-input:focus { border-color: #666; }
+
+    /* 骨架图谱面板 */
+    #bone-graph-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+      width: 360px;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: rgba(20, 20, 30, 0.95);
+      border: 1.5px solid rgba(100, 180, 255, 0.4);
+      border-radius: 14px;
+      color: #e0e0e0;
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 13px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .bone-graph-inner { padding: 16px; }
+    .bone-graph-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 14px;
+      color: #a0d4ff;
+    }
+    .bone-graph-close {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .bone-graph-close:hover { color: #fff; }
+    .bone-graph-section { margin-bottom: 14px; }
+    .bone-graph-section h3 {
+      font-size: 12px;
+      color: #7ab8e0;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .bone-param {
+      padding: 8px 10px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+    .bone-frozen {
+      background: rgba(100, 180, 255, 0.1);
+      border: 1px solid rgba(100, 180, 255, 0.3);
+    }
+    .bone-mutable {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+    }
+    .bone-param-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .bone-param-name { font-weight: bold; color: #fff; }
+    .bone-param-value { color: #a0d4ff; }
+    .bone-frozen-badge {
+      font-size: 10px;
+      background: rgba(100, 180, 255, 0.25);
+      color: #a0d4ff;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .bone-mutable-badge {
+      font-size: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #888;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .bone-param-context { color: #999; font-size: 11px; margin-top: 4px; }
+    .bone-param-monologue { color: #c8a0ff; font-style: italic; margin-top: 4px; font-size: 12px; }
+    .bone-param-principles { color: #aaa; font-size: 11px; margin: 4px 0 0 16px; padding: 0; }
+    .bone-param-time { color: #666; font-size: 10px; margin-top: 4px; }
+    .bone-timeline { position: relative; padding-left: 16px; }
+    .bone-timeline-item {
+      position: relative;
+      padding-bottom: 12px;
+      padding-left: 12px;
+      border-left: 2px solid rgba(100, 180, 255, 0.3);
+    }
+    .bone-timeline-dot {
+      position: absolute;
+      left: -6px;
+      top: 4px;
+      width: 10px;
+      height: 10px;
+      background: #a0d4ff;
+      border-radius: 50%;
+    }
+    .bone-timeline-param { font-weight: bold; color: #e0e0e0; }
+    .bone-timeline-time { color: #666; font-size: 10px; }
+    .bone-timeline-ctx { color: #999; font-size: 11px; }
+    .bone-timeline-mono { color: #c8a0ff; font-style: italic; font-size: 11px; }
+    .bone-timeline-empty { color: #666; font-style: italic; }
+    .bone-empty { color: #666; font-style: italic; }
+
+    #bone-graph-btn {
+      position: fixed;
+      bottom: 60px;
+      right: 20px;
+      z-index: 99;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(20, 20, 30, 0.85);
+      border: 1.5px solid rgba(100, 180, 255, 0.4);
+      color: #a0d4ff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #bone-graph-btn:hover { background: rgba(40, 40, 60, 0.95); }
   </style>
 </head>
 <body>
@@ -31,6 +156,9 @@
   <div id="chat-container" style="display:none;">
     <input id="chat-input" type="text" placeholder="跟火柴人说点什么..." maxlength="100" autocomplete="off" />
   </div>
+  <div id="bone-graph-panel" style="display:none;"></div>
+  <button id="bone-graph-btn" title="骨架图谱">&#9764;</button>
+  <script src="bone-graph.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>
