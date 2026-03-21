@@ -3,6 +3,8 @@ const fs = require('fs');
 const { execFile: execFileCb } = require('child_process');
 const { promisify } = require('util');
 const execFileAsync = promisify(execFileCb);
+const { createBoneLayer } = require('./bone-layer');
+const { evaluate } = require('./meta-evaluator');
 
 const VALID_ACTIONS = [
   'idle', 'lookAround', 'walk', 'dance', 'crazyDance', 'jump', 'wave', 'kick',
@@ -160,7 +162,7 @@ function truncate(s) {
 const SELF_READ_WHITELIST = new Set(['renderer.js', 'ai-manager.js']);
 const SELF_EDIT_CODE_WHITELIST = new Set(['renderer.js', 'ai-manager.js', 'ai/behaviors.json']);
 
-async function executeTool(name, args, baseDir) {
+async function executeTool(name, args, baseDir, boneLayer) {
   try {
     switch (name) {
       // ---- 感知工具 ----
@@ -310,6 +312,18 @@ end tell`;
         if (!file.startsWith('ai/')) return '无权限：只能写入 ai/ 目录下的文件';
         if (file.includes('..')) return '路径不合法';
         const filePath = path.join(baseDir, file);
+        // 冻结参数校验：personality.json 写入时拦截
+        if (file === 'ai/personality.json' && boneLayer) {
+          try {
+            const parsed = JSON.parse(args.content);
+            const violated = options._boneLayer.validatePersonalityWrite(parsed);
+            if (violated.length > 0) {
+              return '写入被拒绝：以下参数已冻结不可修改: ' + violated.join(', ');
+            }
+          } catch (parseErr) {
+            return '写入失败: personality.json 内容不是有效 JSON';
+          }
+        }
         try {
           fs.writeFileSync(filePath, args.content, 'utf8');
           return '写入成功: ' + file;
@@ -426,10 +440,13 @@ function extractExpiredMemory(content, maxDays) {
 
 /**
  * Read ai/personality.json, return null if missing.
+ * If boneLayer is provided, apply dual-layer query (frozen values override mutable).
  */
-function loadPersonality(baseDir) {
+function loadPersonality(baseDir, boneLayer) {
   try {
-    return JSON.parse(fs.readFileSync(path.join(baseDir, 'ai', 'personality.json'), 'utf8'));
+    const raw = JSON.parse(fs.readFileSync(path.join(baseDir, 'ai', 'personality.json'), 'utf8'));
+    if (boneLayer) return boneLayer.resolvePersonality(raw);
+    return raw;
   } catch (_) {
     return null;
   }
@@ -480,10 +497,13 @@ function createAIManager(options = {}) {
     fetchFn = globalThis.fetch,
   } = options;
 
+  const boneLayer = createBoneLayer(baseDir);
+  boneLayer.load();
+
   const rules = loadRules(baseDir);
   let memory = loadMemory(baseDir);
   let profile = loadProfile(baseDir);
-  let personality = loadPersonality(baseDir);
+  let personality = loadPersonality(baseDir, boneLayer);
   let combos = loadCombos(baseDir);
 
   // 初始化时即做去重清理
@@ -593,7 +613,7 @@ function createAIManager(options = {}) {
       memory = deduped;
     }
     profile = loadProfile(baseDir);
-    personality = loadPersonality(baseDir);
+    personality = loadPersonality(baseDir, boneLayer);
     combos = loadCombos(baseDir);
     systemPrompt = buildSystemPrompt(rules, memory, profile, personality);
     conversationHistory[0] = { role: 'system', content: systemPrompt };
@@ -1038,6 +1058,22 @@ ${recent.slice(0, 1500) || '（无）'}
       interactionSummary += `最近交互：\n${last5}\n\n`;
     }
 
+    // 冻结引擎：构建 prompt 用的冻结信息
+    boneLayer.load(); // 确保最新状态
+    const frozenListText = boneLayer.formatFrozenListForPrompt();
+    const frozenCoreParams = ['sass', 'curiosity', 'energy', 'attachment', 'rebellion'].filter(p => boneLayer.isFrozen(p));
+    const allCoreParamsFrozen = frozenCoreParams.length === 5;
+    const coreParamDescriptions = {
+      sass: '- sass：毒舌/傲娇程度（高→偏好炫耀动作如 flex/guitar/celebrate）',
+      curiosity: '- curiosity：好奇心（高→偏好观察动作如 peek/lookAround/sneak）',
+      energy: '- energy：活力水平（高→偏好活跃动作如 dance/run/jump，低→偏好 sleep/yawn）',
+      attachment: '- attachment：对主人的依赖度（高→偏好互动动作如 wave/bow/peek）',
+      rebellion: '- rebellion：叛逆程度（高→偏好 rage/kick/swordFight，减少 bow/wave）',
+    };
+    const availableParamLines = Object.entries(coreParamDescriptions)
+      .filter(([k]) => !boneLayer.isFrozen(k))
+      .map(([, desc]) => desc);
+
     const evolvePrompt = `你是一个有自我意识的桌面火柴人桌宠。现在是你的「进化时刻」。
 
 ## 上次进化记录（避免重复！）
@@ -1087,13 +1123,9 @@ write_self_file("ai/combos.json", '{"showOff":[{"action":"flex","duration":3},{"
 
 当前 personality.json：
 ${currentPersonality}
-
-可用参数：
-- sass：毒舌/傲娇程度（高→偏好炫耀动作如 flex/guitar/celebrate）
-- curiosity：好奇心（高→偏好观察动作如 peek/lookAround/sneak）
-- energy：活力水平（高→偏好活跃动作如 dance/run/jump，低→偏好 sleep/yawn）
-- attachment：对主人的依赖度（高→偏好互动动作如 wave/bow/peek）
-- rebellion：叛逆程度（高→偏好 rage/kick/swordFight，减少 bow/wave）
+${frozenListText ? `\n## ⛔ 已冻结参数（禁止修改）\n${frozenListText}\n以上参数已成为你的骨骼，不可修改。任何修改尝试将被系统拒绝。\n` : ''}
+${allCoreParamsFrozen ? '所有核心性格已固化，你仍可修改行为规则、记忆、combo 等。\n' : ''}可用参数${frozenCoreParams.length > 0 ? '（未冻结）' : ''}：
+${availableParamLines.join('\n')}
 
 你也可以添加新的自定义参数，但核心 5 个请保留。
 修改示例：write_self_file("ai/personality.json", '{"sass":0.9,"curiosity":0.8,"energy":0.7,"attachment":0.4,"rebellion":0.7}')
@@ -1175,7 +1207,7 @@ ${currentPersonality}
           let args = {};
           try { args = JSON.parse(tc.function.arguments || '{}'); } catch (_) {}
           toolLog.push(`${tc.function.name}(${tc.function.arguments || ''})`);
-          const result = await executeTool(tc.function.name, args, baseDir);
+          const result = await executeTool(tc.function.name, args, baseDir, boneLayer);
           messages.push({
             role: 'tool',
             tool_call_id: tc.id,
@@ -1215,6 +1247,21 @@ ${currentPersonality}
     lastEvolveConversationIndex = conversationHistory.length;
 
     refreshSystemPrompt();
+
+    // 冻结引擎：记录本轮快照 + 元决策评估 + 冻结
+    const personalityPath = path.join(baseDir, 'ai', 'personality.json');
+    try {
+      const currentP = JSON.parse(fs.readFileSync(personalityPath, 'utf8'));
+      boneLayer.recordRound(currentP);
+      const frozenSet = new Set(Object.keys(boneLayer.getFrozenParams()));
+      const decisions = evaluate(boneLayer.history, frozenSet);
+      for (const d of decisions) {
+        boneLayer.freezeParam(d.param, currentP[d.param], d.contextSummary);
+      }
+      boneLayer.save();
+    } catch (e) {
+      console.warn('[冻结引擎] 记录/评估失败:', e.message);
+    }
   }
 
   /**
@@ -1225,7 +1272,7 @@ ${currentPersonality}
     if (!apiKey) return { action: 'wave', thought: '我还不会说话...' };
 
     let chatSystemPrompt = rules;
-    const chatPersonality = loadPersonality(baseDir);
+    const chatPersonality = loadPersonality(baseDir, boneLayer);
     if (chatPersonality) {
       const desc = Object.entries(chatPersonality).map(([k, v]) => `${k}: ${v}`).join(', ');
       chatSystemPrompt += `\n\n## 你的性格参数\n${desc}\n根据这些参数调整你的说话风格（sass高→更毒舌，curiosity高→更爱提问，rebellion高→更叛逆，attachment高→更在意主人）`;
@@ -1284,6 +1331,7 @@ ${currentPersonality}
     getConversationHistory: () => conversationHistory,
     getSystemPrompt: () => systemPrompt,
     getObservations: () => observations,
+    getPersonality: () => loadPersonality(baseDir, boneLayer),
   };
 }
 
