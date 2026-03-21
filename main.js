@@ -4,6 +4,11 @@ const path = require('path');
 const fs = require('fs');
 const { createAIManager } = require('./ai-manager');
 
+// 忽略 EPIPE 错误（stdout/stderr 管道断开时不崩溃）
+process.stdout.on('error', (e) => { if (e.code !== 'EPIPE') throw e; });
+process.stderr.on('error', (e) => { if (e.code !== 'EPIPE') throw e; });
+process.on('uncaughtException', (e) => { if (e.code === 'EPIPE') return; throw e; });
+
 let win;
 let aiManager;
 
@@ -105,8 +110,11 @@ function createWindow() {
     }
   });
 
-  // 加载性格参数
+  // 加载性格参数（双层查询：frozen 值优先）
   ipcMain.handle('load-personality', async () => {
+    if (aiManager && aiManager.getPersonality) {
+      return aiManager.getPersonality();
+    }
     try {
       const data = fs.readFileSync(path.join(__dirname, 'ai', 'personality.json'), 'utf8');
       return JSON.parse(data);

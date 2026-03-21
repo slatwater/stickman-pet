@@ -88,7 +88,7 @@ describe('BoneLayer — 骨层存储模块', () => {
   // --- A.1 创建与初始化 ---
 
   describe('创建与初始化', () => {
-    it.skip('createBoneLayer(baseDir) 返回 BoneLayer 实例', () => {
+    it('createBoneLayer(baseDir) 返回 BoneLayer 实例', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -105,7 +105,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(typeof bl.validatePersonalityWrite).toBe('function');
     });
 
-    it.skip('冷启动：bone-state.json 不存在时 load() 创建空白初始状态', () => {
+    it('冷启动：bone-state.json 不存在时 load() 创建空白初始状态', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -120,7 +120,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(state.commitChain).toEqual([]);
     });
 
-    it.skip('正常加载已有 bone-state.json', () => {
+    it('正常加载已有 bone-state.json', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       writeBoneState(dir, {
@@ -138,7 +138,7 @@ describe('BoneLayer — 骨层存储模块', () => {
   // --- A.2 双层查询 resolvePersonality ---
 
   describe('双层查询 resolvePersonality', () => {
-    it.skip('无冻结参数时返回原始 personality 的副本', () => {
+    it('无冻结参数时返回原始 personality 的副本', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -148,7 +148,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(result).toEqual(mutable);
     });
 
-    it.skip('冻结参数覆盖 mutable 层对应值', () => {
+    it('冻结参数覆盖 mutable 层对应值', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       writeBoneState(dir, {
@@ -164,7 +164,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(result.curiosity).toBe(0.6);
     });
 
-    it.skip('personality.json 删除已冻结参数 → resolvePersonality 仍注入冻结值', () => {
+    it('personality.json 删除已冻结参数 → resolvePersonality 仍注入冻结值', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       writeBoneState(dir, {
@@ -180,7 +180,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(result.curiosity).toBe(0.6);
     });
 
-    it.skip('多个冻结参数同时覆盖', () => {
+    it('多个冻结参数同时覆盖', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       writeBoneState(dir, {
@@ -204,7 +204,7 @@ describe('BoneLayer — 骨层存储模块', () => {
   // --- A.3 getFrozenParams / isFrozen ---
 
   describe('getFrozenParams / isFrozen', () => {
-    it.skip('无冻结时 getFrozenParams 返回空对象', () => {
+    it('无冻结时 getFrozenParams 返回空对象', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -212,7 +212,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(bl.getFrozenParams()).toEqual({});
     });
 
-    it.skip('冻结后 getFrozenParams 返回参数名→值 map', () => {
+    it('冻结后 getFrozenParams 返回参数名→值 map', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -221,7 +221,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(bl.getFrozenParams()).toEqual({ sass: 0.8 });
     });
 
-    it.skip('isFrozen 正确判断已冻结/未冻结参数', () => {
+    it('isFrozen 正确判断已冻结/未冻结参数', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -235,7 +235,7 @@ describe('BoneLayer — 骨层存储模块', () => {
   // --- A.4 recordRound ---
 
   describe('recordRound — 记录进化轮次', () => {
-    it.skip('recordRound 递增 roundCounter', () => {
+    it('recordRound 递增 roundCounter', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -247,7 +247,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(state.roundCounter).toBe(2);
     });
 
-    it.skip('recordRound 为每个参数追加历史条目', () => {
+    it('recordRound 为每个参数追加历史条目', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -260,7 +260,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(state.history.sass[0].round).toBe(1);
     });
 
-    it.skip('recordRound 自动为新参数创建 history 条目', () => {
+    it('recordRound 自动为新参数创建 history 条目', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -273,7 +273,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(state.history.newParam.length).toBe(1);
     });
 
-    it.skip('recordRound 历史超过 40 轮时截断最旧条目', () => {
+    it('recordRound 历史超过 40 轮时截断最旧条目', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -288,7 +288,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(state.history.sass[0].round).toBe(45);
     });
 
-    it.skip('recordRound 历史按 round 降序存储（最新在前）', () => {
+    it('recordRound 历史按 round 降序存储（最新在前）', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -306,7 +306,7 @@ describe('BoneLayer — 骨层存储模块', () => {
   // --- A.5 freezeParam ---
 
   describe('freezeParam — 冻结参数', () => {
-    it.skip('freezeParam 写入 frozen map', () => {
+    it('freezeParam 写入 frozen map', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -320,7 +320,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(state.frozen.sass.frozenAt).toBeDefined();
     });
 
-    it.skip('freezeParam 追加 commitChain 条目', () => {
+    it('freezeParam 追加 commitChain 条目', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -336,7 +336,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(entry.hash.length).toBeGreaterThan(10);
     });
 
-    it.skip('多次 freezeParam 构建链式 prevHash', () => {
+    it('多次 freezeParam 构建链式 prevHash', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -350,7 +350,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(state.commitChain[1].prevHash).toBe(state.commitChain[0].hash);
     });
 
-    it.skip('frozen 参数无 delete/update 路径（append-only 语义）', () => {
+    it('frozen 参数无 delete/update 路径（append-only 语义）', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -365,7 +365,7 @@ describe('BoneLayer — 骨层存储模块', () => {
   // --- A.6 validateChain ---
 
   describe('validateChain — hash 链完整性', () => {
-    it.skip('空链视为合法', () => {
+    it('空链视为合法', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -374,7 +374,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(result.valid).toBe(true);
     });
 
-    it.skip('正常链校验通过', () => {
+    it('正常链校验通过', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -389,7 +389,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(result.valid).toBe(true);
     });
 
-    it.skip('链中间篡改 → 检测到损坏并返回 lastValidIndex', () => {
+    it('链中间篡改 → 检测到损坏并返回 lastValidIndex', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -409,7 +409,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(result.lastValidIndex).toBe(0);
     });
 
-    it.skip('链损坏时 load() 回退到最后合法快照', () => {
+    it('链损坏时 load() 回退到最后合法快照', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -437,7 +437,7 @@ describe('BoneLayer — 骨层存储模块', () => {
   // --- A.7 save — 原子写入 ---
 
   describe('save — 原子写入', () => {
-    it.skip('save() 写入有效 JSON', () => {
+    it('save() 写入有效 JSON', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -448,7 +448,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(() => JSON.parse(raw)).not.toThrow();
     });
 
-    it.skip('save() 使用 tmp+rename 保证原子性（不产生半写文件）', () => {
+    it('save() 使用 tmp+rename 保证原子性（不产生半写文件）', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -464,7 +464,7 @@ describe('BoneLayer — 骨层存储模块', () => {
   // --- A.8 formatFrozenListForPrompt ---
 
   describe('formatFrozenListForPrompt', () => {
-    it.skip('无冻结时返回空字符串或提示文本', () => {
+    it('无冻结时返回空字符串或提示文本', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -473,7 +473,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(typeof text).toBe('string');
     });
 
-    it.skip('有冻结时返回包含参数名和值的列表', () => {
+    it('有冻结时返回包含参数名和值的列表', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -484,7 +484,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(text).toContain('0.8');
     });
 
-    it.skip('多个冻结参数每行一个', () => {
+    it('多个冻结参数每行一个', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -500,7 +500,7 @@ describe('BoneLayer — 骨层存储模块', () => {
   // --- A.9 validatePersonalityWrite ---
 
   describe('validatePersonalityWrite — 写入校验', () => {
-    it.skip('无冻结参数时任何写入都合法', () => {
+    it('无冻结参数时任何写入都合法', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -509,7 +509,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(violated).toEqual([]);
     });
 
-    it.skip('写入值与冻结值相同 → 合法', () => {
+    it('写入值与冻结值相同 → 合法', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -519,7 +519,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(violated).toEqual([]);
     });
 
-    it.skip('篡改冻结参数值 → 返回被篡改参数名', () => {
+    it('篡改冻结参数值 → 返回被篡改参数名', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -529,7 +529,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(violated).toContain('sass');
     });
 
-    it.skip('省略冻结参数（不包含字段） → 视为篡改', () => {
+    it('省略冻结参数（不包含字段） → 视为篡改', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -539,7 +539,7 @@ describe('BoneLayer — 骨层存储模块', () => {
       expect(violated).toContain('sass');
     });
 
-    it.skip('多个冻结参数部分篡改 → 只返回被篡改的', () => {
+    it('多个冻结参数部分篡改 → 只返回被篡改的', () => {
       const { createBoneLayer } = require('../bone-layer.js');
       const dir = makeTmpDir();
       const bl = createBoneLayer(dir);
@@ -562,7 +562,7 @@ describe('MetaEvaluator — 元决策评估器', () => {
   // --- B.1 computeStability 基本计算 ---
 
   describe('computeStability — 稳定性计算', () => {
-    it.skip('完全静止序列（所有值相同）→ variance=0, directionConsistency=1.0, stable=true', () => {
+    it('完全静止序列（所有值相同）→ variance=0, directionConsistency=1.0, stable=true', () => {
       const { computeStability } = require('../meta-evaluator.js');
       const values = Array(10).fill(0.8);
       const result = computeStability(values);
@@ -571,14 +571,14 @@ describe('MetaEvaluator — 元决策评估器', () => {
       expect(result.directionConsistency).toBe(1.0);
     });
 
-    it.skip('单调递增微小步长序列 → directionConsistency 接近 1.0', () => {
+    it('单调递增微小步长序列 → directionConsistency 接近 1.0', () => {
       const { computeStability } = require('../meta-evaluator.js');
       const values = [0.810, 0.808, 0.806, 0.804, 0.802, 0.800]; // 降序存储（最新在前），值递增
       const result = computeStability(values);
       expect(result.directionConsistency).toBeGreaterThanOrEqual(0.7);
     });
 
-    it.skip('大幅振荡序列 → variance 大, stable=false', () => {
+    it('大幅振荡序列 → variance 大, stable=false', () => {
       const { computeStability } = require('../meta-evaluator.js');
       const values = [0.9, 0.1, 0.9, 0.1, 0.9, 0.1]; // 大幅度振荡
       const result = computeStability(values);
@@ -586,14 +586,14 @@ describe('MetaEvaluator — 元决策评估器', () => {
       expect(result.variance).toBeGreaterThan(0.01);
     });
 
-    it.skip('不足 MIN_STABLE_ROUNDS（5 轮）→ stable=false', () => {
+    it('不足 MIN_STABLE_ROUNDS（5 轮）→ stable=false', () => {
       const { computeStability } = require('../meta-evaluator.js');
       const values = [0.8, 0.8, 0.8]; // 只有 3 个值
       const result = computeStability(values);
       expect(result.stable).toBe(false);
     });
 
-    it.skip('恰好 MIN_STABLE_ROUNDS（5 轮）且稳定 → stable=true', () => {
+    it('恰好 MIN_STABLE_ROUNDS（5 轮）且稳定 → stable=true', () => {
       const { computeStability } = require('../meta-evaluator.js');
       const values = [0.800, 0.801, 0.800, 0.799, 0.800];
       const result = computeStability(values);
@@ -601,7 +601,7 @@ describe('MetaEvaluator — 元决策评估器', () => {
       expect(result.stableRounds).toBeGreaterThanOrEqual(5);
     });
 
-    it.skip('前段稳定后段不稳定 → stableRounds 只计前段', () => {
+    it('前段稳定后段不稳定 → stableRounds 只计前段', () => {
       const { computeStability } = require('../meta-evaluator.js');
       // 最新在前：前 6 个稳定，之后突变
       const values = [0.80, 0.80, 0.80, 0.80, 0.80, 0.80, 0.50, 0.20, 0.90, 0.10];
@@ -614,21 +614,21 @@ describe('MetaEvaluator — 元决策评估器', () => {
   // --- B.2 自适应窗口 ---
 
   describe('自适应窗口', () => {
-    it.skip('窗口从 MIN_STABLE_ROUNDS 开始扩展', () => {
+    it('窗口从 MIN_STABLE_ROUNDS 开始扩展', () => {
       const { computeStability } = require('../meta-evaluator.js');
       const values = Array(20).fill(0.8);
       const result = computeStability(values);
       expect(result.stableRounds).toBe(20);
     });
 
-    it.skip('窗口不超过 MAX_EVAL_WINDOW（30）', () => {
+    it('窗口不超过 MAX_EVAL_WINDOW（30）', () => {
       const { computeStability } = require('../meta-evaluator.js');
       const values = Array(40).fill(0.8);
       const result = computeStability(values);
       expect(result.stableRounds).toBeLessThanOrEqual(30);
     });
 
-    it.skip('stddev 超过 VARIANCE_THRESHOLD 时停止扩展', () => {
+    it('stddev 超过 VARIANCE_THRESHOLD 时停止扩展', () => {
       const { computeStability } = require('../meta-evaluator.js');
       // 前 8 个稳定，第 9 个开始波动
       const values = [0.80, 0.80, 0.80, 0.80, 0.80, 0.80, 0.80, 0.80, 0.50, 0.90];
@@ -640,14 +640,14 @@ describe('MetaEvaluator — 元决策评估器', () => {
   // --- B.3 方向一致性 ---
 
   describe('方向一致性', () => {
-    it.skip('所有差分为零（完全静止）→ directionConsistency = 1.0', () => {
+    it('所有差分为零（完全静止）→ directionConsistency = 1.0', () => {
       const { computeStability } = require('../meta-evaluator.js');
       const values = Array(10).fill(0.5);
       const result = computeStability(values);
       expect(result.directionConsistency).toBe(1.0);
     });
 
-    it.skip('单调递减 → directionConsistency 接近 1.0', () => {
+    it('单调递减 → directionConsistency 接近 1.0', () => {
       const { computeStability } = require('../meta-evaluator.js');
       // 最新在前，值递减 → 差分全负
       const values = [0.795, 0.796, 0.797, 0.798, 0.799, 0.800];
@@ -655,14 +655,14 @@ describe('MetaEvaluator — 元决策评估器', () => {
       expect(result.directionConsistency).toBeGreaterThanOrEqual(0.7);
     });
 
-    it.skip('交替振荡 → directionConsistency 接近 0.5', () => {
+    it('交替振荡 → directionConsistency 接近 0.5', () => {
       const { computeStability } = require('../meta-evaluator.js');
       const values = [0.81, 0.79, 0.81, 0.79, 0.81, 0.79]; // ±0.02 交替
       const result = computeStability(values);
       expect(result.directionConsistency).toBeLessThan(0.7);
     });
 
-    it.skip('差分中含微小变化（<0.001） → 视为零，不计入方向统计', () => {
+    it('差分中含微小变化（<0.001） → 视为零，不计入方向统计', () => {
       const { computeStability } = require('../meta-evaluator.js');
       const values = [0.8001, 0.8000, 0.7999, 0.8001, 0.8000]; // 变化量 0.0001
       const result = computeStability(values);
@@ -674,21 +674,21 @@ describe('MetaEvaluator — 元决策评估器', () => {
   // --- B.4 evaluate 整体评估 ---
 
   describe('evaluate — 整体评估', () => {
-    it.skip('历史不足 → 不返回任何冻结决策', () => {
+    it('历史不足 → 不返回任何冻结决策', () => {
       const { evaluate } = require('../meta-evaluator.js');
       const history = { sass: [{ round: 1, value: 0.5, ts: '' }] };
       const decisions = evaluate(history, new Set());
       expect(decisions).toEqual([]);
     });
 
-    it.skip('已冻结参数 → 跳过不再评估', () => {
+    it('已冻结参数 → 跳过不再评估', () => {
       const { evaluate } = require('../meta-evaluator.js');
       const history = { sass: flatHistory('sass', 20, 0.8) };
       const decisions = evaluate(history, new Set(['sass']));
       expect(decisions.find(d => d.param === 'sass')).toBeUndefined();
     });
 
-    it.skip('稳定参数 → 返回冻结决策', () => {
+    it('稳定参数 → 返回冻结决策', () => {
       const { evaluate } = require('../meta-evaluator.js');
       const history = { sass: flatHistory('sass', 10, 0.8) };
       const decisions = evaluate(history, new Set());
@@ -697,14 +697,14 @@ describe('MetaEvaluator — 元决策评估器', () => {
       expect(typeof decisions[0].contextSummary).toBe('string');
     });
 
-    it.skip('波动参数 → 不返回冻结决策', () => {
+    it('波动参数 → 不返回冻结决策', () => {
       const { evaluate } = require('../meta-evaluator.js');
       const history = { sass: volatileHistory(10, 0.5, 0.1) };
       const decisions = evaluate(history, new Set());
       expect(decisions).toEqual([]);
     });
 
-    it.skip('多参数混合：部分稳定部分波动 → 只返回稳定的', () => {
+    it('多参数混合：部分稳定部分波动 → 只返回稳定的', () => {
       const { evaluate } = require('../meta-evaluator.js');
       const history = {
         sass: flatHistory('sass', 10, 0.8),
@@ -718,13 +718,13 @@ describe('MetaEvaluator — 元决策评估器', () => {
       expect(frozenParams).not.toContain('curiosity');
     });
 
-    it.skip('空 history → 返回空数组', () => {
+    it('空 history → 返回空数组', () => {
       const { evaluate } = require('../meta-evaluator.js');
       const decisions = evaluate({}, new Set());
       expect(decisions).toEqual([]);
     });
 
-    it.skip('contextSummary 包含稳定轮数和标准差信息', () => {
+    it('contextSummary 包含稳定轮数和标准差信息', () => {
       const { evaluate } = require('../meta-evaluator.js');
       const history = { sass: flatHistory('sass', 10, 0.8) };
       const decisions = evaluate(history, new Set());
@@ -735,22 +735,22 @@ describe('MetaEvaluator — 元决策评估器', () => {
   // --- B.5 常量验证 ---
 
   describe('硬编码常量（物理定律）', () => {
-    it.skip('MIN_STABLE_ROUNDS = 5', () => {
+    it('MIN_STABLE_ROUNDS = 5', () => {
       const { MIN_STABLE_ROUNDS } = require('../meta-evaluator.js');
       expect(MIN_STABLE_ROUNDS).toBe(5);
     });
 
-    it.skip('MAX_EVAL_WINDOW = 30', () => {
+    it('MAX_EVAL_WINDOW = 30', () => {
       const { MAX_EVAL_WINDOW } = require('../meta-evaluator.js');
       expect(MAX_EVAL_WINDOW).toBe(30);
     });
 
-    it.skip('VARIANCE_THRESHOLD = 0.01', () => {
+    it('VARIANCE_THRESHOLD = 0.01', () => {
       const { VARIANCE_THRESHOLD } = require('../meta-evaluator.js');
       expect(VARIANCE_THRESHOLD).toBe(0.01);
     });
 
-    it.skip('DIRECTION_THRESHOLD = 0.7', () => {
+    it('DIRECTION_THRESHOLD = 0.7', () => {
       const { DIRECTION_THRESHOLD } = require('../meta-evaluator.js');
       expect(DIRECTION_THRESHOLD).toBe(0.7);
     });
@@ -767,7 +767,7 @@ describe('ai-manager.js 集成 — 冻结引擎', () => {
   // --- C.1 loadPersonality 双层查询 ---
 
   describe('loadPersonality — 双层查询', () => {
-    it.skip('loadPersonality 返回结果中冻结参数被覆盖', () => {
+    it('loadPersonality 返回结果中冻结参数被覆盖', () => {
       // Setup: personality.json 有 sass=0.5, bone-state frozen sass=0.8
       // 调用 loadPersonality → 返回 sass=0.8
       const dir = makeTmpDir();
@@ -784,7 +784,7 @@ describe('ai-manager.js 集成 — 冻结引擎', () => {
       expect(true).toBe(true); // placeholder
     });
 
-    it.skip('无 bone-state.json 时 loadPersonality 正常返回 personality.json 原始值', () => {
+    it('无 bone-state.json 时 loadPersonality 正常返回 personality.json 原始值', () => {
       const dir = makeTmpDir();
       writePersonality(dir, { sass: 0.5, curiosity: 0.6 });
       // loadPersonality 应 fallback 到原始值
@@ -795,29 +795,29 @@ describe('ai-manager.js 集成 — 冻结引擎', () => {
   // --- C.2 write_self_file 拦截 ---
 
   describe('write_self_file — 冻结参数写入拦截', () => {
-    it.skip('写入 personality.json 时篡改冻结参数 → 拒绝写入', () => {
+    it('写入 personality.json 时篡改冻结参数 → 拒绝写入', () => {
       // executeTool('write_self_file', { file: 'ai/personality.json', content: '{"sass": 0.1}' })
       // 应返回错误信息
       expect(true).toBe(true);
     });
 
-    it.skip('写入 personality.json 时保持冻结参数不变 → 允许写入', () => {
+    it('写入 personality.json 时保持冻结参数不变 → 允许写入', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('写入 personality.json 时省略冻结参数 → 拒绝写入', () => {
+    it('写入 personality.json 时省略冻结参数 → 拒绝写入', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('写入非 personality.json 文件 → 不触发冻结校验', () => {
+    it('写入非 personality.json 文件 → 不触发冻结校验', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('拒绝写入后原文件内容不变', () => {
+    it('拒绝写入后原文件内容不变', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('拒绝写入返回的错误信息包含被篡改参数名', () => {
+    it('拒绝写入返回的错误信息包含被篡改参数名', () => {
       expect(true).toBe(true);
     });
   });
@@ -825,35 +825,35 @@ describe('ai-manager.js 集成 — 冻结引擎', () => {
   // --- C.3 evolve() 冻结流程 ---
 
   describe('evolve() — 冻结流程集成', () => {
-    it.skip('evolve() prompt 包含冻结清单文本', () => {
+    it('evolve() prompt 包含冻结清单文本', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('evolve() prompt 中已冻结参数从可修改列表中移除', () => {
+    it('evolve() prompt 中已冻结参数从可修改列表中移除', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('evolve() 结束后调用 recordRound 记录本轮快照', () => {
+    it('evolve() 结束后调用 recordRound 记录本轮快照', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('evolve() 结束后调用 evaluate 进行元决策评估', () => {
+    it('evolve() 结束后调用 evaluate 进行元决策评估', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('evolve() 评估结果触发冻结时调用 freezeParam', () => {
+    it('evolve() 评估结果触发冻结时调用 freezeParam', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('evolve() 结束后调用 boneLayer.save()', () => {
+    it('evolve() 结束后调用 boneLayer.save()', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('所有 5 个核心参数全部冻结时 prompt 显示"所有核心性格已固化"', () => {
+    it('所有 5 个核心参数全部冻结时 prompt 显示"所有核心性格已固化"', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('进化期间 API 连续失败（未修改参数）→ recordRound 仍记录当前值', () => {
+    it('进化期间 API 连续失败（未修改参数）→ recordRound 仍记录当前值', () => {
       expect(true).toBe(true);
     });
   });
@@ -861,11 +861,11 @@ describe('ai-manager.js 集成 — 冻结引擎', () => {
   // --- C.4 buildSystemPrompt 冻结标记 ---
 
   describe('buildSystemPrompt — 冻结参数标记', () => {
-    it.skip('buildSystemPrompt 注入冻结参数标记', () => {
+    it('buildSystemPrompt 注入冻结参数标记', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('chat() 使用的 personality 走双层查询', () => {
+    it('chat() 使用的 personality 走双层查询', () => {
       expect(true).toBe(true);
     });
   });
@@ -873,11 +873,11 @@ describe('ai-manager.js 集成 — 冻结引擎', () => {
   // --- C.5 导出接口 ---
 
   describe('导出接口', () => {
-    it.skip('createAIManager 返回对象包含 getPersonality 方法', () => {
+    it('createAIManager 返回对象包含 getPersonality 方法', () => {
       expect(true).toBe(true);
     });
 
-    it.skip('getPersonality() 返回双层合并后的 personality', () => {
+    it('getPersonality() 返回双层合并后的 personality', () => {
       expect(true).toBe(true);
     });
   });
@@ -889,11 +889,11 @@ describe('ai-manager.js 集成 — 冻结引擎', () => {
 // ============================================================
 
 describe('main.js — load-personality IPC', () => {
-  it.skip('load-personality handler 返回冻结参数覆盖后的结果', () => {
+  it('load-personality handler 返回冻结参数覆盖后的结果', () => {
     expect(true).toBe(true);
   });
 
-  it.skip('bone-state.json 不存在时 load-personality 正常返回原始值', () => {
+  it('bone-state.json 不存在时 load-personality 正常返回原始值', () => {
     expect(true).toBe(true);
   });
 });
@@ -904,30 +904,30 @@ describe('main.js — load-personality IPC', () => {
 // ============================================================
 
 describe('灵魂约束 — 冻结判据来源验证', () => {
-  it.skip('meta-evaluator.js 不含 Date.now', () => {
+  it('meta-evaluator.js 不含 Date.now', () => {
     const src = fs.readFileSync(path.resolve(__dirname, '..', 'meta-evaluator.js'), 'utf8');
     expect(src).not.toMatch(/Date\.now/);
   });
 
-  it.skip('meta-evaluator.js 不含 Math.random', () => {
+  it('meta-evaluator.js 不含 Math.random', () => {
     const src = fs.readFileSync(path.resolve(__dirname, '..', 'meta-evaluator.js'), 'utf8');
     expect(src).not.toMatch(/Math\.random/);
   });
 
-  it.skip('meta-evaluator.js 不含 roundCounter > 或存活时间判断', () => {
+  it('meta-evaluator.js 不含 roundCounter > 或存活时间判断', () => {
     const src = fs.readFileSync(path.resolve(__dirname, '..', 'meta-evaluator.js'), 'utf8');
     expect(src).not.toMatch(/roundCounter\s*>/);
     expect(src).not.toMatch(/uptime/i);
   });
 
-  it.skip('bone-layer.js freezeParam 不含 Date.now 作为冻结条件', () => {
+  it('bone-layer.js freezeParam 不含 Date.now 作为冻结条件', () => {
     const src = fs.readFileSync(path.resolve(__dirname, '..', 'bone-layer.js'), 'utf8');
     // freezeParam 可以用 Date 做 frozenAt 时间戳，但不能用作冻结判据
     // 这里检查 freezeParam 函数体中没有条件判断使用 Date.now
     expect(src).not.toMatch(/if\s*\(.*Date\.now/);
   });
 
-  it.skip('冻结代码路径唯一入口是 computeStability 返回的方差+方向一致性', () => {
+  it('冻结代码路径唯一入口是 computeStability 返回的方差+方向一致性', () => {
     const src = fs.readFileSync(path.resolve(__dirname, '..', 'meta-evaluator.js'), 'utf8');
     // evaluate 函数应调用 computeStability 并基于其结果判断
     expect(src).toMatch(/computeStability/);
@@ -942,28 +942,28 @@ describe('灵魂约束 — 冻结判据来源验证', () => {
 // ============================================================
 
 describe('反降级检查', () => {
-  it.skip('write_self_file case 中有 validatePersonalityWrite 调用', () => {
+  it('write_self_file case 中有 validatePersonalityWrite 调用', () => {
     const src = fs.readFileSync(path.resolve(__dirname, '..', 'ai-manager.js'), 'utf8');
     expect(src).toMatch(/validatePersonalityWrite/);
   });
 
-  it.skip('evolve() 函数中有 evaluate() 调用', () => {
+  it('evolve() 函数中有 evaluate() 调用', () => {
     const src = fs.readFileSync(path.resolve(__dirname, '..', 'ai-manager.js'), 'utf8');
     expect(src).toMatch(/evaluate\s*\(/);
   });
 
-  it.skip('evaluate() 结果 feed 进 freezeParam()', () => {
+  it('evaluate() 结果 feed 进 freezeParam()', () => {
     const src = fs.readFileSync(path.resolve(__dirname, '..', 'ai-manager.js'), 'utf8');
     expect(src).toMatch(/freezeParam/);
   });
 
-  it.skip('ai-manager.js 顶部 require bone-layer 和 meta-evaluator', () => {
+  it('ai-manager.js 顶部 require bone-layer 和 meta-evaluator', () => {
     const src = fs.readFileSync(path.resolve(__dirname, '..', 'ai-manager.js'), 'utf8');
     expect(src).toMatch(/require.*bone-layer/);
     expect(src).toMatch(/require.*meta-evaluator/);
   });
 
-  it.skip('BoneLayer 存在但进化周期不可覆写冻结参数（validatePersonalityWrite 返回非空时拒绝写入）', () => {
+  it('BoneLayer 存在但进化周期不可覆写冻结参数（validatePersonalityWrite 返回非空时拒绝写入）', () => {
     // 通过源码分析确认 write_self_file 中有 return 错误路径
     const src = fs.readFileSync(path.resolve(__dirname, '..', 'ai-manager.js'), 'utf8');
     // validatePersonalityWrite 调用后有条件判断和 return
@@ -977,7 +977,7 @@ describe('反降级检查', () => {
 // ============================================================
 
 describe('边界条件', () => {
-  it.skip('冷启动后首轮进化 → recordRound 正常记录、evaluate 不触发冻结', () => {
+  it('冷启动后首轮进化 → recordRound 正常记录、evaluate 不触发冻结', () => {
     const { createBoneLayer } = require('../bone-layer.js');
     const { evaluate } = require('../meta-evaluator.js');
     const dir = makeTmpDir();
@@ -990,7 +990,7 @@ describe('边界条件', () => {
     expect(decisions).toEqual([]);
   });
 
-  it.skip('personality.json 新增自定义参数 → recordRound 开始追踪', () => {
+  it('personality.json 新增自定义参数 → recordRound 开始追踪', () => {
     const { createBoneLayer } = require('../bone-layer.js');
     const dir = makeTmpDir();
     const bl = createBoneLayer(dir);
@@ -1003,7 +1003,7 @@ describe('边界条件', () => {
     expect(state.history.customTrait.length).toBe(1);
   });
 
-  it.skip('连续不变的参数被正确识别为稳定', () => {
+  it('连续不变的参数被正确识别为稳定', () => {
     const { evaluate } = require('../meta-evaluator.js');
     const history = { sass: flatHistory('sass', 10, 0.5) };
     const decisions = evaluate(history, new Set());
@@ -1011,7 +1011,7 @@ describe('边界条件', () => {
     expect(decisions[0].param).toBe('sass');
   });
 
-  it.skip('所有 5 个核心参数全部冻结后 getFrozenParams 返回 5 项', () => {
+  it('所有 5 个核心参数全部冻结后 getFrozenParams 返回 5 项', () => {
     const { createBoneLayer } = require('../bone-layer.js');
     const dir = makeTmpDir();
     const bl = createBoneLayer(dir);
@@ -1023,7 +1023,7 @@ describe('边界条件', () => {
     expect(Object.keys(bl.getFrozenParams()).length).toBe(5);
   });
 
-  it.skip('hash 链首条 prevHash 为 "GENESIS"', () => {
+  it('hash 链首条 prevHash 为 "GENESIS"', () => {
     const { createBoneLayer } = require('../bone-layer.js');
     const dir = makeTmpDir();
     const bl = createBoneLayer(dir);
@@ -1034,7 +1034,7 @@ describe('边界条件', () => {
     expect(state.commitChain[0].prevHash).toBe('GENESIS');
   });
 
-  it.skip('commitChain 条目包含 param, valueHash, frozenAt, contextHash, prevHash, hash', () => {
+  it('commitChain 条目包含 param, valueHash, frozenAt, contextHash, prevHash, hash', () => {
     const { createBoneLayer } = require('../bone-layer.js');
     const dir = makeTmpDir();
     const bl = createBoneLayer(dir);
@@ -1050,7 +1050,7 @@ describe('边界条件', () => {
     expect(entry).toHaveProperty('hash');
   });
 
-  it.skip('valueHash 是 sha256(value.toString())', () => {
+  it('valueHash 是 sha256(value.toString())', () => {
     const { createBoneLayer } = require('../bone-layer.js');
     const dir = makeTmpDir();
     const bl = createBoneLayer(dir);
